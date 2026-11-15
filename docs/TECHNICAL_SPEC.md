@@ -193,50 +193,52 @@ pub trait CodeEmitterPort {
 
 ---
 
-## 6. Pure Use Case Orchestration
+## 6. Pure Use Case Orchestration (100% Pure Standard Rust)
+
+In strict adherence to Hexagonal Architecture, Use Cases know nothing about compiler ASTs or tokens. They accept pure `ContainerIR` and return a pure `ConstructionPlan`.
 
 ```rust
-// wireup_macros/src/use_cases/derive_container.rs
+// wireup_macros/src/use_cases/plan_container.rs
 
-use crate::ports::{ContainerParserPort, CodeEmitterPort};
+use crate::domain::{ContainerIR, ConstructionPlan, DomainError};
 use crate::use_cases::{GraphEngine, ExecutionPlanner};
-use crate::domain::DomainError;
-use proc_macro2::TokenStream;
 
-pub struct DeriveContainerUseCase<P, E> 
-where
-    P: ContainerParserPort,
-    E: CodeEmitterPort,
-{
-    parser: P,
+pub struct PlanContainerUseCase {
     graph_engine: GraphEngine,
     planner: ExecutionPlanner,
-    emitter: E,
 }
 
-impl<P, E> DeriveContainerUseCase<P, E>
-where
-    P: ContainerParserPort,
-    E: CodeEmitterPort,
-{
-    pub fn new(parser: P, graph_engine: GraphEngine, planner: ExecutionPlanner, emitter: E) -> Self {
-        Self { parser, graph_engine, planner, emitter }
+impl PlanContainerUseCase {
+    pub fn new(graph_engine: GraphEngine, planner: ExecutionPlanner) -> Self {
+        Self { graph_engine, planner }
     }
 
-    pub fn execute(&self, raw_input: &syn::ItemStruct) -> Result<TokenStream, DomainError> {
-        // 1. Inbound Adapter: Parse compiler AST -> Pure Domain IR
-        let container_ir = self.parser.parse_container(raw_input)?;
-
-        // 2. Pure Domain Logic: DAG Topological Sort & Cycle Detection
+    pub fn execute(&self, container_ir: ContainerIR) -> Result<ConstructionPlan, DomainError> {
+        // 1. Pure Domain Logic: DAG Topological Sort & Cycle Detection
         let sorted_dependencies = self.graph_engine.topological_sort(&container_ir.dependencies)?;
 
-        // 3. Pure Domain Logic: Plan sequential vs. parallel tokio::join batches
+        // 2. Pure Domain Logic: Plan sequential vs. parallel tokio::join batches
         let plan = self.planner.build_plan(&container_ir, sorted_dependencies)?;
 
-        // 4. Outbound Adapter: Render ConstructionPlan -> proc_macro2::TokenStream
-        //    (Rewrites struct fields, strips transients, generates enum_dispatch and getters)
-        Ok(self.emitter.emit_container(&plan))
+        Ok(plan)
     }
+}
+```
+
+### The End-to-End Orchestration in `wireup_macros/src/lib.rs` (Outer Handler Layer):
+```rust
+#[proc_macro_attribute]
+pub fn container(args: TokenStream, input: TokenStream) -> TokenStream {
+    let item_struct = syn::parse_macro_input!(input as syn::ItemStruct);
+
+    // 1. Inbound Adapter: Compiler AST -> Pure Domain IR
+    let ir = SynParserAdapter::parse(&item_struct)?;
+
+    // 2. Pure Use Case: Domain IR -> ConstructionPlan (ZERO compiler types)
+    let plan = PlanContainerUseCase::default().execute(ir)?;
+
+    // 3. Outbound Adapter: ConstructionPlan -> proc_macro2::TokenStream
+    QuoteEmitterAdapter::emit(&plan).into()
 }
 ```
 

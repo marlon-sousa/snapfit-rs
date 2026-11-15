@@ -224,27 +224,44 @@ pub struct AppContainer {
 }
 ```
 
-### Manual Factories with Parameter-Level `#[inject]` (`#[container_impl]`)
-When a dependency requires custom construction logic, write a method on `AppContainer` annotated with `#[container_impl]`. Each parameter marked with `#[inject]` requests another container dependency:
+### Manual Factories (`#[factory = "..."]`)
+When a dependency requires custom construction logic, declare the factory method and its prerequisite arguments on the struct field:
 
 ```rust
-#[container_impl]
+#[container]
+pub struct AppContainer {
+    config: Arc<Config>,
+    db: Arc<Database>,
+
+    // Singleton factory: Invokes associated function Self::build_auth(config, db)
+    #[factory(build_auth(config, db))]
+    auth: Arc<AuthService>,
+
+    // Transient factory: Invokes method Self::build_controller(config, db)
+    #[transient]
+    #[factory(build_controller(config, db))]
+    controller: UserController,
+}
+
 impl AppContainer {
-    pub fn build_auth(
-        &self,
-        #[inject] config: &Config,
-        #[inject] db: Arc<Database>,
-    ) -> Arc<AuthService> {
+    // 1. Singleton factory: Associated function (no `&self` because container is booting)
+    pub fn build_auth(config: &Config, db: Arc<Database>) -> Arc<AuthService> {
         AuthService::from_vault(config.vault_url(), db)
+    }
+
+    // 2. Transient factory: Method or associated function called on-demand
+    pub fn build_controller(&self, config: &Config, db: Arc<Database>) -> UserController {
+        UserController::new(config, db)
     }
 }
 ```
 
-* **Single Source of Truth:** You never duplicate prerequisite lists on the struct. The macro reads `#[inject]` on `build_auth`'s parameters, registers `auth -> config` and `auth -> db` in the Directed Acyclic Graph (DAG), and generates the uniform consumer getter:
+* **Deterministic Single-Pass DAG:** Declaring `build_auth(config, db)` on the field ensures the Directed Acyclic Graph (DAG) is 100% compile-time verified in a single macro expansion pass, avoiding non-deterministic cross-macro communication hazards.
+* **Uniform Consumer Interface:** The macro generates the standard zero-argument getter:
   ```rust
   impl AppContainer {
       pub fn get_auth(&self) -> Arc<AuthService> {
-          self.build_auth(self.config(), self.get_db())
+          self.auth.clone()
       }
   }
   ```
@@ -344,7 +361,8 @@ pub struct AppContainer {
 }
 ```
 * **Performance:** 100% static dispatch, compiler-inlined calls, zero `dyn Any`, zero `vtable`.
-* **When dynamic dispatch is desired:** Omit `#[dispatch]` and keep `Arc<dyn Database + Send + Sync>` for open-ended plugin architectures.
+* **Trait Annotation Contract:** Because Rust procedural macros operate syntactically and cannot inspect external trait method definitions, static dispatch leverages `enum_dispatch` (which requires `#[enum_dispatch]` on the trait).
+* **When dynamic dispatch is desired (Zero Trait Macros):** Omit `#[dispatch]` and use `Arc<dyn Database + Send + Sync>` directly. This requires zero annotations on the trait definition and supports dynamic plugin architectures.
 
 ---
 
