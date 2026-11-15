@@ -1,0 +1,17 @@
+# Set default behavior: enforce LF on checkout and commit for all text files
+* text=auto eol=lf
+
+# Explicitly enforce LF for Rust and project files
+*.rs text eol=lf
+*.toml text eol=lf
+*.md text eol=lf
+*.feature text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.ico binary
+*.wasm binary
