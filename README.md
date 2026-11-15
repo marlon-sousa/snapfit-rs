@@ -4,6 +4,7 @@
 
 [![Crates.io](https://img.shields.io/badge/crates.io-wireup-orange)](https://crates.io/crates/wireup)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](LICENSE-MIT)
+[![MSRV](https://img.shields.io/badge/MSRV-1.85.0-informational?logo=rust)](https://blog.rust-lang.org/2025/02/20/Rust-1.85.0.html)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](#)
 
 ---
@@ -81,12 +82,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ---
 
+## Minimum Supported Rust Version (MSRV)
+
+This crate requires **Rust 1.85.0** or higher (Rust 2024 edition).
+The exact toolchain and required components (`clippy`, `rustfmt`, `rust-src`) are pinned in [`rust-toolchain.toml`](rust-toolchain.toml).
+
+---
+
 ## Documentation
 
 * [Specification & API Guide](docs/SPEC.md) — Comprehensive functional specification, attribute syntax, and lifecycles.
 * [Technical Architecture (Hexagonal)](docs/TECHNICAL_SPEC.md) — Ports & Adapters blueprint, Intermediate Representation (IR), and compiler isolation.
 * [Development Workflow](docs/WORKFLOW.md) — Stacked PR roadmap, Double-Loop BDD, and agentic review loops.
-* [Agent Guidelines](AGENTS.md) — Authoritative rules and architectural invariants for AI agents working in this repository.
+* [Agent Guidelines](AGENTS.md) — Authoritative rules, reuse guidelines, and architectural invariants for AI agents working in this repository.
 
 ---
 

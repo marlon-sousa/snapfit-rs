@@ -8,17 +8,18 @@
 
 * **Crate Name:** `wireup` (runtime) / `wireup_macros` (proc-macro)
 * **GitHub Repository:** `wireup-rs`
+* **MSRV:** `1.85.0` (Rust 2024 Edition)
 * **Purpose:** A zero-cost, compile-time verified, pure-Rust dependency injection framework with zero domain pollution, automated `enum_dispatch` trait polymorphism, and eager async boot.
 * **Core Documentation Index:**
-  * Conceptual Spec: [docs/SPEC.md](file:///c:/projects/project-x/docs/SPEC.md)
-  * Technical Spec (Ports & Adapters): [docs/TECHNICAL_SPEC.md](file:///c:/projects/project-x/docs/TECHNICAL_SPEC.md)
-  * Development Workflow: [docs/WORKFLOW.md](file:///c:/projects/project-x/docs/WORKFLOW.md)
+  * Conceptual Spec: [docs/SPEC.md](docs/SPEC.md)
+  * Technical Spec (Ports & Adapters): [docs/TECHNICAL_SPEC.md](docs/TECHNICAL_SPEC.md)
+  * Development Workflow: [docs/WORKFLOW.md](docs/WORKFLOW.md)
 
 ---
 
 ## 2. Strict Architectural Invariants
 
-Every agent (whether coder or reviewer) working in this repository **must** enforce these non-negotiable rules:
+Every agent (coder or reviewer) working in this repository **must** enforce these non-negotiable rules:
 
 ### A. Hexagonal Architecture (Ports & Adapters)
 * **The Domain & Use Cases MUST be 100% pure standard Rust.**
@@ -44,30 +45,48 @@ Every agent (whether coder or reviewer) working in this repository **must** enfo
 
 ---
 
-## 3. Code Quality & Verification Gates
+## 3. Coding Standards & Engineering Principles
 
-Before submitting any work or marking a task done:
-1. **Compilation:** `cargo check --workspace --all-targets` must pass with 0 errors.
-2. **Clippy:** `cargo clippy --workspace --all-targets -- -D warnings` must produce 0 warnings.
-3. **Formatting:** `cargo fmt --check` must be clean.
-4. **Unit Tests:** Must run in < 5ms without `trybuild` compiler harnesses.
-5. **No Blind Unwraps:** Never use `.unwrap()` in macro logic unless an invariant is strictly checked above it. Return `Result<T, DomainError>`.
+1. **Dependency Reuse Priority:**
+   * **Tier 1:** Standard library first (`std`).
+   * **Tier 2:** Crates already present in our workspace dependencies.
+   * **Tier 3:** Well-known, actively maintained, and compatible external crates (e.g. `darling`, `quote`, `syn`, `tokio`).
+   * **Tier 4:** Only if none exist, write custom logic by hand.
+2. **File Size Guideline (~200 Lines):**
+   * Keep files under ~200 lines as a soft limit. If a file exceeds this threshold, treat it as a signal to refactor into cohesive private submodules.
+3. **Self-Documenting Code (No Obvious Comments):**
+   * Do not write redundant comments where code explains itself. Use descriptive function, variable, and type names. Reserve comments strictly for non-obvious invariants or complex graph algorithms.
+4. **Treat Warnings as Errors:**
+   * All code must compile with zero warnings: `#![deny(warnings)]`, `cargo clippy --workspace --all-targets -- -D warnings`.
+5. **Minimal Visibility & Encapsulation:**
+   * Default to private. Export only what is strictly necessary.
+   * Modules expose their interface through `pub(crate) use` or controlled `pub use` at the module root.
+6. **Stop and Ask:**
+   * If any question, ambiguity, or design trade-off arises during implementation, **stop and ask the Tech Lead** before making assumptions.
 
 ---
 
 ## 4. Role Instructions for Subagents
 
-### When Invoked as a Reviewer Subagent:
-1. Audit the git diff strictly against Section 2 (Architectural Invariants).
-2. Check for any leak of `syn` or `quote` into `domain` or `use_cases`.
-3. Check for test coverage of both happy paths and edge cases (e.g. cycles, missing prerequisites).
-4. Return a structured report:
-   * **Result:** `PASS` or `CHANGES REQUESTED`
-   * **Findings:** Specific file and line references if any invariants are violated.
+### `wireup-coder` (Lead Implementer):
+* Follows the 6 engineering principles above.
+* Runs `cargo fmt`, `cargo clippy -- -D warnings`, and in-memory unit tests before submitting.
+* Keeps tests fast (< 5ms) without `trybuild`.
+
+### `wireup-reviewer` (Independent Reviewer):
+* Audits diffs against Section 2 (Architectural Invariants) and Section 3 (Coding Standards).
+* Checks for:
+  * Any compiler types leaking into `domain` or `use_cases`.
+  * Files approaching/exceeding ~200 lines without justification.
+  * Over-commented trivial code or missing error handling.
+  * Excessive public exports (`pub` instead of `pub(crate)`).
+* Returns a structured report:
+  * **Result:** `PASS` or `CHANGES REQUESTED`
+  * **Findings:** Specific file and line references if any invariants are violated.
 
 ---
 
 ## 5. Development Workflow
 
-* All work proceeds via **Stacked PRs** (`stack/<number>-<name>`) as documented in [docs/WORKFLOW.md](file:///c:/projects/project-x/docs/WORKFLOW.md).
+* All work proceeds via **Stacked PRs** (`stack/<number>-<name>`) as documented in [docs/WORKFLOW.md](docs/WORKFLOW.md).
 * BDD integration tests use `cucumber-rs` and reside in `tests/features/`.

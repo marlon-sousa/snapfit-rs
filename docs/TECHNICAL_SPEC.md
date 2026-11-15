@@ -33,17 +33,36 @@ In `wireup_macros`, the compiler tools (`syn`, `darling`, `quote`, `proc_macro2`
 
 ---
 
-## 2. Crate Layout & Directory Structure
+## 2. Coding Standards & Engineering Principles
+
+1. **Dependency Reuse Priority:**
+   * Stdlib first (`std`) $\rightarrow$ existing workspace crates $\rightarrow$ well-known, actively maintained crates $\rightarrow$ custom implementation by hand.
+2. **File Size Guideline (~200 Lines):**
+   * Files should stay under ~200 lines as a soft limit. When approaching/exceeding 200 lines, split into focused private submodules.
+3. **Self-Documenting Code:**
+   * No redundant comments where code explains itself. Use descriptive names. Comments are reserved for non-obvious invariants or complex graph algorithms.
+4. **Treat Warnings as Errors:**
+   * All crates compile with `#![deny(warnings)]` and `cargo clippy -- -D warnings`.
+5. **Minimal Visibility & Encapsulation:**
+   * Default to private. Export only what is strictly necessary with `pub(crate)` or controlled `pub use` at the module root.
+6. **Stop and Ask:**
+   * If any question, ambiguity, or design trade-off arises, stop and ask the Tech Lead.
+
+---
+
+## 3. Crate Layout & Directory Structure
 
 ```text
 wireup/
 ├── Cargo.toml
+├── rust-toolchain.toml          # Pinned toolchain 1.85.0 (rustfmt, clippy, rust-src)
 ├── wireup/                      # Runtime crate (Traits, Error types)
 │   ├── Cargo.toml
 │   └── src/
 │       ├── lib.rs
 │       ├── container.rs         # Container & AsyncContainer traits
-│       └── error.rs             # Runtime WireupError enum
+│       ├── error.rs             # Runtime WireupError enum
+│       └── introspection.rs     # GraphDescriptor, NodeDescriptor
 │
 └── wireup_macros/               # Procedural macro crate
     ├── Cargo.toml
@@ -86,9 +105,7 @@ wireup/
 
 ---
 
-## 3. Pure Domain Entities (Zero Compiler Dependencies)
-
-Notice that all identifiers and types in the Domain IR are **pure standard Rust types** (`String`, standard enums). Not a single `syn::Ident` or `syn::Type` leaks into the domain!
+## 4. Pure Domain Entities (Zero Compiler Dependencies)
 
 ```rust
 // wireup_macros/src/domain/ir.rs
@@ -153,7 +170,7 @@ pub struct InstantiationStep {
 
 ---
 
-## 4. Port Interfaces
+## 5. Port Interfaces
 
 ```rust
 // wireup_macros/src/ports/parser_port.rs
@@ -174,9 +191,7 @@ pub trait CodeEmitterPort {
 
 ---
 
-## 5. Pure Use Case Orchestration
-
-The controller/use-case wires together ports using **pure constructor injection**:
+## 6. Pure Use Case Orchestration
 
 ```rust
 // wireup_macros/src/use_cases/derive_container.rs
@@ -224,12 +239,11 @@ where
 
 ---
 
-## 6. Testing Strategy: Total Isolation
+## 7. Testing Strategy: Total Isolation
 
 Because of this separation, unit testing each component is clean, deterministic, and blazing fast:
 
 ### 1. Testing the Inbound Adapter (`darling` / `syn`)
-Verify that attributes are parsed correctly without touching any graph logic:
 ```rust
 #[test]
 fn test_darling_parser_extracts_prerequisites() {
@@ -251,7 +265,6 @@ fn test_darling_parser_extracts_prerequisites() {
 ```
 
 ### 2. Testing the Pure Graph Engine (Zero Compiler Types)
-Test cycle detection using pure strings:
 ```rust
 #[test]
 fn test_graph_detects_cycle() {
@@ -267,7 +280,6 @@ fn test_graph_detects_cycle() {
 ```
 
 ### 3. Testing the Outbound Adapter (`quote!`)
-Feed a mock `ConstructionPlan` and assert that the generated string contains the expected Rust code:
 ```rust
 #[test]
 fn test_emitter_generates_getters() {
@@ -281,22 +293,21 @@ fn test_emitter_generates_getters() {
     assert!(code.contains("pub fn get_dependency < T"));
 }
 ```
-* **Result:** Every unit test runs in < 5 milliseconds in standard `cargo test`!
 
 ---
 
-## 7. Integration Testing, BDD (Cucumber/Gherkin), & Container Introspection
+## 8. Integration Testing, BDD (Cucumber/Gherkin), & Container Introspection
 
-For integration tests verifying end-to-end container assembly, `wireup` uses **BDD (Behavior-Driven Development)** with the [`cucumber`](https://crates.io/crates/cucumber) crate.
+For integration tests verifying end-to-end container assembly, `wireup` uses **BDD** with the [`cucumber`](https://crates.io/crates/cucumber) crate.
 
 ### 1. Macro-Generated Introspection (`introspection = true`)
-Instead of complex `cfg` gates, users can explicitly request debug inspection methods directly in the derive settings:
+Users can explicitly request debug inspection methods directly in the derive settings:
 
 ```rust
 #[derive(Container)]
 #[container(
     mode = "async",
-    introspection = true, // 🚀 Generates .dependency_graph() and .inspect_instances()
+    introspection = true, // 🚀 Generates .dependency_graph()
 )]
 pub struct AppContainer {
     #[dep]
@@ -393,23 +404,4 @@ fn verify_pointer_equality(world: &mut ContainerWorld, _consumer: String, _dep: 
         "Expected controller's Database pointer to match Container's Database pointer"
     );
 }
-
-#[when(r#"I request "user_controller" twice"#)]
-fn request_transient_twice(world: &mut ContainerWorld) {
-    let container = world.container.as_ref().unwrap();
-    world.controller_1 = Some(container.get_controller());
-    world.controller_2 = Some(container.get_controller());
-}
-
-#[then("the two controller instances should have different memory addresses")]
-fn verify_different_instances(world: &mut ContainerWorld) {
-    let c1 = world.controller_1.as_ref().unwrap();
-    let c2 = world.controller_2.as_ref().unwrap();
-
-    assert!(
-        !std::ptr::eq(c1, c2),
-        "Expected transient instances to have different memory addresses"
-    );
-}
 ```
-
