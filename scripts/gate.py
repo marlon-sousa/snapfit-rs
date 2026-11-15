@@ -10,6 +10,14 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Ensure UTF-8 output on all platforms (avoids Windows cp1252 charmap errors)
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 FORBIDDEN_COMPILER_TOKENS = [
     "syn::",
     "use syn",
