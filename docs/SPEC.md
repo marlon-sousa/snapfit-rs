@@ -25,36 +25,32 @@ Most dependency injection frameworks in Rust fall into two undesirable extremes:
 
 ## 2. Declarative Container Syntax & Settings
 
-A container in `wireup` is a standard Rust struct annotated with `#[derive(Container)]`. Global behavior is configured using the `#[container(...)]` helper attribute.
+A container in `wireup` is declared using the `#[container]` procedural attribute macro. Global behavior is configured using arguments on `#[container(...)]`.
 
 ```rust
 use std::sync::Arc;
-use wireup::Container;
+use wireup::container;
 
-#[derive(Container)]
 #[container(
     mode = "async",       // "async" | "sync" (auto-detected if any field is async)
-    dispatch = "enum",    // "enum" (zero-cost static) | "dyn" (dynamic trait objects)
 )]
 pub struct AppContainer {
-    // 1. Leaf dependency (calls Config::new())
-    #[dep]
+    // 1. Plain field = Singleton (Zero attributes needed! Calls Config::new())
     config: Arc<Config>,
 
-    // 2. Singleton with prerequisites (calls Database::new(config))
-    #[dep(config)]
-    db: Arc<Database>,
+    // 2. Singleton with handle (No redundant Arc needed for pre-cloned pools!)
+    db_pool: sqlx::PgPool,
 
-    // 3. Transient dependency: freshly instantiated on every get
-    #[dep(config, db, transient)]
+    // 3. Static polymorphism via enum_dispatch (Macro rewrites field to generated enum!)
+    #[dispatch(PostgresDb, MockDb)]
+    database: Arc<dyn Database>,
+
+    // 4. Transient dependency: Stripped from struct memory storage by the macro!
+    #[transient]
     user_controller: UserController,
 
-    // 4. Custom constructor method name
-    #[dep(config, constructor = "from_config")]
-    cache: Arc<RedisCache>,
-
-    // 5. User-provided custom factory (skips automatic ::new call)
-    #[dep(custom = "build_auth_service")]
+    // 5. Custom factory method (parameters auto-injected via #[inject])
+    #[factory = "build_auth"]
     auth: Arc<AuthService>,
 }
 ```
@@ -64,9 +60,18 @@ pub struct AppContainer {
 | Setting | Options | Default | Description |
 | :--- | :--- | :--- | :--- |
 | **`mode`** | `"async"`, `"sync"` | `"sync"` *(or auto `"async"` if any field is `async`)* | Controls whether the container produces `pub async fn init() -> Result<Self, ...>` or synchronous `pub fn new() -> Self`. |
-| **`dispatch`** | `"enum"`, `"dyn"` | `"enum"` | Controls trait field resolution. `"enum"` generates `enum_dispatch` for 0 vtables; `"dyn"` produces `Arc<dyn Trait>` for open-ended plugin architectures. |
 | **`parent`** | Type Identifier | None | Marks this container as a Child Scope copying/inheriting singletons from a parent container. |
 | **`introspection`** | `bool` | `false` | When `true`, generates `.dependency_graph()` and runtime inspection methods for BDD testing or runtime visualization. |
+
+### Field-Level Attribute Vocabulary:
+
+| Attribute | Role | Structural & Memory Impact |
+| :--- | :--- | :--- |
+| *(None)* | **Singleton** | Stored in container struct. Initialized once at boot. Cloned on read. |
+| **`#[transient]`** | **Transient** | **Stripped from struct memory storage by the macro.** Reconstructed on every `get_<dep>()` call. |
+| **`#[dispatch(ImplA, ImplB)]`** | **Static Trait** | Auto-generates `enum_dispatch` enum and **rewrites the struct field type** to the generated enum. |
+| **`#[factory = "method"]`** | **Custom Factory** | Invokes `self.method(#[inject] ...)` instead of `Type::new(...)`. |
+
 
 ---
 
@@ -122,23 +127,30 @@ impl std::str::FromStr for AppContainerKey {
 
 ---
 
-## 4. Dual Resolution APIs
+## 4. Dual Resolution APIs & Flexible Return Types
 
-`wireup` provides two complementary ways to retrieve dependencies:
+`wireup` provides two complementary ways to retrieve dependencies, with flexible return types:
 
 ### A. Strongly-Typed Direct Getters (Zero-Cost, Compile-Time Checked)
-For each field `foo: T`, the macro emits a direct getter:
+For each field `foo: T`, the macro emits a direct getter returning `T` (or a reference):
 
 ```rust
 impl AppContainer {
+    // 1. Singletons: Return the declared type directly via .clone()
     pub fn get_config(&self) -> Arc<Config> { self.config.clone() }
-    pub fn get_db(&self) -> Arc<Database> { self.db.clone() }
+    pub fn get_db_pool(&self) -> sqlx::PgPool { self.db_pool.clone() } // Zero redundant Arc!
+
+    // 2. Zero-cost borrowed getters for read-only access (no atomic ref-count cost)
+    pub fn config(&self) -> &Config { &self.config }
+
+    // 3. Transient: Freshly evaluates factory on every call; returns owned T
     pub fn get_user_controller(&self) -> UserController {
-        // Transient: freshly evaluates constructor on every call
-        UserController::new(self.get_config(), self.get_db())
+        UserController::new(self.get_config(), self.get_database())
     }
 }
 ```
+
+* **No Forced `Arc<T>`:** Singletons require only `T: Clone`. If a type is already internally ref-counted (`sqlx::PgPool`, `reqwest::Client`) or a lightweight config struct, you declare it bare without a wasteful `Arc<Pool>` double indirection.
 
 ### B. Key-Based Resolution (`get_dependency::<T>`)
 For dynamic dispatch, testing, or reflection-style access, the container provides generic key-based lookup accepting either `AppContainerKey` or string slices (`&str`):
@@ -154,15 +166,14 @@ impl AppContainer {
 
         match enum_key {
             AppContainerKey::Config => self.downcast_dep::<Arc<Config>, T>(self.get_config(), key_str),
-            AppContainerKey::Db => self.downcast_dep::<Arc<Database>, T>(self.get_db(), key_str),
+            AppContainerKey::DbPool => self.downcast_dep::<sqlx::PgPool, T>(self.get_db_pool(), key_str),
+            AppContainerKey::Database => self.downcast_dep::<Arc<AppContainerDatabase>, T>(self.get_database(), key_str),
             AppContainerKey::UserController => self.downcast_dep::<UserController, T>(self.get_user_controller(), key_str),
-            AppContainerKey::Cache => self.downcast_dep::<Arc<RedisCache>, T>(self.get_cache(), key_str),
             AppContainerKey::Auth => self.downcast_dep::<Arc<AuthService>, T>(self.get_auth(), key_str),
         }
     }
 
     fn downcast_dep<Actual: 'static + Clone, Target: 'static>(&self, val: Actual, key: &str) -> Target {
-        // Safely verify matching TypeIds and cast
         let any_val = &val as &dyn std::any::Any;
         match any_val.downcast_ref::<Target>() {
             Some(matched) => matched.clone(),
@@ -183,36 +194,61 @@ impl AppContainer {
 
 ---
 
-## 5. Dependency Lifecycles & The Service Cache
+## 5. Dependency Lifecycles & Struct Storage Rewriting
 
-`wireup` handles lifetimes with optimal memory and thread safety:
+The `#[container]` attribute macro actively shapes the memory layout of the generated container struct:
 
-| Lifecycle | Declaration | Storage & Resolution Behavior |
-| :--- | :--- | :--- |
-| **Singleton** *(Default)* | `#[dep(...)]` | Constructed once during `init()`/`new()`, stored in the container struct as `Arc<T>` (or initialized lazily via `std::sync::OnceLock<Arc<T>>`). Thread-safe, lock-free clones on reads. |
-| **Transient** | `#[dep(..., transient)]` | **Never cached in the service cache.** Evaluates the constructor on every getter call and returns a fresh instance. |
-| **Scoped** | `#[container(parent = ...)]` | Defined inside a Child Container. Clones/borrows parent singletons and instantiates request-local instances for the scope duration. |
+| Lifecycle | Declaration | Storage in Container Struct | Resolution Behavior |
+| :--- | :--- | :--- | :--- |
+| **Singleton** *(Default)* | Plain field `name: T` | **Stored in struct.** | Constructed once during `init()`/`new()`. Returned by `.clone()`. |
+| **Transient** | `#[transient] name: T` | **Stripped from struct memory.** | **Zero struct bytes allocated.** Reconstructed on every `get_<name>()` call. |
+| **Static Trait** | `#[dispatch(...)] name: dyn Trait` | **Field rewritten to static enum.** | Enum generated via `enum_dispatch`; zero heap allocation or vtable overhead. |
+| **Scoped** | `#[container(parent = ...)]` | Inherited / Scope-local. | Clones/borrows parent singletons and instantiates request-local instances. |
 
 ---
 
-## 6. Dependency Wiring: Container-Driven vs. Component-Driven
+## 6. Dependency Wiring & Parameter-Level `#[inject]`
 
-`wireup` supports **Container-Driven Wiring** as its primary pattern, keeping business domain models 100% pure.
+`wireup` provides a **Unified Construction Model** that connects auto-wiring with manual factory methods:
 
-### Primary: Container-Driven Wiring (Zero Domain Macros)
-The container declares which fields are passed into each constructor:
+### Primary: Auto-Wiring (Zero Boilerplate)
+For standard structs implementing `new(...)`, prerequisites are resolved automatically by matching constructor arguments to container dependency names or types:
 ```rust
-#[derive(Container)]
+#[container]
 pub struct AppContainer {
-    #[dep]
     config: Arc<Config>,
-
-    #[dep(config)]
     db: Arc<Database>,
 
-    #[dep(config, db, transient)]
-    controller: Controller,
+    #[transient]
+    controller: UserController, // Auto-calls UserController::new(config, db)
 }
+```
+
+### Manual Factories with Parameter-Level `#[inject]` (`#[container_impl]`)
+When a dependency requires custom construction logic, write a method on `AppContainer` annotated with `#[container_impl]`. Each parameter marked with `#[inject]` requests another container dependency:
+
+```rust
+#[container_impl]
+impl AppContainer {
+    pub fn build_auth(
+        &self,
+        #[inject] config: &Config,
+        #[inject] db: Arc<Database>,
+    ) -> Arc<AuthService> {
+        AuthService::from_vault(config.vault_url(), db)
+    }
+}
+```
+
+* **Single Source of Truth:** You never duplicate prerequisite lists on the struct. The macro reads `#[inject]` on `build_auth`'s parameters, registers `auth -> config` and `auth -> db` in the Directed Acyclic Graph (DAG), and generates the uniform consumer getter:
+  ```rust
+  impl AppContainer {
+      pub fn get_auth(&self) -> Arc<AuthService> {
+          self.build_auth(self.config(), self.get_db())
+      }
+  }
+  ```
+
 ```
 * **Domain Model:**
   ```rust
@@ -280,28 +316,35 @@ impl Database for PostgresDb { ... }
 pub struct MockDb;
 impl Database for MockDb { ... }
 
-#[derive(Container)]
+#[container]
 pub struct AppContainer {
-    // Automatically generates an enum AppDb implementing Database
-    #[dep(trait = Database, impls = [PostgresDb, MockDb])]
-    db: Arc<AppDb>,
+    // Declares the trait and concrete implementations via #[dispatch(...)]
+    #[dispatch(PostgresDb, MockDb)]
+    db: Arc<dyn Database>,
 
-    #[dep(db)]
     controller: Controller,
 }
 ```
 
-### Generated Code:
+### Generated Code (Struct Rewriting & Enum Dispatch):
+The attribute macro automatically creates the static dispatch enum and **rewrites the struct field type** so the user never has to invent or manage intermediate enum types:
+
 ```rust
+// 1. Auto-generated static dispatch enum:
 #[derive(Clone)]
 #[enum_dispatch::enum_dispatch(Database)]
-pub enum AppDb {
+pub enum AppContainerDb {
     PostgresDb(PostgresDb),
     MockDb(MockDb),
 }
+
+// 2. Struct field is automatically rewritten by the attribute macro:
+pub struct AppContainer {
+    db: Arc<AppContainerDb>, // Rewritten from Arc<dyn Database>
+}
 ```
 * **Performance:** 100% static dispatch, compiler-inlined calls, zero `dyn Any`, zero `vtable`.
-* **When `dispatch = "dyn"` is selected:** Emits `Arc<dyn Database + Send + Sync>` instead, supporting open-ended dynamic plugin architectures.
+* **When dynamic dispatch is desired:** Omit `#[dispatch]` and keep `Arc<dyn Database + Send + Sync>` for open-ended plugin architectures.
 
 ---
 

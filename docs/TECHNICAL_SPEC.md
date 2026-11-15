@@ -177,7 +177,8 @@ pub struct InstantiationStep {
 use crate::domain::{ContainerIR, DomainError};
 
 pub trait ContainerParserPort {
-    fn parse_container(&self, input: &syn::DeriveInput) -> Result<ContainerIR, DomainError>;
+    /// Parses an ItemStruct (from #[container]) or DeriveInput into pure domain IR.
+    fn parse_container(&self, input: &syn::ItemStruct) -> Result<ContainerIR, DomainError>;
 }
 
 // wireup_macros/src/ports/emitter_port.rs
@@ -185,6 +186,7 @@ use crate::domain::ConstructionPlan;
 use proc_macro2::TokenStream;
 
 pub trait CodeEmitterPort {
+    /// Emits the rewritten struct (transients stripped, traits rewritten to enums) and impl blocks.
     fn emit_container(&self, plan: &ConstructionPlan) -> TokenStream;
 }
 ```
@@ -221,7 +223,7 @@ where
         Self { parser, graph_engine, planner, emitter }
     }
 
-    pub fn execute(&self, raw_input: &syn::DeriveInput) -> Result<TokenStream, DomainError> {
+    pub fn execute(&self, raw_input: &syn::ItemStruct) -> Result<TokenStream, DomainError> {
         // 1. Inbound Adapter: Parse compiler AST -> Pure Domain IR
         let container_ir = self.parser.parse_container(raw_input)?;
 
@@ -231,7 +233,8 @@ where
         // 3. Pure Domain Logic: Plan sequential vs. parallel tokio::join batches
         let plan = self.planner.build_plan(&container_ir, sorted_dependencies)?;
 
-        // 4. Outbound Adapter: Render ConstructionPlan -> proc_macro2::TokenStream via quote!
+        // 4. Outbound Adapter: Render ConstructionPlan -> proc_macro2::TokenStream
+        //    (Rewrites struct fields, strips transients, generates enum_dispatch and getters)
         Ok(self.emitter.emit_container(&plan))
     }
 }
