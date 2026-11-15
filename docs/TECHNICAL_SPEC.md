@@ -253,9 +253,9 @@ Because of this separation, unit testing each component is clean, deterministic,
 #[test]
 fn test_darling_parser_extracts_prerequisites() {
     let input: syn::DeriveInput = syn::parse_quote! {
-        #[derive(Container)]
+        #[container]
         pub struct App {
-            #[dep(config, constructor = "connect")]
+            #[singleton(deps = [config], constructor = "connect")]
             db: Arc<Database>,
         }
     };
@@ -309,17 +309,16 @@ For integration tests verifying end-to-end container assembly, `wireup` uses **B
 Users can explicitly request debug inspection methods directly in the derive settings:
 
 ```rust
-#[derive(Container)]
 #[container(
     mode = "async",
     introspection = true, // 🚀 Generates .dependency_graph()
 )]
 pub struct AppContainer {
-    #[dep]
+    #[singleton]
     config: Arc<Config>,
-    #[dep(config)]
+    #[singleton(deps = [config])]
     db: Arc<Database>,
-    #[dep(config, db, transient)]
+    #[transient(deps = [config, db])]
     controller: UserController,
 }
 ```
@@ -347,21 +346,31 @@ impl AppContainer {
 
 ---
 
-### 2. Executable Gherkin Scenarios (`tests/features/container.feature`)
+### 2. Executable Gherkin Scenarios (`tests/features/container_resolution.feature`)
 
 ```gherkin
 Feature: Container Dependency Resolution
 
-  Scenario: Singleton dependencies are shared by reference
-    Given an AppContainer with Config, Database, and UserController
-    When the container is initialized
-    Then the dependency "db" should depend on "config" in the dependency graph
-    And the "user_controller" should receive the exact same "db" instance as the container
+  As a Rust developer building services with wireup
+  I want container-managed singletons to resolve topologically
+  So that dependent components receive shared instances without domain pollution
 
-  Scenario: Transient dependencies produce fresh instances
-    Given an initialized AppContainer
-    When I request "user_controller" twice
-    Then the two controller instances should have different memory addresses
+  @mvp
+  Scenario: Singletons are instantiated once and shared by reference
+    Given an AppContainer with leaf Config, Database, and UserService
+    When the container is instantiated
+    Then the container should provide a Config singleton
+    And the container should provide a Database singleton
+    And the container should provide a UserService singleton
+    And the Database singleton should reference the exact same Config instance as the container
+    And the UserService singleton should reference the exact same Database instance as the container
+
+  @mvp
+  Scenario: Multiple dependencies of the same type are distinguished by field name
+    Given an AppContainer with "read_db" and "write_db" singletons of type Database
+    When the container is instantiated
+    Then the container should provide separate "read_db" and "write_db" instances
+    And the "read_db" instance should have a different memory address from the "write_db" instance
 ```
 
 ---
@@ -377,36 +386,35 @@ use std::sync::Arc;
 #[derive(Default, World)]
 pub struct ContainerWorld {
     container: Option<AppContainer>,
-    controller_1: Option<UserController>,
-    controller_2: Option<UserController>,
 }
 
-#[when("the container is initialized")]
-async fn init_container(world: &mut ContainerWorld) {
-    world.container = Some(AppContainer::init().await.expect("Failed to boot container"));
+#[when("the container is instantiated")]
+fn instantiate_container(world: &mut ContainerWorld) {
+    world.container = Some(AppContainer::new());
 }
 
-#[then(regex = r#"the dependency "([^"]*)" should depend on "([^"]*)" in the dependency graph"#)]
-fn verify_graph_edge(_world: &mut ContainerWorld, from: String, to: String) {
-    let graph = AppContainer::dependency_graph();
-    assert!(
-        graph.edges.contains(&(from.clone(), to.clone())),
-        "Expected graph edge from {} to {}", from, to
-    );
-}
-
-#[then(regex = r#"the "([^"]*)" should receive the exact same "([^"]*)" instance as the container"#)]
-fn verify_pointer_equality(world: &mut ContainerWorld, _consumer: String, _dep: String) {
+#[then(regex = r#"the Database singleton should reference the exact same Config instance as the container"#)]
+fn verify_db_config_equality(world: &mut ContainerWorld) {
     let container = world.container.as_ref().unwrap();
-    let controller = container.get_controller();
-
-    let container_db = container.get_db();
-    let controller_db = controller.get_db_ref();
+    let container_config = container.get_config();
+    let db_config = container.get_db().get_config_ref();
 
     // 🚀 Exact pointer equality assertion:
     assert!(
-        Arc::ptr_eq(&container_db, &controller_db),
-        "Expected controller's Database pointer to match Container's Database pointer"
+        Arc::ptr_eq(&container_config, &db_config),
+        "Expected Database's Config pointer to match Container's Config pointer"
+    );
+}
+
+#[then(regex = r#"the UserService singleton should reference the exact same Database instance as the container"#)]
+fn verify_user_service_db_equality(world: &mut ContainerWorld) {
+    let container = world.container.as_ref().unwrap();
+    let container_db = container.get_db();
+    let service_db = container.get_user_service().get_db_ref();
+
+    assert!(
+        Arc::ptr_eq(&container_db, &service_db),
+        "Expected UserService's Database pointer to match Container's Database pointer"
     );
 }
 ```

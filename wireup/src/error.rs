@@ -5,6 +5,7 @@ pub enum WireupError {
     ResolutionFailed(String),
     MissingDependency(String),
     InitializationFailed(String),
+    UnknownKey(String),
 }
 
 impl fmt::Display for WireupError {
@@ -13,6 +14,7 @@ impl fmt::Display for WireupError {
             Self::ResolutionFailed(reason) => write!(f, "resolution failed: {reason}"),
             Self::MissingDependency(dep) => write!(f, "missing dependency: {dep}"),
             Self::InitializationFailed(reason) => write!(f, "initialization failed: {reason}"),
+            Self::UnknownKey(key) => write!(f, "unknown dependency key: {key}"),
         }
     }
 }

@@ -43,7 +43,7 @@ pub struct DependencyIR {
     pub lifecycle: Lifecycle,
     pub is_async: bool,
     pub constructor_name: String,
-    pub custom_factory: Option<String>,
+    pub custom_builder: Option<String>,
     pub trait_dispatch: TraitDispatch,
 }
 
@@ -56,7 +56,7 @@ impl DependencyIR {
             lifecycle: Lifecycle::default(),
             is_async: false,
             constructor_name: "new".to_string(),
-            custom_factory: None,
+            custom_builder: None,
             trait_dispatch: TraitDispatch::default(),
         }
     }

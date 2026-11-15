@@ -26,25 +26,28 @@
 
 To prevent blocking while maintaining small, reviewable diffs (< 300 lines of code per PR), development uses **Stacked PRs** (`gh stack` / Graphite / stacked Git branches).
 
-### Stack Hierarchy:
+### Stack Hierarchy (Phase 1: MVP & Phase 2: Advanced Capabilities):
 ```text
-main
- └── stack/01-workspace-domain-ir
-      └── stack/02-graph-engine
-           └── stack/03-inbound-darling
-                └── stack/04-outbound-quote (Walking Skeleton)
-                     └── stack/05-use-case-derive
-                          └── stack/06-enum-dispatch
-                               └── stack/07-runtime-fork-rewire
-                                    └── stack/08-bdd-cucumber-suite
+main (Stack 1: Workspace & Domain IR — PR #1)
+ └── stack/02-graph-engine-and-planner
+      └── stack/03-adapters-inbound-outbound
+           └── stack/04-walking-skeleton-bdd (🎉 v0.1.0 MVP — First Gherkin Scenario GREEN)
+                ├── [Milestone: The Wireup Book & Documentation Site (site branch)]
+                └── stack/05-async-container-boot
+                     └── stack/06-transient-lifecycles
+                          └── stack/07-enum-dispatch-polymorphism
+                               └── stack/08-companion-builders
+                                    └── stack/09-fork-and-rewire-overrides
+                                         └── stack/10-child-containers-scoping
 ```
 
 ### Git Branch & Commit Conventions:
-* **Branch Naming:** `stack/<number>-<short-description>` (e.g. `stack/01-domain-ir`)
+* **Branch Naming:** `stack/<number>-<short-description>` (e.g. `stack/02-graph-engine-and-planner`)
 * **Commit Messages:** Follow [Conventional Commits](https://www.conventionalcommits.org/):
   * `feat(macros): add Kahn's algorithm topological sorter`
   * `test(domain): add cycle detection unit tests`
   * `docs(spec): document fork-and-rewire pattern`
+  * `ci(qa): add cross-platform gate check`
 
 ---
 
@@ -113,4 +116,25 @@ Every PR targeting `main` or `stack/*` triggers `.github/workflows/ci.yml`:
 * **Matrix:** `ubuntu-latest`, `macos-latest`, `windows-latest`.
 * **Toolchain:** Pinned Rust `1.85.0` (Rust 2024 Edition).
 * **Execution:** Reuses `cargo xtask` steps so CI and local dev are 100% identical.
+
+---
+
+## 8. The Wireup Book & Documentation Site (`site` branch)
+
+Immediately following the completion of **Stack 4 (v0.1.0 MVP)**, development will deliver **The Wireup Book** on a dedicated `site` branch for static documentation publishing (e.g., mdBook / GitHub Pages):
+
+### Book Structure & Educational Goals:
+1. **Introduction to Dependency Injection & Inversion of Control:**
+   * Why DI matters in Rust without invasive runtime reflection or dynamic downcasting (`dyn Any`).
+   * Component-Driven vs. Container-Driven DI: Why centralized manifests prevent domain pollution.
+2. **The Wireup Mental Model:**
+   * Pure domain services (zero macros).
+   * Container manifest (`#[container]`, `#[singleton]`, `#[transient]`).
+   * Compile-time verification: How Kahn's algorithm catches cycles before compilation succeeds.
+3. **Tutorial Walkthroughs (Human & Agent Friendly):**
+   * Step-by-step: Building a clean Web API with Axum/Actix and Wireup.
+   * Multi-instance patterns (`read_db`, `write_db`).
+   * Custom builders and companion traits (`<ContainerName>Builders`).
+   * Testing overrides and the Fork-and-Rewire pattern.
+
 

@@ -25,33 +25,37 @@ Most dependency injection frameworks in Rust fall into two undesirable extremes:
 
 ## 2. Declarative Container Syntax & Settings
 
-A container in `wireup` is declared using the `#[container]` procedural attribute macro. Global behavior is configured using arguments on `#[container(...)]`.
+A container in `wireup` is declared using the `#[container]` procedural attribute macro.
 
 ```rust
 use std::sync::Arc;
 use wireup::container;
 
-#[container(
-    mode = "async",       // "async" | "sync" (auto-detected if any field is async)
-)]
+#[container]
 pub struct AppContainer {
-    // 1. Plain field = Singleton (Zero attributes needed! Calls Config::new())
+    // 1. Leaf Singleton: Instantiated via Config::new()
+    #[singleton]
     config: Arc<Config>,
 
-    // 2. Singleton with handle (No redundant Arc needed for pre-cloned pools!)
-    db_pool: sqlx::PgPool,
+    // 2. Singleton with dependencies: calls Database::new(config)
+    #[singleton(deps = [config])]
+    db: Arc<Database>,
 
-    // 3. Static polymorphism via enum_dispatch (Macro rewrites field to generated enum!)
-    #[dispatch(PostgresDb, MockDb)]
-    database: Arc<dyn Database>,
+    // 3. Singleton with multiple dependencies of the same type:
+    #[singleton(deps = [read_db, write_db])]
+    repo: Arc<UserRepo>,
 
-    // 4. Transient dependency: Stripped from struct memory storage by the macro!
-    #[transient]
+    // 4. Transient dependency: Stripped from struct memory; created on every get
+    #[transient(deps = [db])]
     user_controller: UserController,
 
-    // 5. Custom factory method (parameters auto-injected via #[inject])
-    #[factory = "build_auth"]
+    // 5. Custom builder (when constructor isn't standard ::new)
+    #[singleton(deps = [config, db], builder = "build_auth")]
     auth: Arc<AuthService>,
+
+    // 6. Static polymorphism (Post-MVP): Macro rewrites field to generated enum!
+    #[dispatch(PostgresDb, MockDb)]
+    database: Arc<dyn Database>,
 }
 ```
 
@@ -67,10 +71,13 @@ pub struct AppContainer {
 
 | Attribute | Role | Structural & Memory Impact |
 | :--- | :--- | :--- |
-| *(None)* | **Singleton** | Stored in container struct. Initialized once at boot. Cloned on read. |
-| **`#[transient]`** | **Transient** | **Stripped from struct memory storage by the macro.** Reconstructed on every `get_<dep>()` call. |
-| **`#[dispatch(ImplA, ImplB)]`** | **Static Trait** | Auto-generates `enum_dispatch` enum and **rewrites the struct field type** to the generated enum. |
-| **`#[factory = "method"]`** | **Custom Factory** | Invokes `self.method(#[inject] ...)` instead of `Type::new(...)`. |
+| **`#[singleton]`** | **Singleton** | Stored in container struct. Initialized once at boot. Cloned on read. |
+| **`#[singleton(deps = [a, b])]`** | **Singleton (With Dependencies)** | Stored in container struct. Created at boot passing dependencies in order. |
+| **`#[transient]`** | **Transient** | **Stripped from struct memory storage.** Reconstructed on each `get_<name>()`. |
+| **`#[transient(deps = [a])]`** | **Transient (With Dependencies)** | **Stripped from struct memory storage.** Reconstructed on each `get_<name>()` passing `a`. |
+| **`#[singleton(deps = [...], builder = "...")]`** | **Custom Builder** | Calls companion trait `<ContainerName>Builders` method for custom construction. |
+| **`#[dispatch(ImplA, ImplB)]`** | **Static Trait (Post-MVP)** | Auto-generates `enum_dispatch` and **rewrites the struct field type** to the enum. |
+
 
 
 ---
@@ -200,101 +207,75 @@ The `#[container]` attribute macro actively shapes the memory layout of the gene
 
 | Lifecycle | Declaration | Storage in Container Struct | Resolution Behavior |
 | :--- | :--- | :--- | :--- |
-| **Singleton** *(Default)* | Plain field `name: T` | **Stored in struct.** | Constructed once during `init()`/`new()`. Returned by `.clone()`. |
-| **Transient** | `#[transient] name: T` | **Stripped from struct memory.** | **Zero struct bytes allocated.** Reconstructed on every `get_<name>()` call. |
+| **Singleton** | `#[singleton]` or `#[singleton(deps = [...])]` | **Stored in struct.** | Constructed once during `init()`/`new()`. Returned by `.clone()`. |
+| **Transient** | `#[transient]` or `#[transient(deps = [...])]` | **Stripped from struct memory.** | **Zero struct bytes allocated.** Reconstructed on every `get_<name>()` call. |
 | **Static Trait** | `#[dispatch(...)] name: dyn Trait` | **Field rewritten to static enum.** | Enum generated via `enum_dispatch`; zero heap allocation or vtable overhead. |
 | **Scoped** | `#[container(parent = ...)]` | Inherited / Scope-local. | Clones/borrows parent singletons and instantiates request-local instances. |
 
 ---
 
-## 6. Dependency Wiring & Parameter-Level `#[inject]`
+## 6. Dependency Wiring & Companion Builders Trait
 
-`wireup` provides a **Unified Construction Model** that connects auto-wiring with manual factory methods:
+`wireup` eliminates invasive domain macros entirely. Container wiring is declared centrally in the container definition, keeping all service structs 100% pure Rust.
 
-### Primary: Auto-Wiring (Zero Boilerplate)
-For standard structs implementing `new(...)`, prerequisites are resolved automatically by matching constructor arguments to container dependency names or types:
-```rust
-#[container]
-pub struct AppContainer {
-    config: Arc<Config>,
-    db: Arc<Database>,
-
-    #[transient]
-    controller: UserController, // Auto-calls UserController::new(config, db)
-}
-```
-
-### Manual Factories (`#[factory = "..."]`)
-When a dependency requires custom construction logic, declare the factory method and its prerequisite arguments on the struct field:
+### A. Standard Constructors (`::new`)
+For standard structs implementing `new(...)`, prerequisites are declared via `deps = [...]` and mapped in sequence:
 
 ```rust
 #[container]
 pub struct AppContainer {
+    // Leaf singleton: calls Config::new()
+    #[singleton]
     config: Arc<Config>,
+
+    // Singleton with dependency: calls Database::new(config.clone())
+    #[singleton(deps = [config])]
     db: Arc<Database>,
 
-    // Singleton factory: Invokes associated function Self::build_auth(config, db)
-    #[factory(build_auth(config, db))]
-    auth: Arc<AuthService>,
-
-    // Transient factory: Invokes method Self::build_controller(config, db)
-    #[transient]
-    #[factory(build_controller(config, db))]
+    // Transient: calls UserController::new(config.clone(), db.clone()) on each get
+    #[transient(deps = [config, db])]
     controller: UserController,
 }
-
-impl AppContainer {
-    // 1. Singleton factory: Associated function (no `&self` because container is booting)
-    pub fn build_auth(config: &Config, db: Arc<Database>) -> Arc<AuthService> {
-        AuthService::from_vault(config.vault_url(), db)
-    }
-
-    // 2. Transient factory: Method or associated function called on-demand
-    pub fn build_controller(&self, config: &Config, db: Arc<Database>) -> UserController {
-        UserController::new(config, db)
-    }
-}
 ```
 
-* **Deterministic Single-Pass DAG:** Declaring `build_auth(config, db)` on the field ensures the Directed Acyclic Graph (DAG) is 100% compile-time verified in a single macro expansion pass, avoiding non-deterministic cross-macro communication hazards.
-* **Uniform Consumer Interface:** The macro generates the standard zero-argument getter:
-  ```rust
-  impl AppContainer {
-      pub fn get_auth(&self) -> Arc<AuthService> {
-          self.auth.clone()
-      }
-  }
-  ```
+### B. Custom Builders via Companion Trait (`<ContainerName>Builders`)
+When a dependency requires custom construction (such as unpacking config fields, calling a non-`new` constructor, or configuring an external client):
 
-```
-* **Domain Model:**
-  ```rust
-  pub struct Controller {
-      config: Arc<Config>,
-      db: Arc<Database>,
-  }
+1. Declare the builder method name:
+   ```rust
+   #[container]
+   pub struct AppContainer {
+       #[singleton]
+       config: Arc<Config>,
 
-  impl Controller {
-      pub fn new(config: Arc<Config>, db: Arc<Database>) -> Self {
-          Self { config, db }
-      }
-  }
-  ```
+       #[singleton(deps = [config])]
+       db: Arc<Database>,
 
-### Optional Secondary: Parameter-Level Injection (`#[injectable]`)
-For teams that prefer constructor-level self-wiring, `wireup` also provides an optional companion macro:
-```rust
-#[injectable]
-impl UserService {
-    pub fn new(
-        #[inject("read_db")] db: Arc<Database>, // custom key
-        #[inject] cache: Arc<Cache>,            // defaults to param name "cache"
-    ) -> Self {
-        Self { db, cache }
-    }
-}
-```
-When present, `#[injectable]` implements a trait allowing the container to auto-wire the component by reading its requested parameter keys.
+       // Custom builder declared on the field:
+       #[singleton(deps = [config, db], builder = "build_auth")]
+       auth: Arc<AuthService>,
+   }
+   ```
+
+2. The `#[container]` macro auto-generates a companion trait with the exact signature:
+   ```rust
+   pub trait AppContainerBuilders {
+       fn build_auth(config: &Config, db: Arc<Database>) -> Arc<AuthService>;
+   }
+   ```
+
+3. Implement the companion trait on your container:
+   ```rust
+   impl AppContainerBuilders for AppContainer {
+       fn build_auth(config: &Config, db: Arc<Database>) -> Arc<AuthService> {
+           AuthService::from_vault(config.vault_url(), db)
+       }
+   }
+   ```
+
+* **IDE Auto-Scaffolding:** In `rust-analyzer` or any LSP-enabled editor, typing `impl AppContainerBuilders for AppContainer {}` provides an immediate "Implement missing members" code action that generates the exact function stub with correct types.
+* **Conditional Generation:** If no fields in the container declare `builder = "..."`, the companion trait is omitted entirely to prevent dead code or unused trait warnings.
+* **Absolute Zero Domain Pollution:** Services, repositories, and controllers remain 100% pure standard Rust with zero framework dependencies.
 
 ---
 
@@ -302,7 +283,7 @@ When present, `#[injectable]` implements a trait allowing the container to auto-
 
 Because all dependencies and their prerequisites are declared within the struct AST, the procedural macro performs graph analysis at compile time:
 
-1. **Graph Construction:** Builds a Directed Acyclic Graph (DAG) using field names as nodes and `#[dep(...)]` arguments as directed edges.
+1. **Graph Construction:** Builds a Directed Acyclic Graph (DAG) using field names as nodes and `deps = [...]` prerequisites as directed edges.
 2. **Topological Sort:** Runs Kahn's algorithm at macro expansion time to compute the exact instantiation sequence.
 3. **Cycle Rejection:** If a dependency cycle is detected (e.g. `service_a -> service_b -> service_a`), the macro emits an immediate compile error:
 
@@ -311,8 +292,8 @@ error: Dependency cycle detected in AppContainer:
    service_a -> service_b -> service_a
   --> src/main.rs:12:5
    |
-12 |     #[dep(service_b)]
-   |     ^^^^^^^^^^^^^^^^^
+12 |     #[singleton(deps = [service_b])]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ```
 
 ---
@@ -339,6 +320,7 @@ pub struct AppContainer {
     #[dispatch(PostgresDb, MockDb)]
     db: Arc<dyn Database>,
 
+    #[transient(deps = [db])]
     controller: Controller,
 }
 ```
@@ -376,23 +358,22 @@ For applications where databases, message brokers, and clients require asynchron
 * **Runtime getters (`container.get_db()`) remain synchronous, non-blocking, and instant** for web request handlers.
 
 ```rust
-#[derive(Container)]
 #[container(mode = "async")]
 pub struct AppContainer {
     // Synchronous leaf dependency
-    #[dep]
+    #[singleton]
     config: Arc<Config>,
 
     // Asynchronous constructor: Database::connect(config).await
-    #[dep(config, async, constructor = "connect")]
+    #[singleton(deps = [config], async, constructor = "connect")]
     db: Arc<Database>,
 
     // Asynchronous constructor: PaymentGateway::init(config).await
-    #[dep(config, async, constructor = "init")]
+    #[singleton(deps = [config], async, constructor = "init")]
     payment: Arc<PaymentGateway>,
 
     // Synchronous dependency depending on async db
-    #[dep(db)]
+    #[singleton(deps = [db])]
     user_service: Arc<UserService>,
 }
 ```
@@ -434,7 +415,7 @@ No `build.rs` or runtime configuration files are required for testing. The macro
 ```rust
 #[tokio::test]
 async fn test_controller_with_mock_db() {
-    let mock_db = Arc::new(AppDb::MockDb(MockDb::new()));
+    let mock_db = Arc::new(AppContainerDb::MockDb(MockDb::new()));
 
     // Override the DB in the DAG before startup:
     let container = AppContainer::builder()
@@ -456,15 +437,14 @@ async fn test_controller_with_mock_db() {
 Child containers allow request-scoped dependencies (e.g. `UserSession`, `RequestId`) to borrow application singletons without re-creating them:
 
 ```rust
-#[derive(Container)]
 #[container(parent = AppContainer)]
 pub struct RequestContainer<'a> {
     // Provided by HTTP request context
-    #[dep]
+    #[singleton]
     session: Arc<UserSession>,
 
     // Combines parent's singleton DB with request-scoped session
-    #[dep(parent(db), session)]
+    #[singleton(deps = [parent(db), session])]
     audit_logger: Arc<AuditLogger>,
 }
 ```
@@ -486,28 +466,30 @@ async fn handle_request(
 
 ---
 
-## 12. Crate Layout Blueprint
+## 12. Crate Layout & Architecture Blueprint
 
 ```text
-wireup/
+wireup-rs/
 ├── Cargo.toml
-├── wireup/                  # Core runtime crate (traits, error types)
+├── wireup/                  # Core runtime crate (traits, error types, introspection)
 │   ├── Cargo.toml
 │   └── src/
-│       ├── lib.rs           # Core traits, Container, Injectable, Error
+│       ├── lib.rs           # Core exports, Container trait, Error
+│       ├── container.rs     # Container and ContainerBuilder traits
+│       ├── introspection.rs # GraphDescriptor, NodeDescriptor
 │       └── error.rs         # WireupError definitions
-├── wireup_macros/           # Procedural macros
+├── wireup_macros/           # Procedural macros (Hexagonal Ports & Adapters)
 │   ├── Cargo.toml
 │   └── src/
-│       ├── lib.rs           # #[derive(Container)], #[injectable]
-│       ├── ast.rs           # Parsing container struct fields & #[dep] / #[container] attrs
-│       ├── graph.rs         # DAG construction, topological sort, cycle detection
-│       ├── codegen.rs       # Emitting getters, builders, and ::init()
-│       └── enum_dispatch.rs # Auto-generating static dispatch enums
-└── tests/                   # Integration tests
-    ├── sync_container.rs
-    ├── async_container.rs
-    ├── overrides.rs
-    ├── child_container.rs
-    └── enum_dispatch_test.rs
+│       ├── lib.rs           # Macro entry points (#[container])
+│       ├── domain/          # Pure Domain IR, errors, and construction plan (No syn/quote)
+│       ├── ports/           # ParserPort and EmitterPort trait boundaries
+│       ├── use_cases/       # GraphEngine (Kahn's DAG topo sort), PlanContainer
+│       └── adapters/
+│           ├── inbound/     # syn/darling AST parser
+│           └── outbound/    # quote token emitter
+├── xtask/                   # Developer automation and CI gatekeeper
+└── tests/                   # BDD integration test suite (cucumber-rs)
+    └── features/
+        └── container_resolution.feature
 ```

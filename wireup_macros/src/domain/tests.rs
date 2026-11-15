@@ -50,7 +50,7 @@ fn test_dependency_ir_creation() {
     assert_eq!(dep.lifecycle, Lifecycle::Singleton);
     assert!(!dep.is_async);
     assert_eq!(dep.constructor_name, "new");
-    assert_eq!(dep.custom_factory, None);
+    assert_eq!(dep.custom_builder, None);
     assert_eq!(dep.trait_dispatch, TraitDispatch::None);
 
     dep.prerequisites.push("config".to_string());
