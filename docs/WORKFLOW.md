@@ -64,12 +64,14 @@ For every PR slice in the stack:
 
 1. **Implementation & Local Verification:**
    * Antigravity writes the module + unit tests.
-   * Runs `cargo fmt --check`, `cargo clippy -- -D warnings`, and `cargo test`.
+   * Runs local pre-flight QA: `cargo xtask ci` (validates formatting, clippy, architectural boundaries, unit tests, and docs).
 2. **Agentic Code Review:**
-   * Antigravity invokes an independent `Reviewer Subagent`.
+   * Antigravity invokes an independent `Reviewer Subagent` (pinned to `pro`).
    * The subagent evaluates the diff against the **Architectural Invariants** in `AGENTS.md`.
    * Any findings (e.g., leaky types, missing edge cases) are fixed immediately.
-3. **Human Review & Sign-Off:**
+3. **Automated CI & PR QA:**
+   * GitHub Actions runs the cross-platform matrix (Linux, macOS, Windows) executing `cargo xtask ci`.
+4. **Human Review & Sign-Off:**
    * Antigravity presents the PR summary, diff, and Reviewer Report.
    * You approve, merge (or advance the stack), and we proceed to the next slice.
 
@@ -78,9 +80,37 @@ For every PR slice in the stack:
 ## 6. Definition of Done (DoD) per Stack Slice
 
 A slice is only ready for human merge when:
+- [ ] **Clean Pre-Flight:** `cargo xtask ci` passes locally with 0 errors.
 - [ ] **Clean Compilation:** `cargo check --workspace --all-targets` passes with 0 errors.
 - [ ] **Zero Warnings:** `cargo clippy --workspace --all-targets -- -D warnings` passes with 0 warnings.
 - [ ] **Properly Formatted:** `cargo fmt --check` succeeds.
 - [ ] **100% Tests Pass:** All unit and BDD tests pass in `cargo test`.
-- [ ] **Zero Compiler Leaks:** No `syn::Ident`, `syn::Type`, or `quote!` types imported in `domain/` or `use_cases/`.
-- [ ] **Reviewer Subagent Approval:** Review report returns `PASS`.
+- [ ] **Zero Compiler Leaks:** `cargo xtask arch-check` confirms zero `syn`, `quote`, or `darling` imports in `domain/` or `use_cases/`.
+- [ ] **Green CI Matrix:** GitHub Actions passes across Linux, macOS, and Windows.
+- [ ] **Reviewer Subagent Approval:** Review report from `wireup-reviewer` returns `PASS`.
+
+---
+
+## 7. Automated QA & CI Pipeline (`cargo xtask`)
+
+To eliminate environmental drift between local development and CI, all quality checks are unified under the standard Rust **`cargo xtask`** pattern.
+
+### Local QA Commands:
+```bash
+# Complete local pre-flight suite (runs format, clippy, boundary check, tests, docs)
+cargo xtask ci
+
+# Individual subcommands:
+cargo xtask fmt-check   # Verifies rustfmt compliance
+cargo xtask clippy      # Strict zero-warning clippy check
+cargo xtask arch-check  # Scans domain/ and use_cases/ for prohibited compiler imports and ~200 line guideline
+cargo xtask test        # Runs all workspace tests
+cargo xtask doc         # Validates documentation builds with -D warnings
+```
+
+### GitHub Actions CI:
+Every PR targeting `main` or `stack/*` triggers `.github/workflows/ci.yml`:
+* **Matrix:** `ubuntu-latest`, `macos-latest`, `windows-latest`.
+* **Toolchain:** Pinned Rust `1.85.0` (Rust 2024 Edition).
+* **Execution:** Reuses `cargo xtask` steps so CI and local dev are 100% identical.
+

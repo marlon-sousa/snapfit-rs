@@ -405,3 +405,24 @@ fn verify_pointer_equality(world: &mut ContainerWorld, _consumer: String, _dep: 
     );
 }
 ```
+
+---
+
+## 9. Automated Architectural Boundary Enforcement (`cargo xtask arch-check`)
+
+To guarantee that the **Hexagonal Architecture** invariants are never violated as the codebase evolves, the workspace includes an automated verification task (`cargo xtask arch-check`).
+
+### Automated Invariant Checks:
+1. **Zero Compiler Leaks in Domain & Use Cases:**
+   * Scans all Rust source files in `wireup_macros/src/domain/` and `wireup_macros/src/use_cases/`.
+   * Forbids any import or reference to compiler crates:
+     * ❌ `syn::`
+     * ❌ `quote::`
+     * ❌ `darling::`
+     * ❌ `proc_macro::`
+     * ❌ `proc_macro2::`
+   * CI fails immediately if a compiler type leaks into domain or use case modules.
+2. **File Size Guideline Enforcement (~200 Lines):**
+   * Inspects all `.rs` files across the workspace.
+   * Emits warnings if a file approaches or exceeds the ~200-line soft limit, signaling the author to refactor into cohesive submodules.
+
