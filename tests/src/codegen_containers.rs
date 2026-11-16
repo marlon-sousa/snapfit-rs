@@ -80,3 +80,28 @@ impl DerivedContainer for DerivedAfterContainer {
         format!("{self:?}")
     }
 }
+
+/// A non-snake-case field named like a unit struct in scope: the locals the
+/// generated `new()` binds must not be read as patterns of that struct.
+pub mod unit_struct_named_field {
+    #![allow(non_snake_case)]
+
+    use std::sync::Arc;
+
+    use snapfit::container;
+
+    #[derive(Debug)]
+    pub struct Marker;
+
+    impl Marker {
+        pub fn new() -> Self {
+            Self
+        }
+    }
+
+    #[container]
+    pub struct UnitStructNamedFieldContainer {
+        #[singleton]
+        Marker: Arc<Marker>,
+    }
+}

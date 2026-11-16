@@ -54,3 +54,17 @@ fn then_debug_output_starts_with(world: &mut ContainerWorld, prefix: String) {
         "Expected Debug output to start with '{prefix}', got: {text}"
     );
 }
+
+#[given("a container whose non-snake-case field is named like a unit struct in scope")]
+fn given_unit_struct_named_field(world: &mut ContainerWorld) {
+    world.select(ScenarioBlueprint::UnitStructNamedField);
+}
+
+#[then("that field's getter should return the same singleton every time")]
+fn then_unit_struct_named_field_is_singleton(world: &mut ContainerWorld) {
+    let container = world.unit_struct_named_field();
+    assert!(Arc::ptr_eq(
+        &container.get_Marker(),
+        &container.get_Marker()
+    ));
+}

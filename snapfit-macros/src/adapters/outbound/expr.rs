@@ -1,5 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
+use syn::ext::IdentExt;
 
 use crate::domain::{Construction, ConstructionPlan, DependencyName, InstantiationStep};
 use crate::ports::{ContainerSyntax, FieldSyntax};
@@ -80,7 +81,10 @@ impl<'a> ExprBuilder<'a> {
         }
         let ident = &self.field(prereq).ident;
         match self.source {
-            ValueSource::Locals => quote!(#ident.clone()),
+            ValueSource::Locals => {
+                let local = local_ident(ident);
+                quote!(#local.clone())
+            }
             ValueSource::SelfFields => quote!(self.#ident.clone()),
         }
     }
@@ -90,6 +94,13 @@ impl<'a> ExprBuilder<'a> {
             .field(name.as_str())
             .expect("every planned dependency comes from a named container field")
     }
+}
+
+/// The private local a singleton is bound to inside `new()` / `init()`. A
+/// prefix keeps it from clashing with anything the user has in scope, such as
+/// a unit struct with the same name as a non-snake-case field.
+pub(super) fn local_ident(field: &syn::Ident) -> syn::Ident {
+    format_ident!("__snapfit_{}", field.unraw(), span = field.span())
 }
 
 /// `T` when `ty` is `Arc<T>`, `std::sync::Arc<T>`, `::std::sync::Arc<T>` or

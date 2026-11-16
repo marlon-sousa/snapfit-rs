@@ -258,7 +258,7 @@ fn test_darling_parser_extracts_prerequisites() {
     let input: syn::DeriveInput = syn::parse_quote! {
         #[container]
         pub struct App {
-            #[singleton(deps = [config], constructor = "connect")]
+            #[singleton(deps = [config], constructor = connect)]
             db: Arc<Database>,
         }
     };

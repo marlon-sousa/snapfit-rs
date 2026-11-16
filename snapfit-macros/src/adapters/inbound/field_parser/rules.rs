@@ -1,5 +1,6 @@
 //! Checks that refuse field declarations snapfit cannot generate code for.
 
+use super::super::darling_models::FunctionName;
 use crate::domain::{DependencyIR, DependencyName, DomainError};
 
 pub(super) fn ensure_unconditional(
@@ -24,28 +25,31 @@ pub(super) fn ensure_constructible(dep: &DependencyIR) -> Result<(), DomainError
         DomainError::invalid_dependency(
             &dep.name,
             format!(
-                "field '{}' has a trait-object type, which has no constructor; build it with builder = \"...\" (unstable feature)",
+                "field '{}' has a trait-object type, which has no constructor; build it with a builder such as builder = build_store (unstable feature)",
                 dep.name
             ),
         )
     })
 }
 
-pub(super) fn validate_optional_ident(
+pub(super) fn validate_function_name(
     dependency: &DependencyName,
-    value: Option<String>,
+    value: Option<FunctionName>,
     label: &str,
 ) -> Result<Option<String>, DomainError> {
-    value
-        .map(|text| {
-            syn::parse_str::<syn::Ident>(&text)
-                .map(|_| text.clone())
-                .map_err(|_| {
-                    DomainError::invalid_dependency(
-                        dependency,
-                        format!("{label} '{text}' on field '{dependency}' must be a function name, such as \"connect\""),
-                    )
-                })
-        })
-        .transpose()
+    let problem = match value {
+        None => return Ok(None),
+        Some(FunctionName::Bare(name)) => return Ok(Some(name)),
+        Some(FunctionName::Quoted(text)) if syn::parse_str::<syn::Ident>(&text).is_ok() => {
+            format!(
+                "{label} \"{text}\" on field '{dependency}' must be written without quotes: {label} = {text}"
+            )
+        }
+        Some(FunctionName::Quoted(text) | FunctionName::Invalid(text)) => {
+            format!(
+                "{label} '{text}' on field '{dependency}' must be a function name, such as {label} = connect"
+            )
+        }
+    };
+    Err(DomainError::invalid_dependency(dependency, problem))
 }

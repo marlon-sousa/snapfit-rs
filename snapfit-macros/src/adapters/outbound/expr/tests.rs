@@ -63,7 +63,7 @@ fn test_construct_uses_qualified_paths_for_generic_and_qualified_types() {
     );
     assert_eq!(
         construct(item, "shared", ValueSource::Locals),
-        "::std::sync::Arc::new(<Mutex<Counter>>::new(counter.clone()))"
+        "::std::sync::Arc::new(<Mutex<Counter>>::new(__snapfit_counter.clone()))"
     );
 }
 
@@ -84,7 +84,7 @@ fn test_construct_builds_nested_transients_fresh_for_each_argument() {
 
     assert_eq!(
         construct(item.clone(), "orders", ValueSource::Locals),
-        "::std::sync::Arc::new(<Orders>::new(<Checkout>::new(<Pricing>::new(config.clone())),config.clone()))"
+        "::std::sync::Arc::new(<Orders>::new(<Checkout>::new(<Pricing>::new(__snapfit_config.clone())),__snapfit_config.clone()))"
     );
     assert_eq!(
         construct(item, "checkout", ValueSource::SelfFields),
@@ -98,19 +98,19 @@ fn test_construct_awaits_async_constructors_and_calls_builders_on_self() {
         struct App {
             #[singleton]
             config: Arc<Config>,
-            #[singleton(deps = [config], async, constructor = "connect")]
+            #[singleton(deps = [config], async, constructor = connect)]
             db: Arc<Database>,
-            #[singleton(deps = [config, db], builder = "build_auth")]
+            #[singleton(deps = [config, db], builder = build_auth)]
             auth: Arc<AuthService>,
         }
     };
 
     assert_eq!(
         construct(item.clone(), "db", ValueSource::Locals),
-        "::std::sync::Arc::new(<Database>::connect(config.clone()).await?)"
+        "::std::sync::Arc::new(<Database>::connect(__snapfit_config.clone()).await?)"
     );
     assert_eq!(
         construct(item, "auth", ValueSource::Locals),
-        "Self::build_auth(config.clone(),db.clone())"
+        "Self::build_auth(__snapfit_config.clone(),__snapfit_db.clone())"
     );
 }

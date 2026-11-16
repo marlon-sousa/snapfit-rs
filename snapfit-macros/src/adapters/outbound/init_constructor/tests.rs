@@ -19,7 +19,7 @@ fn test_sync_container_gets_new_default_and_container_impls() {
     let code = compact(emit_init_impl(&plan, &syntax));
 
     assert!(code.contains(
-        "pubfnnew()->Self{letconfig:Arc<Config>=::std::sync::Arc::new(<Config>::new());letdb:Arc<Database>=::std::sync::Arc::new(<Database>::new(config.clone()));Self{config,db,}}"
+        "pubfnnew()->Self{let__snapfit_config:Arc<Config>=::std::sync::Arc::new(<Config>::new());let__snapfit_db:Arc<Database>=::std::sync::Arc::new(<Database>::new(__snapfit_config.clone()));Self{config:__snapfit_config,db:__snapfit_db,}}"
     ));
     assert!(code.contains("impl::std::default::DefaultforApp"));
     assert!(code.contains("impl::snapfit::ContainerforApp"));
@@ -30,7 +30,7 @@ fn test_sync_container_gets_new_default_and_container_impls() {
 fn test_async_container_gets_init_returning_result() {
     let (plan, syntax) = plan_for(parse_quote! {
         struct App {
-            #[singleton(async, constructor = "connect")]
+            #[singleton(async, constructor = connect)]
             db: Arc<Database>,
         }
     });
@@ -39,7 +39,7 @@ fn test_async_container_gets_init_returning_result() {
 
     assert!(code.contains("pubasyncfninit()->::std::result::Result<Self,"));
     assert!(code.contains(
-        "::std::result::Result::Ok({letdb:Arc<Database>=::std::sync::Arc::new(<Database>::connect().await?);Self{db,}})"
+        "::std::result::Result::Ok({let__snapfit_db:Arc<Database>=::std::sync::Arc::new(<Database>::connect().await?);Self{db:__snapfit_db,}})"
     ));
     assert!(!code.contains("Default"));
 }

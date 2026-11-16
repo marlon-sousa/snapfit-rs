@@ -47,7 +47,7 @@ pub struct AsyncShopContainer {
     #[singleton]
     config: Arc<ShopConfig>,
 
-    #[singleton(deps = [config], async, constructor = "connect")]
+    #[singleton(deps = [config], async, constructor = connect)]
     gateway: Arc<PaymentGateway>,
 
     #[singleton(deps = [gateway])]
@@ -92,7 +92,7 @@ pub struct BuilderShopContainer {
     #[singleton]
     config: Arc<ShopConfig>,
 
-    #[singleton(deps = [config], builder = "build_auth")]
+    #[singleton(deps = [config], builder = build_auth)]
     auth: Arc<AuthService>,
 }
 
@@ -168,7 +168,7 @@ pub struct LayeredShopContainer {
     #[singleton(deps = [prices])]
     catalog: Arc<Catalog>,
 
-    #[singleton(deps = [config], builder = "build_notifier")]
+    #[singleton(deps = [config], builder = build_notifier)]
     notifier: Arc<dyn Notifier>,
 }
 

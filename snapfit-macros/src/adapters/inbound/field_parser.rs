@@ -12,7 +12,7 @@ mod rules;
 #[cfg(test)]
 mod tests;
 
-use rules::{ensure_constructible, ensure_unconditional, validate_optional_ident};
+use rules::{ensure_constructible, ensure_unconditional, validate_function_name};
 
 pub(super) fn parse_field(field: &syn::Field) -> Result<DependencyIR, DomainError> {
     let name = extract_field_name(field)?;
@@ -135,9 +135,9 @@ fn build_dependency_ir(
         ));
     }
 
-    let constructor_name = validate_optional_ident(&name, meta.constructor, "constructor")?
+    let constructor_name = validate_function_name(&name, meta.constructor, "constructor")?
         .unwrap_or_else(|| "new".to_string());
-    let custom_builder = validate_optional_ident(&name, meta.builder, "builder")?;
+    let custom_builder = validate_function_name(&name, meta.builder, "builder")?;
     let prerequisites = meta
         .deps
         .0

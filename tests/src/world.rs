@@ -1,5 +1,6 @@
 use cucumber::World;
 
+use crate::codegen_containers::unit_struct_named_field::UnitStructNamedFieldContainer;
 use crate::codegen_containers::{
     DerivedAfterContainer, DerivedBeforeContainer, DerivedContainer, TypedFieldsContainer,
 };
@@ -15,6 +16,7 @@ pub enum ScenarioBlueprint {
     TypedFields,
     DerivesBeforeAttribute,
     DerivesAfterAttribute,
+    UnitStructNamedField,
     #[cfg(feature = "unstable")]
     AsyncShop,
     #[cfg(feature = "unstable")]
@@ -32,6 +34,7 @@ pub struct ContainerWorld {
     multi_db_container: Option<multi_db::AppContainer>,
     typed_fields_container: Option<TypedFieldsContainer>,
     derived_container: Option<Box<dyn DerivedContainer>>,
+    unit_struct_named_field: Option<UnitStructNamedFieldContainer>,
     selected_fixture: Option<String>,
     compile_outcome: Option<CompileOutcome>,
     #[cfg(feature = "unstable")]
@@ -63,6 +66,9 @@ impl ContainerWorld {
             }
             ScenarioBlueprint::DerivesAfterAttribute => {
                 self.derived_container = Some(Box::new(DerivedAfterContainer::new()));
+            }
+            ScenarioBlueprint::UnitStructNamedField => {
+                self.unit_struct_named_field = Some(UnitStructNamedFieldContainer::new());
             }
             #[cfg(feature = "unstable")]
             ScenarioBlueprint::AsyncShop => {
@@ -109,6 +115,12 @@ impl ContainerWorld {
         self.derived_container
             .as_deref()
             .expect("a derived container must be instantiated before Then assertions")
+    }
+
+    pub fn unit_struct_named_field(&self) -> &UnitStructNamedFieldContainer {
+        self.unit_struct_named_field
+            .as_ref()
+            .expect("UnitStructNamedFieldContainer must be instantiated before Then assertions")
     }
 
     pub fn select_invalid_fixture(&mut self, fixture_name: String) {

@@ -32,23 +32,26 @@ fn test_container_attr_meta_supports_string_parent_and_empty_tokens() {
 #[test]
 fn test_dependency_attr_meta_parses_async_keyword_and_bracket_deps() {
     let attr: syn::Attribute =
-        parse_quote!(#[singleton(deps = [config, db], async, constructor = "connect")]);
+        parse_quote!(#[singleton(deps = [config, db], async, constructor = connect)]);
     let meta = DependencyAttrMeta::from_attribute(&attr).unwrap();
 
     assert_eq!(meta.deps.0, vec!["config", "db"]);
     assert!(meta.is_async);
-    assert_eq!(meta.constructor.as_deref(), Some("connect"));
+    assert_eq!(meta.constructor, Some(FunctionName::Bare("connect".into())));
     assert_eq!(meta.builder, None);
 }
 
 #[test]
 fn test_dependency_attr_meta_parses_parent_call_and_builder() {
     let attr: syn::Attribute =
-        parse_quote!(#[singleton(deps = [parent(db), session], builder = "build_logger")]);
+        parse_quote!(#[singleton(deps = [parent(db), session], builder = build_logger)]);
     let meta = DependencyAttrMeta::from_attribute(&attr).unwrap();
 
     assert_eq!(meta.deps.0, vec!["parent(db)", "session"]);
-    assert_eq!(meta.builder.as_deref(), Some("build_logger"));
+    assert_eq!(
+        meta.builder,
+        Some(FunctionName::Bare("build_logger".into()))
+    );
 
     let bad_call: syn::Attribute = parse_quote!(#[singleton(deps = [other(db)])]);
     assert!(DependencyAttrMeta::from_attribute(&bad_call).is_err());

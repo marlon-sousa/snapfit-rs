@@ -5,7 +5,7 @@ use super::*;
 #[test]
 fn test_parse_field_singleton_with_deps_and_async_constructor() {
     let field: syn::Field = parse_quote! {
-        #[singleton(deps = [config], async, constructor = "connect")]
+        #[singleton(deps = [config], async, constructor = connect)]
         db: std::sync::Arc<Database>
     };
 
@@ -26,7 +26,7 @@ fn test_parse_field_singleton_with_deps_and_async_constructor() {
 #[test]
 fn test_parse_field_transient_and_custom_builder() {
     let field: syn::Field = parse_quote! {
-        #[transient(deps = [config, db], builder = "build_controller")]
+        #[transient(deps = [config, db], builder = build_controller)]
         controller: UserController
     };
 
@@ -59,11 +59,11 @@ fn test_parse_field_enum_dispatch_and_dyn_dispatch() {
     };
     assert_eq!(
         parse_field(&bare_dyn).unwrap_err().to_string(),
-        "invalid configuration: field 'plugin' has a trait-object type, which has no constructor; build it with builder = \"...\" (unstable feature)"
+        "invalid configuration: field 'plugin' has a trait-object type, which has no constructor; build it with a builder such as builder = build_store (unstable feature)"
     );
 
     let dyn_field: syn::Field = parse_quote! {
-        #[singleton(builder = "build_plugin")]
+        #[singleton(builder = build_plugin)]
         plugin: Arc<dyn Database + Send + Sync>
     };
     let dyn_dep = parse_field(&dyn_field).unwrap();
@@ -88,7 +88,7 @@ fn test_parse_field_rejects_invalid_attribute_combinations() {
     assert!(parse_field(&dual_lifecycle).is_err());
 
     let both_ctor_and_builder: syn::Field = parse_quote! {
-        #[singleton(constructor = "connect", builder = "build_db")]
+        #[singleton(constructor = connect, builder = build_db)]
         db: Arc<Database>
     };
     assert!(parse_field(&both_ctor_and_builder).is_err());
@@ -123,6 +123,36 @@ fn test_parse_field_rejects_conditional_fields_and_non_identifier_names() {
     };
     assert_eq!(
         parse_field(&call_syntax).unwrap_err().to_string(),
-        "invalid configuration: constructor 'connect()' on field 'db' must be a function name, such as \"connect\""
+        "invalid configuration: constructor 'connect()' on field 'db' must be a function name, such as constructor = connect"
     );
+}
+
+#[test]
+fn test_parse_field_wants_bare_function_names() {
+    let quoted: syn::Field = parse_quote! {
+        #[singleton(constructor = "connect")]
+        db: Arc<Database>
+    };
+    assert_eq!(
+        parse_field(&quoted).unwrap_err().to_string(),
+        "invalid configuration: constructor \"connect\" on field 'db' must be written without quotes: constructor = connect"
+    );
+
+    for (field, shown) in [
+        (
+            parse_quote!(#[singleton(constructor = connect())] db: Arc<Database>),
+            "connect ()",
+        ),
+        (
+            parse_quote!(#[singleton(builder = Db::build)] db: Arc<Database>),
+            "Db :: build",
+        ),
+    ] {
+        let field: syn::Field = field;
+        let message = parse_field(&field).unwrap_err().to_string();
+        assert!(
+            message.contains(&format!("'{shown}' on field 'db' must be a function name")),
+            "{message}"
+        );
+    }
 }

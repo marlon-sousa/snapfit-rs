@@ -12,6 +12,12 @@ Feature: Generated code follows the container as written
     And the database should hold the container's fully qualified config singleton
 
   @v0_1_0 @regression
+  Scenario: A field named like a unit struct in scope does not clash with the generated code
+    Given a container whose non-snake-case field is named like a unit struct in scope
+    When the container is instantiated
+    Then that field's getter should return the same singleton every time
+
+  @v0_1_0 @regression
   Scenario Outline: Derives on the container are kept whichever side of #[container] they are written
     Given a container that derives Clone and Debug <placement> #[container]
     When the container is instantiated
@@ -37,10 +43,11 @@ Feature: Generated code follows the container as written
     And the error should point at line <line> of the fixture
 
     Examples:
-      | fixture                      | line | expected_error                                                                                                    |
-      | conditional_field            | 10   | field 'metrics' cannot use #[cfg] or #[cfg_attr]; conditional dependencies are not supported                      |
-      | trait_object_without_builder | 8    | field 'store' has a trait-object type, which has no constructor; build it with builder = "..." (unstable feature) |
-      | invalid_constructor_name     | 12   | constructor 'connect()' on field 'db' must be a function name, such as "connect"                                  |
+      | fixture                      | line | expected_error                                                                                                                            |
+      | conditional_field            | 10   | field 'metrics' cannot use #[cfg] or #[cfg_attr]; conditional dependencies are not supported                                              |
+      | trait_object_without_builder | 8    | field 'store' has a trait-object type, which has no constructor; build it with a builder such as builder = build_store (unstable feature) |
+      | invalid_constructor_name     | 12   | constructor 'connect()' on field 'db' must be a function name, such as constructor = connect                                              |
+      | quoted_constructor_name      | 8    | constructor "connect" on field 'db' must be written without quotes: constructor = connect                                                 |
 
   @v0_1_0 @regression
   Scenario Outline: Graph errors point at the declaration that caused them

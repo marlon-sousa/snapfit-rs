@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 
-use super::expr::{ExprBuilder, ValueSource};
+use super::expr::{ExprBuilder, ValueSource, local_ident};
 use crate::domain::{ConstructionPlan, InstantiationStep};
 use crate::ports::ContainerSyntax;
 
@@ -69,19 +69,22 @@ fn emit_construction_body(plan: &ConstructionPlan, syntax: &ContainerSyntax) -> 
         let field = syntax
             .field(step.dep_name.as_str())
             .expect("every planned dependency comes from a named container field");
-        let (ident, ty) = (&field.ident, &field.ty);
+        let (local, ty) = (local_ident(&field.ident), &field.ty);
         let value = builder.construct(step);
-        quote!(let #ident: #ty = #value;)
+        quote!(let #local: #ty = #value;)
     });
-    let field_idents = singletons
+    let field_inits = singletons
         .iter()
         .filter_map(|step| syntax.field(step.dep_name.as_str()))
-        .map(|field| &field.ident);
+        .map(|field| {
+            let (ident, local) = (&field.ident, local_ident(&field.ident));
+            quote!(#ident: #local)
+        });
 
     quote! {
         #(#bindings)*
         Self {
-            #(#field_idents,)*
+            #(#field_inits,)*
         }
     }
 }
