@@ -26,12 +26,12 @@
 
 To prevent blocking while maintaining small, reviewable diffs (< 300 lines of code per PR), development uses **Stacked PRs** (`gh stack` / Graphite / stacked Git branches).
 
-### Stack Hierarchy (Phase 1: MVP & Phase 2: Advanced Capabilities):
+### Stack Hierarchy (Phase 1: Core v0.1.0 & Phase 2: Advanced Capabilities):
 ```text
 main (Stack 1: Workspace & Domain IR — PR #1)
  └── stack/02-graph-engine-and-planner
       └── stack/03-adapters-inbound-outbound
-           └── stack/04-walking-skeleton-bdd (🎉 v0.1.0 MVP — First Gherkin Scenario GREEN)
+           └── stack/04-walking-skeleton-bdd (🎉 v0.1.0 — First Gherkin Scenario GREEN)
                 ├── [Milestone: The Snapfit Book & Documentation Site (site branch)]
                 └── stack/05-async-container-boot
                      └── stack/06-transient-lifecycles
@@ -127,7 +127,7 @@ Every PR targeting `main` or `stack/*` triggers `.github/workflows/ci.yml`:
 
 ## 8. The Snapfit Book & Documentation Site (`site` branch)
 
-Immediately following the completion of **Stack 4 (v0.1.0 MVP)**, development will deliver **The Snapfit Book** on a dedicated `site` branch for static documentation publishing (e.g., mdBook / GitHub Pages):
+Immediately following the completion of **Stack 4 (v0.1.0)**, development will deliver **The Snapfit Book** on a dedicated `site` branch for static documentation publishing (e.g., mdBook / GitHub Pages):
 
 ### Book Structure & Educational Goals:
 1. **Introduction to Dependency Injection & Inversion of Control:**

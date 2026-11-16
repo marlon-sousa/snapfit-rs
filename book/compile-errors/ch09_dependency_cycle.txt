@@ -1,0 +1,6 @@
+error: dependency cycle detected: orders -> inventory -> orders
+ --> book/compile-errors/ch09_dependency_cycle.rs:7:1
+  |
+7 | #[container]
+  | ^^^^^^^^^^^^
+  |

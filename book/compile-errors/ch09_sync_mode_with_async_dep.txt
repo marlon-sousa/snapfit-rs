@@ -1,0 +1,6 @@
+error: invalid configuration: container with mode = "sync" cannot contain async dependencies
+ --> book/compile-errors/ch09_sync_mode_with_async_dep.rs:6:1
+  |
+6 | #[container(mode = "sync")]
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |

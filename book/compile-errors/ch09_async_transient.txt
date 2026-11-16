@@ -1,0 +1,6 @@
+error: invalid configuration: transient dependency 'checkout' cannot be async because getters are synchronous
+ --> book/compile-errors/ch09_async_transient.rs:5:1
+  |
+5 | #[container(mode = "async")]
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |

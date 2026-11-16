@@ -1,0 +1,6 @@
+error: invalid configuration: field 'config' cannot declare multiple lifecycle attributes
+ --> book/compile-errors/ch09_conflicting_lifecycle.rs:6:1
+  |
+6 | #[container]
+  | ^^^^^^^^^^^^
+  |

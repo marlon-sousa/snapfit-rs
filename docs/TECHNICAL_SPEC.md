@@ -360,7 +360,7 @@ Feature: Container Dependency Resolution
   I want container-managed singletons to resolve topologically
   So that dependent components receive shared instances without domain pollution
 
-  @mvp
+  @v0_1_0
   Scenario: Singletons are instantiated once and shared by reference
     Given an AppContainer with leaf Config, Database, and UserService
     When the container is instantiated
@@ -370,7 +370,7 @@ Feature: Container Dependency Resolution
     And the Database singleton should reference the exact same Config instance as the container
     And the UserService singleton should reference the exact same Database instance as the container
 
-  @mvp
+  @v0_1_0
   Scenario: Multiple dependencies of the same type are distinguished by field name
     Given an AppContainer with "read_db" and "write_db" singletons of type Database
     When the container is instantiated

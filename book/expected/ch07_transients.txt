@@ -1,0 +1,4 @@
+cart #1 at Northwind Books
+cart #2 at Northwind Books
+shared config singleton: true
+transient occupies zero container bytes: true

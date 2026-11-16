@@ -25,7 +25,7 @@ fn then_provides_config_singleton(world: &mut ContainerWorld) {
     let first = container.get_config();
     let second = container.get_config();
 
-    assert_eq!(first.app_name, "snapfit-mvp");
+    assert_eq!(first.app_name, "snapfit");
     assert!(
         Arc::ptr_eq(&first, &second),
         "Expected get_config() to return the same Config singleton instance"

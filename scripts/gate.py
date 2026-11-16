@@ -49,6 +49,8 @@ VALID_MODES = {
     "arch-check",
     "test",
     "doc",
+    "book",
+    "book-check",
 }
 
 
@@ -101,24 +103,25 @@ def check_architectural_invariants() -> bool:
                         )
 
     # 2. File line length guideline check and modern module layout (no mod.rs)
-    for crate_name in ["snapfit", "snapfit-macros", "xtask", "tests"]:
-        crate_src = root / crate_name / "src"
-        if not crate_src.exists():
-            continue
-        for rs_file in crate_src.rglob("*.rs"):
-            rel = rs_file.relative_to(root)
-            if rs_file.name == "mod.rs":
-                violations.append(
-                    f"  [MOD.RS] {rel}: forbidden 'mod.rs' detected. Use modern Rust module layout (<name>.rs and submodules in <name>/)."
-                )
-            try:
-                line_count = len(rs_file.read_text(encoding="utf-8").splitlines())
-            except Exception:
+    for crate_name in ["snapfit", "snapfit-macros", "xtask", "tests", "book"]:
+        for subdir in ["src", "examples"]:
+            crate_src = root / crate_name / subdir
+            if not crate_src.exists():
                 continue
-            if line_count > SOFT_LINE_LIMIT:
-                violations.append(
-                    f"  [SIZE] {rel}: {line_count} lines exceeds ~{SOFT_LINE_LIMIT} line soft limit"
-                )
+            for rs_file in crate_src.rglob("*.rs"):
+                rel = rs_file.relative_to(root)
+                if rs_file.name == "mod.rs":
+                    violations.append(
+                        f"  [MOD.RS] {rel}: forbidden 'mod.rs' detected. Use modern Rust module layout (<name>.rs and submodules in <name>/)."
+                    )
+                try:
+                    line_count = len(rs_file.read_text(encoding="utf-8").splitlines())
+                except Exception:
+                    continue
+                if line_count > SOFT_LINE_LIMIT:
+                    violations.append(
+                        f"  [SIZE] {rel}: {line_count} lines exceeds ~{SOFT_LINE_LIMIT} line soft limit"
+                    )
 
     if violations:
         print("❌ Architectural Boundary Check Failed:")
@@ -199,6 +202,12 @@ def main() -> int:
                 ["cargo", "doc", "--workspace", "--no-deps"],
                 env={"RUSTDOCFLAGS": "-D warnings"},
             )
+            and success
+        )
+
+    if mode in ("book", "book-check"):
+        success = (
+            run_command(["cargo", "test", "-p", "wireup_book", "--all-targets"])
             and success
         )
 
