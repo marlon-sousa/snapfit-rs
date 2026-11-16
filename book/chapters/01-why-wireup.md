@@ -38,11 +38,11 @@ name: ch01_why_wireup
 flowchart LR
     accTitle: Component-driven DI versus Wireup's container-driven manifest
     accDescr: In traditional component-driven DI, macros and framework traits are scattered across every domain struct. In Wireup, domain structs remain 100 percent pure Rust, and a single container struct declares all lifecycles and named dependency edges at compile time.
-    D1[ShopConfig: Pure Rust] --> C[ShopContainer: #[container] Manifest]
-    D2[Database: Pure Rust] --> C
-    D3[StockService: Pure Rust] --> C
-    D4[OrderService: Pure Rust] --> C
-    C --> G[Compile-Time Topological Sort & Direct Typed Getters]
+    D1["ShopConfig: Pure Rust"] --> C["ShopContainer: #[container] Manifest"]
+    D2["Database: Pure Rust"] --> C
+    D3["StockService: Pure Rust"] --> C
+    D4["OrderService: Pure Rust"] --> C
+    C --> G["Compile-Time Topological Sort & Direct Typed Getters"]
 ```
 
 What the diagram shows:
