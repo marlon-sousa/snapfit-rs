@@ -95,18 +95,22 @@ def check_architectural_invariants() -> bool:
                             f"  [LEAK] {rel}:{idx}: forbidden compiler token '{token}'"
                         )
 
-    # 2. File line length guideline check
+    # 2. File line length guideline check and modern module layout (no mod.rs)
     for crate_name in ["wireup", "wireup_macros", "xtask"]:
         crate_src = root / crate_name / "src"
         if not crate_src.exists():
             continue
         for rs_file in crate_src.rglob("*.rs"):
+            rel = rs_file.relative_to(root)
+            if rs_file.name == "mod.rs":
+                violations.append(
+                    f"  [MOD.RS] {rel}: forbidden 'mod.rs' detected. Use modern Rust module layout (<name>.rs and submodules in <name>/)."
+                )
             try:
                 line_count = len(rs_file.read_text(encoding="utf-8").splitlines())
             except Exception:
                 continue
             if line_count > SOFT_LINE_LIMIT:
-                rel = rs_file.relative_to(root)
                 violations.append(
                     f"  [SIZE] {rel}: {line_count} lines exceeds ~{SOFT_LINE_LIMIT} line soft limit"
                 )
@@ -117,7 +121,7 @@ def check_architectural_invariants() -> bool:
             print(v)
         return False
 
-    print("✅ Architectural Invariants: 0 compiler leaks, all file lengths compliant.")
+    print("✅ Architectural Invariants: 0 compiler leaks, no mod.rs, all file lengths compliant.")
     return True
 
 

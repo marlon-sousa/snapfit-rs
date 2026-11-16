@@ -1,4 +1,8 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+use derive_new::new;
+use strum::{AsRefStr, EnumIs, IntoStaticStr};
+
+#[derive(EnumIs, AsRefStr, IntoStaticStr, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[strum(serialize_all = "snake_case")]
 pub enum Lifecycle {
     #[default]
     Singleton,
@@ -6,15 +10,7 @@ pub enum Lifecycle {
 }
 
 impl Lifecycle {
-    pub fn is_singleton(&self) -> bool {
-        matches!(self, Self::Singleton)
-    }
-
-    pub fn is_transient(&self) -> bool {
-        matches!(self, Self::Transient)
-    }
-
-    pub fn as_str(&self) -> &'static str {
+    pub const fn as_str(&self) -> &'static str {
         match self {
             Self::Singleton => "singleton",
             Self::Transient => "transient",
@@ -22,7 +18,7 @@ impl Lifecycle {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(EnumIs, Debug, Clone, PartialEq, Eq, Default)]
 pub enum TraitDispatch {
     #[default]
     None,
@@ -35,50 +31,36 @@ pub enum TraitDispatch {
     },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(new, Debug, Clone, PartialEq, Eq)]
 pub struct DependencyIR {
+    #[new(into)]
     pub name: String,
+    #[new(into)]
     pub type_string: String,
+    #[new(default)]
     pub prerequisites: Vec<String>,
+    #[new(default)]
     pub lifecycle: Lifecycle,
+    #[new(default)]
     pub is_async: bool,
+    #[new(value = "\"new\".to_string()")]
     pub constructor_name: String,
+    #[new(default)]
     pub custom_builder: Option<String>,
+    #[new(default)]
     pub trait_dispatch: TraitDispatch,
 }
 
-impl DependencyIR {
-    pub fn new(name: impl Into<String>, type_string: impl Into<String>) -> Self {
-        Self {
-            name: name.into(),
-            type_string: type_string.into(),
-            prerequisites: Vec::new(),
-            lifecycle: Lifecycle::default(),
-            is_async: false,
-            constructor_name: "new".to_string(),
-            custom_builder: None,
-            trait_dispatch: TraitDispatch::default(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(new, Debug, Clone, PartialEq, Eq)]
 pub struct ContainerIR {
+    #[new(into)]
     pub name: String,
+    #[new(default)]
     pub is_async: bool,
+    #[new(default)]
     pub parent_type: Option<String>,
+    #[new(default)]
     pub introspection: bool,
+    #[new(default)]
     pub dependencies: Vec<DependencyIR>,
-}
-
-impl ContainerIR {
-    pub fn new(name: impl Into<String>) -> Self {
-        Self {
-            name: name.into(),
-            is_async: false,
-            parent_type: None,
-            introspection: false,
-            dependencies: Vec::new(),
-        }
-    }
 }

@@ -1,53 +1,27 @@
 use crate::domain::ir::Lifecycle;
+use derive_new::new;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(new, Debug, Clone, PartialEq, Eq)]
 pub struct InstantiationStep {
+    #[new(into)]
     pub dep_name: String,
+    #[new(into)]
     pub dep_type: String,
+    #[new(into)]
     pub constructor_call: String,
     pub is_async: bool,
     pub lifecycle: Lifecycle,
 }
 
-impl InstantiationStep {
-    pub fn new(
-        dep_name: impl Into<String>,
-        dep_type: impl Into<String>,
-        constructor_call: impl Into<String>,
-        is_async: bool,
-        lifecycle: Lifecycle,
-    ) -> Self {
-        Self {
-            dep_name: dep_name.into(),
-            dep_type: dep_type.into(),
-            constructor_call: constructor_call.into(),
-            is_async,
-            lifecycle,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(new, Debug, Clone, PartialEq, Eq)]
 pub struct ConstructionPlan {
+    #[new(into)]
     pub container_name: String,
     pub is_async: bool,
+    #[new(into)]
     pub key_enum_name: String,
+    #[new(default)]
     pub ordered_steps: Vec<InstantiationStep>,
+    #[new(default)]
     pub parallel_batches: Vec<Vec<String>>,
-}
-
-impl ConstructionPlan {
-    pub fn new(
-        container_name: impl Into<String>,
-        is_async: bool,
-        key_enum_name: impl Into<String>,
-    ) -> Self {
-        Self {
-            container_name: container_name.into(),
-            is_async,
-            key_enum_name: key_enum_name.into(),
-            ordered_steps: Vec::new(),
-            parallel_batches: Vec::new(),
-        }
-    }
 }

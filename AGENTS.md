@@ -56,8 +56,8 @@ Every agent (coder or reviewer) working in this repository **must** enforce thes
    * **Engineering Judgment over Dogmatic Rules:** Preferring standard library types does NOT mean writing 300 lines of complex, error-prone algorithms or boilerplate by hand. Between writing a pure `std` implementation of 300 lines vs. using a battle-tested, focused, well-maintained crate, **use the crate**. Both the coder and the reviewer must actively apply this judgment.
    * **Tier 1:** Standard library first (`std`) — for standard in-memory types, data structures, and traits (strictly excluding I/O, channels, and side effects in the domain).
    * **Tier 2:** Crates already present in our workspace dependencies.
-   * **Tier 3:** Well-known, actively maintained, and compatible external crates (e.g. `petgraph` for DAGs, `thiserror` for error derives, `tokio` for async).
-   * **Tier 4:** Only if no suitable crate exists, write custom logic by hand. Hand-rolling graph traversal, cycle backtracking, or manual `Display`/`Error` formatting when `petgraph` and `thiserror` exist is a failure of judgment.
+   * **Tier 3:** Well-known, actively maintained, and compatible external crates (e.g. `petgraph` for DAGs, `thiserror` for error derives, `strum` for enum utilities, `derive-new` for constructors, `tokio` for async).
+   * **Tier 4:** Only if no suitable crate exists, write custom logic by hand. Hand-rolling graph traversal, cycle backtracking, manual `Display`/`Error` formatting, or manual `is_*`/constructor boilerplate when `petgraph`, `thiserror`, `strum`, and `derive-new` exist is a failure of judgment.
    * **Error Handling & Formatting:** All domain and runtime error enums **MUST derive `thiserror::Error`**. Never write manual `impl fmt::Display` or `impl std::error::Error` by hand.
 2. **File Size Guideline (~200 Lines):**
    * Keep files under ~200 lines as a soft limit. If a file exceeds this threshold, treat it as a signal to refactor into cohesive private submodules.
@@ -77,13 +77,16 @@ Every agent (coder or reviewer) working in this repository **must** enforce thes
    * If an external crate is highly specific, complex, or exposes idiosyncratic types, never bleed its types into higher-level consumers (e.g. controllers, use case orchestrators, or domain entities).
    * Encapsulate the crate inside a focused service or adapter that operates strictly on **Domain In, Domain Out**.
    * The consumer interacts exclusively with clean domain contracts; the third-party crate's implementation details and external types remain fully quarantined inside that service.
+9. **Modern Rust Module Layout (No `mod.rs`):**
+   * Modules declare `<module_name>.rs` at the parent directory level, and private submodules reside in a `<module_name>/` folder.
+   * `mod.rs` is strictly forbidden across the repository (enforced automatically by `cargo xtask arch-check`).
 
 ---
 
 ## 4. Role Instructions for Subagents
 
 ### `wireup-coder` (Lead Implementer):
-* Follows the 8 engineering principles above.
+* Follows the 9 engineering principles above.
 * **Exercises Engineering Judgment:** Never writes 300 lines of complex algorithmic or boilerplate logic by hand when an established, focused crate solves the problem cleanly without side effects or adapter coupling.
 * Runs `cargo fmt`, `cargo clippy -- -D warnings`, and in-memory unit tests before submitting.
 * Keeps tests fast (< 5ms) without `trybuild`.
