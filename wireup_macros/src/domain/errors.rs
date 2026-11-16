@@ -1,6 +1,9 @@
 use crate::domain::ir::DependencyName;
 use thiserror::Error;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub enum DomainError {
     #[error("dependency cycle detected: {}", .0.iter().map(|d| d.as_str()).collect::<Vec<_>>().join(" -> "))]

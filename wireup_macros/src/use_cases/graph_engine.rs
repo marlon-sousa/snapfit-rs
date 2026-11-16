@@ -1,6 +1,9 @@
 mod cycle_finder;
 mod indexed_graph;
 
+#[cfg(test)]
+mod tests;
+
 use cycle_finder::CycleFinder;
 use indexed_graph::IndexedGraph;
 

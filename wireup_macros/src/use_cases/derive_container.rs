@@ -3,6 +3,9 @@ use derive_new::new;
 use crate::domain::{ConstructionPlan, ContainerIR, DomainError};
 use crate::use_cases::{ExecutionPlanner, GraphEngine};
 
+#[cfg(test)]
+mod tests;
+
 #[derive(new, Debug, Default, Clone)]
 pub(crate) struct DeriveContainerUseCase {
     #[new(default)]

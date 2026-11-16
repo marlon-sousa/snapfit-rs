@@ -3,6 +3,9 @@ use derive_more::{AsRef, Deref, Display, Into};
 use derive_new::new;
 use strum::{AsRefStr, EnumIs, IntoStaticStr};
 
+#[cfg(test)]
+mod tests;
+
 fn ensure_non_blank(value: impl Into<String>, label: &str) -> Result<String, DomainError> {
     let text = value.into();
     (!text.trim().is_empty()).then_some(text).ok_or_else(|| {

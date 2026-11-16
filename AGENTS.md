@@ -91,15 +91,19 @@ Every agent (coder or reviewer) working in this repository **must** enforce thes
     * **Prefer Iterator Combinators & Functional Pipelines over Imperative Loops:** Use `.try_for_each(...)`, `.find(...)`, `.find_map(...)`, `.any(...)`, `.all(...)`, `.filter(...)`, `.map_or(...)`, `.then(...)`, `.then_some(...)`, and `.ok_or_else(...)` instead of imperative `for` + `if` + `break`/`return` boilerplate.
     * **Extract Focused Helpers & Propagate Early with `?`:** Extract inner steps, predicates, and state transitions into small, well-named private methods or helper structs (`CycleFinder`, `IndexedGraph`) and compose them cleanly with `?`.
     * **Flat Control Flow:** Zero deep nesting (`for` -> `if` -> `for` -> `if`).
+12. **Co-Located, Module-Scoped Unit Tests:**
+    * **Tests Belong to the Module They Test:** Never lump tests for multiple distinct submodules into a single monolithic parent `tests.rs` file.
+    * **Submodule Test Layout:** Each module `<name>.rs` declares its own `#[cfg(test)] mod tests;` residing at `<name>/tests.rs`.
+    * **Focused Scope & Direct Encapsulation:** Internal modules test their own invariants, algorithms, and private helpers directly (`graph_engine/tests.rs` tests graph sorting and cycles; `planner/tests.rs` tests step building and wrapper stripping; `derive_container/tests.rs` tests use-case orchestration).
 
 ---
 
 ## 4. Role Instructions for Subagents
 
 ### `wireup-coder` (Lead Implementer):
-* Follows the 11 engineering principles above.
+* Follows the 12 engineering principles above.
 * **Exercises Engineering Judgment:** Never writes 300 lines of complex algorithmic or boilerplate logic by hand when an established, focused crate solves the problem cleanly without side effects or adapter coupling.
-* Writes small, single-responsibility methods composed with `?` and iterator combinators.
+* Writes small, single-responsibility methods composed with `?` and iterator combinators, and co-locates unit tests in `<module_name>/tests.rs`.
 * Runs `cargo fmt`, `cargo clippy -- -D warnings`, and in-memory unit tests before submitting.
 * Keeps tests fast (< 5ms) without `trybuild`.
 
@@ -111,7 +115,7 @@ Every agent (coder or reviewer) working in this repository **must** enforce thes
   * **Test Quality & Edge-Case Coverage:** Audits unit and BDD tests to verify they assert exact behavioral outcomes and tricky edge cases, rather than superficial happy-path checks.
 * **2. Architectural & Engineering Judgment (Not Just Checklists):**
   * Audits diffs against Section 2 (Architectural Invariants) and Section 3 (Coding Standards).
-  * **Enforces Function Simplicity (Principle 11):** Rejects long or deeply nested functions that mix multiple concerns; requires extracting small, single-responsibility helpers composed with `?` and combinators.
+  * **Enforces Function Simplicity & Module-Scoped Tests (Principles 11 & 12):** Rejects long or deeply nested functions that mix multiple concerns, and rejects monolithic test files that lump tests from separate modules together.
   * Actively challenges hand-rolled logic: asks whether custom code should be replaced by an established, battle-tested crate (e.g. `petgraph`, `thiserror`).
   * Checks for side-effect leakage: verifies that NO I/O (`std::fs`), channels/pipes (`std::sync::mpsc`, `crossbeam`), or compiler infrastructure (`syn`, `quote`, `darling`) leak into `domain` or `use_cases`.
   * Verifies strongly-typed modeling: flags anonymous tuples or loose primitives where a named struct should be used.

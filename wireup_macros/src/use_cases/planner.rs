@@ -3,6 +3,9 @@ use crate::domain::{
     InstantiationStep,
 };
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug, Default, Clone)]
 pub(crate) struct ExecutionPlanner;
 

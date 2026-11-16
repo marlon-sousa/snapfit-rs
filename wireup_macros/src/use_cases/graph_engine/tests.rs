@@ -1,7 +1,5 @@
 use super::*;
-use crate::domain::{
-    ContainerIR, ContainerName, DependencyIR, DependencyName, DomainError, Lifecycle, TypeName,
-};
+use crate::domain::{DependencyIR, DependencyName, DomainError, TypeName};
 
 fn dep_name(s: &str) -> DependencyName {
     DependencyName::new(s).unwrap()
@@ -9,10 +7,6 @@ fn dep_name(s: &str) -> DependencyName {
 
 fn type_name(s: &str) -> TypeName {
     TypeName::new(s).unwrap()
-}
-
-fn container_name(s: &str) -> ContainerName {
-    ContainerName::new(s).unwrap()
 }
 
 fn make_dep(name: &str, ty: &str, prereqs: &[&str]) -> DependencyIR {
@@ -160,40 +154,4 @@ fn test_missing_prerequisites_and_duplicate_validation() {
         engine.topological_sort(&dup).unwrap_err(),
         DomainError::DuplicateDependency(dep_name("db"))
     );
-}
-
-#[test]
-fn test_derive_container_and_edge_case_planning() {
-    let mut container = ContainerIR::new(container_name("AppContainer"));
-    let config = make_dep("config", "std::sync::Arc<  Config<Prod>  >", &[]);
-    let mut db = make_dep("db", "Arc<Database>", &["config", "config"]);
-    db.constructor_name = "connect".to_string();
-    db.is_async = true;
-
-    let mut auth = make_dep("auth", "Arc<AuthService>", &["config", "db"]);
-    auth.custom_builder = Some("build_auth".to_string());
-
-    let mut controller = make_dep("controller", "UserController", &["auth"]);
-    controller.lifecycle = Lifecycle::Transient;
-
-    container.dependencies = vec![controller, auth, db, config];
-    let plan = DeriveContainerUseCase::new().execute(container).unwrap();
-
-    assert_eq!(plan.container_name, container_name("AppContainer"));
-    assert_eq!(plan.key_enum_name, "AppContainerKey");
-    assert!(plan.is_async);
-    assert_eq!(plan.ordered_steps.len(), 4);
-    assert_eq!(
-        plan.ordered_steps[0].constructor_call,
-        "Config<Prod>::new()"
-    );
-    assert_eq!(
-        plan.ordered_steps[1].constructor_call,
-        "Database::connect(config.clone(), config.clone())"
-    );
-    assert_eq!(
-        plan.ordered_steps[2].constructor_call,
-        "AppContainer::build_auth(config.clone(), db.clone())"
-    );
-    assert_eq!(plan.ordered_steps[3].lifecycle, Lifecycle::Transient);
 }
