@@ -1,11 +1,5 @@
-use std::future::Future;
-
+/// Implemented by every synchronous `#[container]` and `#[derive(Container)]` struct.
 pub trait Container: Sized {
+    /// Builds every singleton in dependency order.
     fn new() -> Self;
-}
-
-pub trait AsyncContainer: Sized {
-    type Error: std::error::Error + Send + Sync + 'static;
-
-    fn init() -> impl Future<Output = Result<Self, Self::Error>> + Send;
 }

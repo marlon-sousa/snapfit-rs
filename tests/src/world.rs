@@ -2,11 +2,19 @@ use cucumber::World;
 
 use crate::compile_harness::{CompileOutcome, compile_fixture};
 use crate::containers::{AppContainer, multi_db};
+#[cfg(feature = "unstable")]
+use crate::unstable_world::UnstableContainers;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ScenarioBlueprint {
     SharedSingletons,
     MultiDatabase,
+    #[cfg(feature = "unstable")]
+    AsyncShop,
+    #[cfg(feature = "unstable")]
+    TransientShop,
+    #[cfg(feature = "unstable")]
+    BuilderShop,
 }
 
 #[derive(Default, World)]
@@ -16,15 +24,13 @@ pub struct ContainerWorld {
     multi_db_container: Option<multi_db::AppContainer>,
     selected_fixture: Option<String>,
     compile_outcome: Option<CompileOutcome>,
+    #[cfg(feature = "unstable")]
+    unstable: UnstableContainers,
 }
 
 impl ContainerWorld {
-    pub fn select_shared_singletons(&mut self) {
-        self.blueprint = Some(ScenarioBlueprint::SharedSingletons);
-    }
-
-    pub fn select_multi_database(&mut self) {
-        self.blueprint = Some(ScenarioBlueprint::MultiDatabase);
+    pub fn select(&mut self, blueprint: ScenarioBlueprint) {
+        self.blueprint = Some(blueprint);
     }
 
     pub fn instantiate_selected(&mut self) {
@@ -39,7 +45,25 @@ impl ContainerWorld {
                 self.multi_db_container =
                     Some(<multi_db::AppContainer as snapfit::Container>::new());
             }
+            #[cfg(feature = "unstable")]
+            ScenarioBlueprint::AsyncShop => {
+                panic!("async containers are initialized with initialize_async_selected()")
+            }
+            #[cfg(feature = "unstable")]
+            ScenarioBlueprint::TransientShop => self.unstable.new_transient_shop(),
+            #[cfg(feature = "unstable")]
+            ScenarioBlueprint::BuilderShop => self.unstable.new_builder_shop(),
         }
+    }
+
+    #[cfg(feature = "unstable")]
+    pub async fn initialize_async_selected(&mut self) {
+        self.unstable.init_async_shop().await;
+    }
+
+    #[cfg(feature = "unstable")]
+    pub fn unstable(&self) -> &UnstableContainers {
+        &self.unstable
     }
 
     pub fn app_container(&self) -> &AppContainer {

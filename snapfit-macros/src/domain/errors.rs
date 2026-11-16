@@ -25,6 +25,14 @@ pub enum DomainError {
 
     #[error("invalid configuration: {0}")]
     InvalidConfiguration(String),
+
+    #[error(
+        "{0} is unstable in this version of snapfit; enable the `unstable` feature of the `snapfit` crate to use it"
+    )]
+    RequiresUnstable(String),
+
+    #[error("{0} is planned for a future version of snapfit and is not implemented yet")]
+    NotYetImplemented(String),
 }
 
 fn join_names(names: &[DependencyName], sep: &str) -> String {

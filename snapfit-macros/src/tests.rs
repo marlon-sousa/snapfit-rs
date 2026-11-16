@@ -3,6 +3,9 @@ use syn::parse_quote;
 
 use super::*;
 
+const STABLE: FeatureGate = FeatureGate::new(false);
+const UNSTABLE: FeatureGate = FeatureGate::new(true);
+
 #[test]
 fn test_expand_container_attribute_with_and_without_args() {
     let item_struct: syn::ItemStruct = parse_quote! {
@@ -15,7 +18,7 @@ fn test_expand_container_attribute_with_and_without_args() {
         }
     };
 
-    let tokens_no_args = expand_container_attribute(quote!(), &item_struct).unwrap();
+    let tokens_no_args = expand_container_attribute(quote!(), &item_struct, STABLE).unwrap();
     let code_no_args = tokens_no_args.to_string();
     assert!(code_no_args.contains("pub struct AppContainer"));
     assert!(code_no_args.contains("pub fn new () -> Self"));
@@ -23,9 +26,13 @@ fn test_expand_container_attribute_with_and_without_args() {
     assert!(code_no_args.contains("pub fn get_db (& self) -> Arc < Database >"));
 
     let tokens_async_arg =
-        expand_container_attribute(quote!(mode = "async"), &item_struct).unwrap();
+        expand_container_attribute(quote!(mode = "async"), &item_struct, UNSTABLE).unwrap();
     let code_async_arg = tokens_async_arg.to_string();
     assert!(code_async_arg.contains("pub async fn init ()"));
+
+    let stable_async_err =
+        expand_container_attribute(quote!(mode = "async"), &item_struct, STABLE).unwrap_err();
+    assert!(matches!(stable_async_err, DomainError::RequiresUnstable(_)));
 }
 
 #[test]
@@ -37,7 +44,7 @@ fn test_expand_derive_container_emits_impls_and_rejects_struct_rewriting_fields(
         }
     };
 
-    let tokens = expand_derive_container(&valid_derive).unwrap();
+    let tokens = expand_derive_container(&valid_derive, STABLE).unwrap();
     let code = tokens.to_string();
     assert!(!code.contains("pub struct DerivedContainer"));
     assert!(code.contains("impl DerivedContainer"));
@@ -49,7 +56,7 @@ fn test_expand_derive_container_emits_impls_and_rejects_struct_rewriting_fields(
             service: MyService,
         }
     };
-    let err = expand_derive_container(&transient_derive).unwrap_err();
+    let err = expand_derive_container(&transient_derive, UNSTABLE).unwrap_err();
     assert!(matches!(err, DomainError::InvalidConfiguration(_)));
 }
 
@@ -65,7 +72,7 @@ fn test_to_compile_error_formats_domain_errors_as_compiler_diagnostics() {
         }
     };
 
-    let err = expand_container_attribute(quote!(), &cycle_struct).unwrap_err();
+    let err = expand_container_attribute(quote!(), &cycle_struct, STABLE).unwrap_err();
     let compile_err_tokens = to_compile_error(err).to_string();
     assert!(compile_err_tokens.contains("compile_error !"));
     assert!(compile_err_tokens.contains("dependency cycle detected"));
@@ -80,7 +87,7 @@ fn test_to_compile_error_formats_domain_errors_as_compiler_diagnostics() {
         }
     };
 
-    let missing_err = expand_container_attribute(quote!(), &missing_struct).unwrap_err();
+    let missing_err = expand_container_attribute(quote!(), &missing_struct, STABLE).unwrap_err();
     let missing_tokens = to_compile_error(missing_err).to_string();
     assert!(missing_tokens.contains("compile_error !"));
     assert!(missing_tokens.contains(

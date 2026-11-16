@@ -60,9 +60,7 @@ snapfit/
 │   ├── Cargo.toml
 │   └── src/
 │       ├── lib.rs
-│       ├── container.rs         # Container & AsyncContainer traits
-│       ├── error.rs             # Runtime SnapfitError enum
-│       └── introspection.rs     # GraphDescriptor, NodeDescriptor
+│       └── container.rs         # Container trait (AsyncContainer, errors and introspection return later; see SPEC §0)
 │
 └── snapfit-macros/              # Procedural macro crate
     ├── Cargo.toml
@@ -299,7 +297,9 @@ fn test_emitter_generates_getters() {
 
 For integration tests verifying end-to-end container assembly, `snapfit` uses **BDD** with the [`cucumber`](https://crates.io/crates/cucumber) crate.
 
-### 1. Macro-Generated Introspection (`introspection = true`)
+### 1. Macro-Generated Introspection (`introspection = true`, planned)
+
+> Not implemented in 0.1.0: `introspection = true` is a compile error and the descriptor types were removed from the runtime crate (see [SPEC §0](SPEC.md#0-what-ships-in-010)).
 Users can explicitly request debug inspection methods directly in the derive settings:
 
 ```rust

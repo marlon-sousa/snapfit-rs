@@ -41,6 +41,12 @@ main (Stack 1: Workspace & Domain IR — PR #1)
                                          └── stack/10-child-containers-scoping
 ```
 
+### 0.1.0 scope
+
+`v0.1.0` ships the synchronous singleton container only. Async containers, transient dependencies and custom builders were implemented early (Stacks 2 to 4) and are kept behind the `unstable` Cargo feature until their stacks (05, 06, 08) settle the API. Planned features with no code generation (`dispatch`, `parent`, `introspection`) are compile errors. Items removed from the runtime crate for 0.1.0 are listed in [SPEC §0](SPEC.md#0-what-ships-in-010) so their stacks restore them.
+
+The QA gate builds the `unstable` feature in `target/unstable`, separately from the stable build, because Cargo unifies features within one build and the stable suite must prove the gate rejects unstable APIs.
+
 ### Git Branch & Commit Conventions:
 * **Branch Naming:** `stack/<number>-<short-description>` (e.g. `stack/02-graph-engine-and-planner`)
 * **Commit Messages:** Follow [Conventional Commits](https://www.conventionalcommits.org/):

@@ -22,3 +22,8 @@ quote = "1.0"
 strum = { workspace = true }
 syn = { version = "2.0", features = ["full", "extra-traits"] }
 thiserror = { workspace = true }
+
+[features]
+# Enables APIs whose shape is not settled for 0.1.0: async containers,
+# transient dependencies and custom builders. Enable it through `snapfit`.
+unstable = []

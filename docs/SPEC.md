@@ -4,6 +4,45 @@
 
 ---
 
+## 0. What ships in 0.1.0
+
+This document describes the full design. Only part of it ships as a stable API in 0.1.0; the rest is either behind the `unstable` Cargo feature or not implemented yet. Using a planned feature, or an unstable one without the feature, is a compile error that names the feature.
+
+| Capability | 0.1.0 status | Where it is specified |
+| :--- | :--- | :--- |
+| `#[container]` and `#[derive(Container)]` with `#[singleton]` fields | Stable | §2, §3, §4 |
+| `deps = [...]` named edges, multiple instances of one type | Stable | §2, §5.A |
+| `constructor = "..."` | Stable | §5.A |
+| Compile-time missing-dependency and cycle detection | Stable | §6 |
+| `Container` trait, `new()`, `Default` | Stable | §2 |
+| Async containers: `mode = "async"`, `#[singleton(async)]`, `init().await` (sequential) | Unstable | §8 |
+| `#[transient]` dependencies | Unstable | §4 |
+| `builder = "..."` (associated function on the container) | Unstable | §5.B |
+| `<ContainerName>Builders` companion trait | Planned | §5.B |
+| Concurrent async boot (`join!` over independent async singletons) | Planned | §8 |
+| `#[dispatch(...)]` static trait dispatch | Planned | §7 |
+| Test overrides (`builder().with_*()` / `fork_with()`) | Planned | §9 |
+| Child containers (`parent = ...`, `parent(dep)`) | Planned | §10 |
+| Introspection (`introspection = true`, `dependency_graph()`) | Planned | TECHNICAL_SPEC §8 |
+| `#[external]` inputs and `before_init` computed fields | Planned | §2 |
+
+Enable the unstable APIs with:
+
+```toml
+[dependencies]
+snapfit = { version = "0.1", features = ["unstable"] }
+```
+
+### Removed from the 0.1.0 runtime crate (to restore later)
+
+These items existed before 0.1.0 but nothing generated or used them, so they were removed rather than shipped as unused public API. Each one comes back with the feature that needs it:
+
+* **`AsyncContainer` trait** (`fn init() -> impl Future<Output = Result<Self, Self::Error>>`): return with stabilised async containers. The generated `init()` currently returns `Box<dyn Error + Send + Sync>`, which cannot satisfy the old `Error: std::error::Error` bound, so the error type must be designed first (ideally naming which dependency failed).
+* **`introspection` module** (`GraphDescriptor`, `NodeDescriptor`, `EdgeDescriptor`): return with `introspection = true`.
+* **`SnapfitError` and the `Error` alias** (`ResolutionFailed`, `MissingDependency`, `InitializationFailed`): return when async initialization errors get dependency context.
+
+---
+
 ## 1. Vision & Core Philosophy
 
 Most dependency injection frameworks in Rust fall into two undesirable extremes:
@@ -378,13 +417,11 @@ async fn handle_request(
 ```text
 snapfit-rs/
 ├── Cargo.toml
-├── snapfit/                 # Core runtime crate (traits, error types, introspection)
+├── snapfit/                 # Core runtime crate (Container trait, macro re-exports)
 │   ├── Cargo.toml
 │   └── src/
-│       ├── lib.rs           # Core exports, Container trait, Error
-│       ├── container.rs     # Container and ContainerBuilder traits
-│       ├── introspection.rs # GraphDescriptor, NodeDescriptor
-│       └── error.rs         # SnapfitError definitions
+│       ├── lib.rs           # Core exports: Container trait, #[container], derive
+│       └── container.rs     # Container trait (AsyncContainer, introspection and errors: see §0)
 ├── snapfit-macros/          # Procedural macros (Hexagonal Ports & Adapters)
 │   ├── Cargo.toml
 │   └── src/

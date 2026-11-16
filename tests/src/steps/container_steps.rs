@@ -2,16 +2,16 @@ use std::sync::Arc;
 
 use cucumber::{given, then, when};
 
-use crate::world::ContainerWorld;
+use crate::world::{ContainerWorld, ScenarioBlueprint};
 
 #[given("an AppContainer with leaf Config, Database, and UserService")]
 fn given_shared_singleton_container(world: &mut ContainerWorld) {
-    world.select_shared_singletons();
+    world.select(ScenarioBlueprint::SharedSingletons);
 }
 
 #[given("an AppContainer with \"read_db\" and \"write_db\" singletons of type Database")]
 fn given_multi_db_container(world: &mut ContainerWorld) {
-    world.select_multi_database();
+    world.select(ScenarioBlueprint::MultiDatabase);
 }
 
 #[when("the container is instantiated")]

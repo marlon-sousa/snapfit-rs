@@ -30,4 +30,16 @@ fn test_domain_error_display() {
         invalid_err.to_string(),
         "invalid configuration: mode cannot be empty"
     );
+
+    let unstable_err = DomainError::RequiresUnstable("transient dependency 'cart'".into());
+    assert_eq!(
+        unstable_err.to_string(),
+        "transient dependency 'cart' is unstable in this version of snapfit; enable the `unstable` feature of the `snapfit` crate to use it"
+    );
+
+    let planned_err = DomainError::NotYetImplemented("#[container(parent = ...)]".into());
+    assert_eq!(
+        planned_err.to_string(),
+        "#[container(parent = ...)] is planned for a future version of snapfit and is not implemented yet"
+    );
 }

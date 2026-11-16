@@ -34,6 +34,11 @@ FORBIDDEN_COMPILER_TOKENS = [
 
 SOFT_LINE_LIMIT = 200
 
+# The `unstable` feature is built in its own target dir. Cargo unifies features
+# across a build, so sharing one target dir would let the unstable build leak
+# into the stable compile-fail fixtures that prove the gate.
+UNSTABLE_ENV = {"CARGO_TARGET_DIR": str(Path("target") / "unstable")}
+
 VALID_MODES = {
     "all",
     "ci",
@@ -156,6 +161,22 @@ def main() -> int:
             )
             and success
         )
+        success = (
+            run_command(
+                [
+                    "cargo",
+                    "clippy",
+                    "--workspace",
+                    "--all-targets",
+                    "--all-features",
+                    "--",
+                    "-D",
+                    "warnings",
+                ],
+                env=UNSTABLE_ENV,
+            )
+            and success
+        )
 
     if run_all or mode in ("arch", "arch-check"):
         success = check_architectural_invariants() and success
@@ -163,6 +184,13 @@ def main() -> int:
     if run_all or mode == "test":
         success = (
             run_command(["cargo", "test", "--workspace", "--all-targets"]) and success
+        )
+        success = (
+            run_command(
+                ["cargo", "test", "-p", "snapfit_bdd", "--features", "unstable"],
+                env=UNSTABLE_ENV,
+            )
+            and success
         )
 
     if run_all or mode == "doc":
