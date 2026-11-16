@@ -1,6 +1,6 @@
 #![deny(warnings)]
 
-extern crate self as wireup;
+extern crate self as snapfit;
 
 pub mod container;
 pub mod error;
@@ -10,7 +10,7 @@ pub mod introspection;
 mod tests;
 
 pub use container::{AsyncContainer, Container};
-pub use error::WireupError;
-pub type Error = WireupError;
+pub use error::SnapfitError;
+pub type Error = SnapfitError;
 pub use introspection::{EdgeDescriptor, GraphDescriptor, NodeDescriptor};
-pub use wireup_macros::{Container, container};
+pub use snapfit_macros::{Container, container};

@@ -1,4 +1,4 @@
-# Development Workflow & Working Agreement (`wireup-rs`)
+# Development Workflow & Working Agreement (`snapfit-rs`)
 
 > **Stacked PRs, Double-Loop BDD, and Agentic Review Loop**
 
@@ -6,8 +6,8 @@
 
 ## 1. Project Naming & Repository Identity
 
-* **Crate Name (Crates.io):** `wireup` (e.g. `wireup = "0.1"`, `wireup_macros = "0.1"`)
-* **GitHub Repository Name:** `wireup-rs` (`https://github.com/<user>/wireup-rs`)
+* **Crate Name (Crates.io):** `snapfit` (e.g. `snapfit = "0.1"`, `snapfit-macros = "0.1"`)
+* **GitHub Repository Name:** `snapfit-rs` (`https://github.com/<user>/snapfit-rs`)
 * **Git Branching Base:** `main`
 
 ---
@@ -32,7 +32,7 @@ main (Stack 1: Workspace & Domain IR — PR #1)
  └── stack/02-graph-engine-and-planner
       └── stack/03-adapters-inbound-outbound
            └── stack/04-walking-skeleton-bdd (🎉 v0.1.0 MVP — First Gherkin Scenario GREEN)
-                ├── [Milestone: The Wireup Book & Documentation Site (site branch)]
+                ├── [Milestone: The Snapfit Book & Documentation Site (site branch)]
                 └── stack/05-async-container-boot
                      └── stack/06-transient-lifecycles
                           └── stack/07-enum-dispatch-polymorphism
@@ -53,7 +53,7 @@ main (Stack 1: Workspace & Domain IR — PR #1)
 
 ## 4. Double-Loop BDD Strategy (Walking Skeleton)
 
-Rather than waiting until the end to write integration tests, `wireup` uses an **Outside-In Double-Loop BDD** approach:
+Rather than waiting until the end to write integration tests, `snapfit` uses an **Outside-In Double-Loop BDD** approach:
 
 1. **Executable Specifications Upfront:** We write the Gherkin `.feature` acceptance scenarios in `tests/features/` early.
 2. **The Walking Skeleton (Stack 4):** As soon as Stack 4 lands (minimal end-to-end derive pipeline), we wire up `cucumber-rs`.
@@ -90,7 +90,7 @@ A slice is only ready for human merge when:
 - [ ] **100% Tests Pass:** All unit and BDD tests pass in `cargo test`.
 - [ ] **Zero Compiler Leaks:** `cargo xtask arch-check` confirms zero `syn`, `quote`, or `darling` imports in `domain/` or `use_cases/`.
 - [ ] **Green CI Matrix:** GitHub Actions passes across Linux, macOS, and Windows.
-- [ ] **Reviewer Subagent Approval:** Review report from `wireup-reviewer` returns `PASS`.
+- [ ] **Reviewer Subagent Approval:** Review report from `snapfit-reviewer` returns `PASS`.
 
 ---
 
@@ -119,20 +119,20 @@ Every PR targeting `main` or `stack/*` triggers `.github/workflows/ci.yml`:
 
 ---
 
-## 8. The Wireup Book & Documentation Site (`site` branch)
+## 8. The Snapfit Book & Documentation Site (`site` branch)
 
-Immediately following the completion of **Stack 4 (v0.1.0 MVP)**, development will deliver **The Wireup Book** on a dedicated `site` branch for static documentation publishing (e.g., mdBook / GitHub Pages):
+Immediately following the completion of **Stack 4 (v0.1.0 MVP)**, development will deliver **The Snapfit Book** on a dedicated `site` branch for static documentation publishing (e.g., mdBook / GitHub Pages):
 
 ### Book Structure & Educational Goals:
 1. **Introduction to Dependency Injection & Inversion of Control:**
    * Why DI matters in Rust without invasive runtime reflection or dynamic downcasting (`dyn Any`).
    * Component-Driven vs. Container-Driven DI: Why centralized manifests prevent domain pollution.
-2. **The Wireup Mental Model:**
+2. **The Snapfit Mental Model:**
    * Pure domain services (zero macros).
    * Container manifest (`#[container]`, `#[singleton]`, `#[transient]`).
    * Compile-time verification: How Kahn's algorithm catches cycles before compilation succeeds.
 3. **Tutorial Walkthroughs (Human & Agent Friendly):**
-   * Step-by-step: Building a clean Web API with Axum/Actix and Wireup.
+   * Step-by-step: Building a clean Web API with Axum/Actix and Snapfit.
    * Multi-instance patterns (`read_db`, `write_db`).
    * Custom builders and companion traits (`<ContainerName>Builders`).
    * Testing overrides and the Fork-and-Rewire pattern.

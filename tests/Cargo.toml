@@ -1,6 +1,6 @@
 [package]
-name = "wireup_bdd"
-description = "BDD integration test suite and reference application fixtures for wireup"
+name = "snapfit_bdd"
+description = "BDD integration test suite and reference application fixtures for snapfit"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -11,7 +11,7 @@ publish = false
 cucumber = { workspace = true }
 futures = { workspace = true }
 rayon = { workspace = true }
-wireup = { workspace = true }
+snapfit = { workspace = true }
 
 [[test]]
 name = "bdd"

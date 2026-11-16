@@ -8,7 +8,7 @@ pub struct Config {
 impl Config {
     pub fn new() -> Self {
         Self {
-            app_name: "wireup-mvp",
+            app_name: "snapfit-mvp",
         }
     }
 }

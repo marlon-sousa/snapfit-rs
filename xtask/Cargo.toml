@@ -1,6 +1,6 @@
 [package]
 name = "xtask"
-description = "Development and CI automation tasks for wireup-rs"
+description = "Development and CI automation tasks for snapfit-rs"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use wireup::container;
+use snapfit::container;
 
 use crate::services::{Config, Database, UserService};
 
@@ -19,7 +19,7 @@ pub struct AppContainer {
 pub mod multi_db {
     use std::sync::Arc;
 
-    use wireup::container;
+    use snapfit::container;
 
     use crate::services::{Config, Database};
 

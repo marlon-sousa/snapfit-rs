@@ -1,6 +1,6 @@
 [package]
-name = "wireup_macros"
-description = "Procedural derive macros for wireup dependency injection"
+name = "snapfit-macros"
+description = "Procedural derive macros for snapfit dependency injection"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

@@ -67,7 +67,7 @@ fn emit_sync_new_impl(plan: &ConstructionPlan) -> TokenStream {
             }
         }
 
-        impl ::wireup::Container for #container_ident {
+        impl ::snapfit::Container for #container_ident {
             fn new() -> Self {
                 Self::new()
             }

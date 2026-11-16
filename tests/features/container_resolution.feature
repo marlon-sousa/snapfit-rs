@@ -1,6 +1,6 @@
 Feature: Container Dependency Resolution
 
-  As a Rust developer building services with wireup
+  As a Rust developer building services with snapfit
   I want container-managed singletons to resolve topologically and invalid graphs to be rejected at compile time
   So that dependent components receive shared instances without domain pollution or runtime wiring errors
 

@@ -1,13 +1,13 @@
 # AGENTS.md — Repository Instructions & Architectural Memory
 
-> **Authoritative agent guidance for `wireup-rs`**
+> **Authoritative agent guidance for `snapfit-rs`**
 
 ---
 
 ## 1. Project Overview & Identity
 
-* **Crate Name:** `wireup` (runtime) / `wireup_macros` (proc-macro)
-* **GitHub Repository:** `wireup-rs`
+* **Crate Name:** `snapfit` (runtime) / `snapfit-macros` (proc-macro)
+* **GitHub Repository:** `snapfit-rs`
 * **MSRV:** `1.85.0` (Rust 2024 Edition)
 * **Purpose:** A zero-cost, compile-time verified, pure-Rust dependency injection framework with zero domain pollution, automated `enum_dispatch` trait polymorphism, and eager async boot.
 * **Core Documentation Index:**
@@ -100,14 +100,14 @@ Every agent (coder or reviewer) working in this repository **must** enforce thes
 
 ## 4. Role Instructions for Subagents
 
-### `wireup-coder` (Lead Implementer):
+### `snapfit-coder` (Lead Implementer):
 * Follows the 12 engineering principles above.
 * **Exercises Engineering Judgment:** Never writes 300 lines of complex algorithmic or boilerplate logic by hand when an established, focused crate solves the problem cleanly without side effects or adapter coupling.
 * Writes small, single-responsibility methods composed with `?` and iterator combinators, and co-locates unit tests in `<module_name>/tests.rs`.
 * Runs `cargo fmt`, `cargo clippy -- -D warnings`, and in-memory unit tests before submitting.
 * Keeps tests fast (< 5ms) without `trybuild`.
 
-### `wireup-reviewer` (Independent Reviewer):
+### `snapfit-reviewer` (Independent Reviewer):
 * Audits diffs across **both** dimensions: **Functional & Behavioral Correctness** AND **Architecture & Coding Standards**.
 * **1. Functional & Behavioral Verification (Primary Mandate):**
   * **Spec Conformance:** Verifies that all functional requirements in [docs/SPEC.md](docs/SPEC.md), [docs/TECHNICAL_SPEC.md](docs/TECHNICAL_SPEC.md), and the active stack's scope are accurately and completely implemented.

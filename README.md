@@ -1,23 +1,23 @@
-# wireup (`wireup-rs`)
+# snapfit (`snapfit-rs`)
 
 > **Zero-Cost, Compile-Time Verified, Pure-Rust Dependency Injection Framework**
 
-[![Crates.io](https://img.shields.io/badge/crates.io-wireup-orange)](https://crates.io/crates/wireup)
+[![Crates.io](https://img.shields.io/badge/crates.io-snapfit-orange)](https://crates.io/crates/snapfit)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](LICENSE-MIT)
 [![MSRV](https://img.shields.io/badge/MSRV-1.85.0-informational?logo=rust)](https://blog.rust-lang.org/2025/02/20/Rust-1.85.0.html)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](#)
 
 ---
 
-## What is `wireup`?
+## What is `snapfit`?
 
-`wireup` is a modern, compile-time verified dependency injection framework designed specifically for idiomatic Rust. 
+`snapfit` is a modern, compile-time verified dependency injection framework designed specifically for idiomatic Rust. 
 
-Unlike traditional DI frameworks ported from Java (Spring/Dagger) or C# (.NET), `wireup` inverts the dependency declaration: **the container struct declares the wiring, leaving your domain structs 100% pure Rust.**
+Unlike traditional DI frameworks ported from Java (Spring/Dagger) or C# (.NET), `snapfit` inverts the dependency declaration: **the container struct declares the wiring, leaving your domain structs 100% pure Rust.**
 
 ```text
 Traditional DI:  Pollutes every service with #[inject], #[component], and dyn Any.
-wireup:          Domain types stay pure Rust. The container wires them at compile time.
+snapfit:         Domain types stay pure Rust. The container wires them at compile time.
 ```
 
 ---
@@ -26,7 +26,7 @@ wireup:          Domain types stay pure Rust. The container wires them at compil
 
 ```rust
 use std::sync::Arc;
-use wireup::container;
+use snapfit::container;
 
 // 1. Your domain types are 100% pure Rust (ZERO macros, ZERO framework traits!)
 pub struct UserController {
