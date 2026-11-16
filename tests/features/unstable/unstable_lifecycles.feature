@@ -24,6 +24,14 @@ Feature: Unstable lifecycles behind the `unstable` feature
     When the container is instantiated
     Then the auth service should be configured by the builder with the shop config
 
+  @unstable @regression
+  Scenario: Transients can feed other transients and singletons, and builders can make trait objects
+    Given a container where a transient price list feeds a transient quote and a singleton catalog
+    When the container is instantiated
+    Then every quote should get its own fresh price list
+    And the catalog should keep the price list it was built with
+    And the trait-object notifier made by its builder should send through "email:northwind"
+
   @unstable
   Scenario Outline: Planned container features stay refused with the unstable feature enabled
     Given an invalid container fixture "<fixture>"
@@ -35,3 +43,4 @@ Feature: Unstable lifecycles behind the `unstable` feature
       | planned_parent_container | #[container(parent = ...)]              |
       | planned_introspection    | #[container(introspection = true)]      |
       | planned_dispatch         | #[dispatch(...)] on dependency 'store'  |
+      | generic_container        | generic parameters on container 'Repo'  |

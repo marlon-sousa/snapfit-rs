@@ -9,6 +9,6 @@ pub struct BuilderContainer {
     #[singleton]
     config: Arc<Config>,
 
-    #[singleton(deps = [config], builder = "build_auth")]
+    #[singleton(deps = [config], builder = build_auth)]
     auth: Arc<AuthService>,
 }

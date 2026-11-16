@@ -12,12 +12,12 @@ This document describes the full design. Only part of it ships as a stable API i
 | :--- | :--- | :--- |
 | `#[container]` and `#[derive(Container)]` with `#[singleton]` fields | Stable | §2, §3, §4 |
 | `deps = [...]` named edges, multiple instances of one type | Stable | §2, §5.A |
-| `constructor = "..."` | Stable | §5.A |
+| `constructor = <fn>` (a bare function name, `constructor = connect`) | Stable | §5.A |
 | Compile-time missing-dependency and cycle detection | Stable | §6 |
 | `Container` trait, `new()`, `Default` | Stable | §2 |
 | Async containers: `mode = "async"`, `#[singleton(async)]`, `init().await` (sequential) | Unstable | §8 |
 | `#[transient]` dependencies | Unstable | §4 |
-| `builder = "..."` (associated function on the container) | Unstable | §5.B |
+| `builder = <fn>` (associated function on the container) | Unstable | §5.B |
 | `<ContainerName>Builders` companion trait | Planned | §5.B |
 | Concurrent async boot (`join!` over independent async singletons) | Planned | §8 |
 | `#[dispatch(...)]` static trait dispatch | Planned | §7 |
@@ -40,6 +40,20 @@ These items existed before 0.1.0 but nothing generated or used them, so they wer
 * **`AsyncContainer` trait** (`fn init() -> impl Future<Output = Result<Self, Self::Error>>`): return with stabilised async containers. The generated `init()` currently returns `Box<dyn Error + Send + Sync>`, which cannot satisfy the old `Error: std::error::Error` bound, so the error type must be designed first (ideally naming which dependency failed).
 * **`introspection` module** (`GraphDescriptor`, `NodeDescriptor`, `EdgeDescriptor`): return with `introspection = true`.
 * **`SnapfitError` and the `Error` alias** (`ResolutionFailed`, `MissingDependency`, `InitializationFailed`): return when async initialization errors get dependency context.
+* **`ConstructionPlan::parallel_batches`** (groups of independent async singletons): the planner computed them but the generator never used them. They return with concurrent async boot.
+
+### Decided syntax for later versions
+
+* **Async containers get their own macro** (decided 2026-11-16, not implemented yet): `#[async_container]` replaces `#[container(mode = "async")]`, and `mode` is removed. Inside it, async dependencies are marked with the bare `async` flag (`#[singleton(deps = [config], async, constructor = connect)]`); everything else stays sync. `async` inside a plain `#[container]` becomes an error pointing to `#[async_container]`. Until then the unstable `mode = "async"` syntax keeps working.
+
+### Container shapes refused in 0.1.0
+
+These are compile errors that point at the offending field or container, instead of generating code that does not compile:
+
+* **Generic containers** (`struct Repo<T>`): planned; the generated `impl` blocks and getters need a design for bounds first.
+* **`#[cfg]` / `#[cfg_attr]` on a dependency field**: conditional dependencies would change the graph per build, so they are refused.
+* **Trait-object fields** (`Arc<dyn Store>`) without `builder = <fn>`: a trait object has no constructor to call. Use a builder (unstable) or, once implemented, `#[dispatch(...)]`.
+* **`constructor` or `builder` values that are not a plain function name** (`"connect()"`, `"Db::connect"`).
 
 ---
 
@@ -88,7 +102,7 @@ pub struct AppContainer {
     user_controller: UserController,
 
     // 5. Custom builder (when constructor isn't standard ::new)
-    #[singleton(deps = [config, db], builder = "build_auth")]
+    #[singleton(deps = [config, db], builder = build_auth)]
     auth: Arc<AuthService>,
 
     // 6. Static polymorphism (Post-MVP): Macro rewrites field to generated enum!
@@ -113,7 +127,7 @@ pub struct AppContainer {
 | **`#[singleton(deps = [a, b])]`** | **Singleton (With Dependencies)** | Stored in container struct. Created at boot passing dependencies in order. |
 | **`#[transient]`** | **Transient** | **Stripped from struct memory storage.** Reconstructed on each `get_<name>()`. |
 | **`#[transient(deps = [a])]`** | **Transient (With Dependencies)** | **Stripped from struct memory storage.** Reconstructed on each `get_<name>()` passing `a`. |
-| **`#[singleton(deps = [...], builder = "...")]`** | **Custom Builder** | Calls companion trait `<ContainerName>Builders` method for custom construction. |
+| **`#[singleton(deps = [...], builder = <fn>)]`** | **Custom Builder** | Calls companion trait `<ContainerName>Builders` method for custom construction. |
 | **`#[dispatch(ImplA, ImplB)]`** | **Static Trait (Post-MVP)** | Auto-generates `enum_dispatch` and **rewrites the struct field type** to the enum. |
 | **`#[external]`** | **External Input (Post-MVP)** | Passed as a parameter to `new(...)` / `init(...)` and exposed as a wireable leaf node in the DAG. |
 | *(Unannotated field)* | **Pre-Init Computed (Post-MVP)** | Populated via an optional `before_init` hook prior to DAG wiring and exposed as a wireable node in the DAG. |
@@ -198,7 +212,7 @@ When a dependency requires custom construction (such as unpacking config fields,
        db: Arc<Database>,
 
        // Custom builder declared on the field:
-       #[singleton(deps = [config, db], builder = "build_auth")]
+       #[singleton(deps = [config, db], builder = build_auth)]
        auth: Arc<AuthService>,
    }
    ```
@@ -220,7 +234,7 @@ When a dependency requires custom construction (such as unpacking config fields,
    ```
 
 * **IDE Auto-Scaffolding:** In `rust-analyzer` or any LSP-enabled editor, typing `impl AppContainerBuilders for AppContainer {}` provides an immediate "Implement missing members" code action that generates the exact function stub with correct types.
-* **Conditional Generation:** If no fields in the container declare `builder = "..."`, the companion trait is omitted entirely to prevent dead code or unused trait warnings.
+* **Conditional Generation:** If no fields in the container declare `builder = <fn>`, the companion trait is omitted entirely to prevent dead code or unused trait warnings.
 * **Absolute Zero Domain Pollution:** Services, repositories, and controllers remain 100% pure standard Rust with zero framework dependencies.
 
 ---
@@ -230,12 +244,11 @@ When a dependency requires custom construction (such as unpacking config fields,
 Because all dependencies and their prerequisites are declared within the struct AST, the procedural macro performs graph analysis at compile time:
 
 1. **Graph Construction:** Builds a Directed Acyclic Graph (DAG) using field names as nodes and `deps = [...]` prerequisites as directed edges.
-2. **Topological Sort:** Runs Kahn's algorithm at macro expansion time to compute the exact instantiation sequence.
-3. **Cycle Rejection:** If a dependency cycle is detected (e.g. `service_a -> service_b -> service_a`), the macro emits an immediate compile error:
+2. **Topological Sort:** Sorts the graph at macro expansion time (`petgraph`'s depth-first topological sort) to compute the exact instantiation sequence. Declaration order does not matter.
+3. **Cycle Rejection:** If a dependency cycle is detected (e.g. `service_a -> service_b -> service_a`), the macro finds the strongly connected component, names one concrete cycle through it, and emits a compile error on the first field of that cycle:
 
 ```text
-error: Dependency cycle detected in AppContainer:
-   service_a -> service_b -> service_a
+error: dependency cycle detected: service_a -> service_b -> service_a
   --> src/main.rs:12:5
    |
 12 |     #[singleton(deps = [service_b])]
@@ -311,11 +324,11 @@ pub struct AppContainer {
     config: Arc<Config>,
 
     // Asynchronous constructor: Database::connect(config).await
-    #[singleton(deps = [config], async, constructor = "connect")]
+    #[singleton(deps = [config], async, constructor = connect)]
     db: Arc<Database>,
 
     // Asynchronous constructor: PaymentGateway::init(config).await
-    #[singleton(deps = [config], async, constructor = "init")]
+    #[singleton(deps = [config], async, constructor = init)]
     payment: Arc<PaymentGateway>,
 
     // Synchronous dependency depending on async db
@@ -428,7 +441,7 @@ snapfit-rs/
 │       ├── lib.rs           # Macro entry points (#[container])
 │       ├── domain/          # Pure Domain IR, errors, and construction plan (No syn/quote)
 │       ├── ports/           # ParserPort and EmitterPort trait boundaries
-│       ├── use_cases/       # GraphEngine (Kahn's DAG topo sort), PlanContainer
+│       ├── use_cases/       # GraphEngine (topological sort, cycle search), planner, feature gate
 │       └── adapters/
 │           ├── inbound/     # syn/darling AST parser
 │           └── outbound/    # quote token emitter

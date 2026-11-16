@@ -70,3 +70,33 @@ fn then_auth_built_by_builder(world: &mut ContainerWorld) {
     let container = world.unstable().builder_shop();
     assert_eq!(container.get_auth().realm, "Northwind-auth");
 }
+
+#[given("a container where a transient price list feeds a transient quote and a singleton catalog")]
+fn given_layered_container(world: &mut ContainerWorld) {
+    world.select(ScenarioBlueprint::LayeredShop);
+}
+
+#[then("every quote should get its own fresh price list")]
+fn then_quotes_get_fresh_price_lists(world: &mut ContainerWorld) {
+    let container = world.unstable().layered_shop();
+    let first = container.get_quote().prices.id;
+    let second = container.get_quote().prices.id;
+    assert_ne!(
+        first, second,
+        "Expected a fresh PriceList inside every Quote"
+    );
+}
+
+#[then("the catalog should keep the price list it was built with")]
+fn then_catalog_keeps_its_price_list(world: &mut ContainerWorld) {
+    let container = world.unstable().layered_shop();
+    let catalog = container.get_catalog();
+    assert!(Arc::ptr_eq(&catalog, &container.get_catalog()));
+    assert_ne!(catalog.prices.id, container.get_prices().id);
+}
+
+#[then(expr = "the trait-object notifier made by its builder should send through {string}")]
+fn then_notifier_uses_channel(world: &mut ContainerWorld, channel: String) {
+    let container = world.unstable().layered_shop();
+    assert_eq!(container.get_notifier().channel(), channel);
+}

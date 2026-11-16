@@ -62,3 +62,4 @@ Feature: Container Dependency Resolution
       | planned_parent_container | #[container(parent = ...)]              |
       | planned_introspection    | #[container(introspection = true)]      |
       | planned_dispatch         | #[dispatch(...)] on dependency 'store'  |
+      | generic_container        | generic parameters on container 'Repo'  |

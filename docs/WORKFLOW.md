@@ -136,7 +136,7 @@ Immediately following the completion of **Stack 4 (v0.1.0 MVP)**, development wi
 2. **The Snapfit Mental Model:**
    * Pure domain services (zero macros).
    * Container manifest (`#[container]`, `#[singleton]`, `#[transient]`).
-   * Compile-time verification: How Kahn's algorithm catches cycles before compilation succeeds.
+   * Compile-time verification: How the graph engine's topological sort and cycle search catch cycles before compilation succeeds.
 3. **Tutorial Walkthroughs (Human & Agent Friendly):**
    * Step-by-step: Building a clean Web API with Axum/Actix and Snapfit.
    * Multi-instance patterns (`read_db`, `write_db`).

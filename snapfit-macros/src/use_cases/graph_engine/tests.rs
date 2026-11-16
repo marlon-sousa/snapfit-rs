@@ -131,6 +131,36 @@ fn test_figure_eight_scc_backtracking_cycle_detection() {
 }
 
 #[test]
+fn test_cycle_search_through_a_ladder_of_diamonds_stays_linear() {
+    // 'entry -> m0 -> (a_i | b_i) -> m_{i+1} -> ... -> m40 -> m0' is a long
+    // strongly connected ladder; the only way back to 'entry' is m0's last
+    // prerequisite. Re-exploring every dead-end branch would take 2^40 steps.
+    const RUNGS: usize = 40;
+    let mut deps = vec![make_dep("entry", "Arc<Entry>", &["m0"])];
+    deps.push(make_dep("m0", "Arc<M>", &["a0", "b0", "entry"]));
+    for rung in 0..RUNGS {
+        let next = format!("m{}", rung + 1);
+        deps.push(make_dep(&format!("a{rung}"), "Arc<A>", &[next.as_str()]));
+        deps.push(make_dep(&format!("b{rung}"), "Arc<B>", &[next.as_str()]));
+    }
+    deps.push(make_dep(&format!("m{RUNGS}"), "Arc<M>", &["m0"]));
+    for rung in 1..RUNGS {
+        let (a, b) = (format!("a{rung}"), format!("b{rung}"));
+        deps.push(make_dep(
+            &format!("m{rung}"),
+            "Arc<M>",
+            &[a.as_str(), b.as_str()],
+        ));
+    }
+
+    let err = GraphEngine::new().topological_sort(&deps).unwrap_err();
+    assert_eq!(
+        err,
+        DomainError::CycleDetected(vec![dep_name("entry"), dep_name("m0"), dep_name("entry")])
+    );
+}
+
+#[test]
 fn test_missing_prerequisites_and_duplicate_validation() {
     let engine = GraphEngine::new();
     let missing = vec![

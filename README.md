@@ -67,7 +67,7 @@ pub struct AppContainer {
     config: Arc<Config>,
 
     // Named constructor: calls Database::connect(config)
-    #[singleton(deps = [config], constructor = "connect")]
+    #[singleton(deps = [config], constructor = connect)]
     db: Arc<Database>,
 
     // Calls UserService::new(db)
@@ -91,7 +91,7 @@ fn main() {
 * **Compile-time graph checks:** unknown dependencies and cycles (`A -> B -> A`) fail `cargo build`; initialization order is computed with a topological sort, whatever order the fields are declared in.
 * **Typed getters:** `get_<name>()` returns the declared type with no `dyn Any` and no forced `Arc<T>` (any `T: Clone` works).
 * **Named edges:** two dependencies of the same type (`read_db` and `write_db`) are wired by field name, without wrapper newtypes.
-* **Named constructors:** `constructor = "connect"` calls `Type::connect(...)` instead of `Type::new(...)`.
+* **Named constructors:** `constructor = connect` calls `Type::connect(...)` instead of `Type::new(...)`.
 
 ### Unstable APIs (`features = ["unstable"]`)
 
@@ -99,7 +99,7 @@ These work today but their API may still change, so they need the `unstable` fea
 
 * **Async containers:** `#[container(mode = "async")]`, `#[singleton(async, ...)]` and `AppContainer::init().await`, with synchronous getters afterwards.
 * **Transient dependencies:** `#[transient]` fields are not stored and are built fresh on every `get_<name>()`.
-* **Custom builders:** `builder = "build_auth"` calls an associated function you write on the container.
+* **Custom builders:** `builder = build_auth` calls an associated function you write on the container.
 
 ### Planned
 

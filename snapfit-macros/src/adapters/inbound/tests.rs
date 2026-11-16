@@ -13,10 +13,10 @@ fn test_syn_parser_adapter_parses_full_container_struct() {
             #[singleton]
             config: Arc<Config>,
 
-            #[singleton(deps = [config], async, constructor = "connect")]
+            #[singleton(deps = [config], async, constructor = connect)]
             db: Arc<Database>,
 
-            #[singleton(deps = [config, db], builder = "build_auth")]
+            #[singleton(deps = [config, db], builder = build_auth)]
             auth: Arc<AuthService>,
 
             #[transient(deps = [db])]
@@ -72,7 +72,7 @@ fn test_syn_parser_adapter_parses_full_container_struct() {
 fn test_syn_parser_adapter_infers_async_and_supports_parse_with_args() {
     let input: syn::ItemStruct = parse_quote! {
         pub struct AsyncInferredContainer {
-            #[singleton(async, constructor = "load")]
+            #[singleton(async, constructor = load)]
             config: Arc<Config>,
         }
     };
@@ -91,7 +91,7 @@ fn test_syn_parser_adapter_parses_derive_input() {
     let input: syn::DeriveInput = parse_quote! {
         #[container]
         pub struct SimpleApp {
-            #[singleton(deps = [config], constructor = "connect")]
+            #[singleton(deps = [config], constructor = connect)]
             db: Arc<Database>,
         }
     };

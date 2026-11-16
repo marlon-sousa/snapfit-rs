@@ -133,9 +133,35 @@ pub(super) struct DependencyAttrMeta {
     #[darling(default)]
     pub is_async: bool,
     #[darling(default)]
-    pub constructor: Option<String>,
+    pub constructor: Option<FunctionName>,
     #[darling(default)]
-    pub builder: Option<String>,
+    pub builder: Option<FunctionName>,
+}
+
+/// The value of `constructor = ...` or `builder = ...` as the user wrote it.
+/// Only a bare function name (`constructor = connect`) is accepted; the
+/// field parser turns the other shapes into errors that name the field.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) enum FunctionName {
+    Bare(String),
+    Quoted(String),
+    Invalid(String),
+}
+
+impl FromMeta for FunctionName {
+    fn from_expr(expr: &syn::Expr) -> darling::Result<Self> {
+        Ok(match expr {
+            syn::Expr::Path(path) if path.qself.is_none() => path.path.get_ident().map_or_else(
+                || Self::Invalid(quote!(#path).to_string()),
+                |ident| Self::Bare(ident.to_string()),
+            ),
+            syn::Expr::Lit(syn::ExprLit {
+                lit: syn::Lit::Str(text),
+                ..
+            }) => Self::Quoted(text.value()),
+            other => Self::Invalid(quote!(#other).to_string()),
+        })
+    }
 }
 
 impl DependencyAttrMeta {

@@ -74,26 +74,29 @@ snapfit/
         │   │   └── syn_parser_adapter.rs # Implements ContainerParserPort
         │   │
         │   └── outbound/        # Outbound: Adapting Domain Plans to quote!
+        │       ├── expr.rs          # Typed construction expressions (no string re-parsing)
         │       ├── getters.rs
         │       ├── init_constructor.rs
-        │       └── step_expr.rs
+        │       └── struct_def.rs    # Re-emits the user's struct with its own attributes
         │
         ├── domain/              # Pure Domain Entities (ZERO syn/quote dependencies)
         │   ├── mod.rs
         │   ├── ir.rs            # ContainerIR, DependencyIR, Lifecycle, TraitDispatch
-        │   ├── plan.rs          # ConstructionPlan, StepPlan, ParallelBatch
+        │   ├── plan.rs          # ConstructionPlan, InstantiationStep, Construction
         │   └── errors.rs        # DomainError (Cycles, MissingPrereqs, InvalidConfig)
         │
         ├── ports/               # Port Traits (Interfaces defining boundaries)
         │   ├── mod.rs
         │   ├── parser_port.rs   # ContainerParserPort
+        │   ├── container_syntax.rs # The user's tokens (types, attrs, spans) kept beside the IR
         │   └── emitter_port.rs  # CodeEmitterPort
         │
         └── use_cases/           # Application Business Logic
             ├── mod.rs
             ├── derive_container.rs # Orchestrates parsing -> graph -> plan -> emit
-            ├── graph_engine.rs     # Pure Kahn's algorithm & cycle detection
-            └── planner.rs          # Translates DAG into sequential/parallel execution steps
+            ├── feature_gate.rs     # Stable / unstable / planned feature decisions
+            ├── graph_engine.rs     # Topological sort & cycle search (petgraph)
+            └── planner.rs          # Translates the sorted DAG into ordered steps
 ```
 
 ---
@@ -141,20 +144,28 @@ pub struct ContainerIR {
 ```rust
 // snapfit-macros/src/domain/plan.rs
 
-/// An optimized execution plan produced by the use case
+/// The ordered construction plan produced by the use case. It holds names
+/// and decisions only: the emitter takes the user's own types and spans from
+/// `ContainerSyntax`, so no Rust source is ever rebuilt from strings.
 #[derive(Debug, Clone)]
 pub struct ConstructionPlan {
-    pub container_name: String,
+    pub container_name: ContainerName,
     pub is_async: bool,
     pub ordered_steps: Vec<InstantiationStep>,
-    pub parallel_batches: Vec<Vec<String>>, // Groups of independent async tasks
+}
+
+#[derive(Debug, Clone)]
+pub enum Construction {
+    Constructor(String), // `<Type>::name(deps...)`
+    Builder(String),     // `Self::name(deps...)` (unstable)
 }
 
 #[derive(Debug, Clone)]
 pub struct InstantiationStep {
-    pub dep_name: String,
-    pub dep_type: String,
-    pub constructor_call: String,
+    pub dep_name: DependencyName,
+    pub dep_type: TypeName,
+    pub construction: Construction,
+    pub prerequisites: Vec<DependencyName>,
     pub is_async: bool,
     pub lifecycle: Lifecycle,
 }
@@ -178,8 +189,8 @@ use crate::domain::ConstructionPlan;
 use proc_macro2::TokenStream;
 
 pub trait CodeEmitterPort {
-    /// Emits the rewritten struct (transients stripped, traits rewritten to enums) and impl blocks.
-    fn emit_container(&self, plan: &ConstructionPlan) -> TokenStream;
+    /// Emits the user's struct (transients stripped, own attributes and visibility kept) and impl blocks.
+    fn emit_container(&self, plan: &ConstructionPlan, syntax: &ContainerSyntax) -> TokenStream;
 }
 ```
 
@@ -209,7 +220,7 @@ impl PlanContainerUseCase {
         // 1. Pure Domain Logic: DAG Topological Sort & Cycle Detection
         let sorted_dependencies = self.graph_engine.topological_sort(&container_ir.dependencies)?;
 
-        // 2. Pure Domain Logic: Plan sequential vs. parallel tokio::join batches
+        // 2. Pure Domain Logic: Order the steps (concurrent async batches are planned, see SPEC §0)
         let plan = self.planner.build_plan(&container_ir, sorted_dependencies)?;
 
         Ok(plan)
@@ -247,7 +258,7 @@ fn test_darling_parser_extracts_prerequisites() {
     let input: syn::DeriveInput = syn::parse_quote! {
         #[container]
         pub struct App {
-            #[singleton(deps = [config], constructor = "connect")]
+            #[singleton(deps = [config], constructor = connect)]
             db: Arc<Database>,
         }
     };
