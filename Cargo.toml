@@ -14,3 +14,6 @@ license = "MIT OR Apache-2.0"
 authors = ["wireup contributors"]
 repository = "https://github.com/marlon-sousa/wireup-rs"
 readme = "README.md"
+
+[workspace.dependencies]
+thiserror = "2.0"

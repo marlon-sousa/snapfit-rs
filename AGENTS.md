@@ -50,8 +50,9 @@ Every agent (coder or reviewer) working in this repository **must** enforce thes
 1. **Dependency Reuse Priority:**
    * **Tier 1:** Standard library first (`std`).
    * **Tier 2:** Crates already present in our workspace dependencies.
-   * **Tier 3:** Well-known, actively maintained, and compatible external crates (e.g. `darling`, `quote`, `syn`, `tokio`).
+   * **Tier 3:** Well-known, actively maintained, and compatible external crates (e.g. `darling`, `quote`, `syn`, `tokio`, `thiserror`).
    * **Tier 4:** Only if none exist, write custom logic by hand.
+   * **Error Handling & Formatting:** All domain and runtime error enums **MUST derive `thiserror::Error`**. Never write manual `impl fmt::Display` or `impl std::error::Error` by hand.
 2. **File Size Guideline (~200 Lines):**
    * Keep files under ~200 lines as a soft limit. If a file exceeds this threshold, treat it as a signal to refactor into cohesive private submodules.
 3. **Self-Documenting Code (No Obvious Comments):**
@@ -63,13 +64,16 @@ Every agent (coder or reviewer) working in this repository **must** enforce thes
    * Modules expose their interface through `pub(crate) use` or controlled `pub use` at the module root.
 6. **Stop and Ask:**
    * If any question, ambiguity, or design trade-off arises during implementation, **stop and ask the Tech Lead** before making assumptions.
+7. **Strongly-Typed Domain Modeling (No Anonymous Tuples):**
+   * Never use anonymous tuples (e.g. `(String, String)`) or loose primitives where a domain concept exists.
+   * If a concept or relationship can be modeled, define an explicit named struct (e.g. `EdgeDescriptor { pub from: String, pub to: String }`). Every field must convey intent.
 
 ---
 
 ## 4. Role Instructions for Subagents
 
 ### `wireup-coder` (Lead Implementer):
-* Follows the 6 engineering principles above.
+* Follows the 7 engineering principles above.
 * Runs `cargo fmt`, `cargo clippy -- -D warnings`, and in-memory unit tests before submitting.
 * Keeps tests fast (< 5ms) without `trybuild`.
 
@@ -77,6 +81,8 @@ Every agent (coder or reviewer) working in this repository **must** enforce thes
 * Audits diffs against Section 2 (Architectural Invariants) and Section 3 (Coding Standards).
 * Checks for:
   * Any compiler types leaking into `domain` or `use_cases`.
+  * Violation of Dependency Reuse Priority (e.g. hand-rolled `Display`/`Error` formatting instead of `thiserror`, or custom logic where established crates exist like `petgraph`).
+  * Anonymous tuples or loose primitives where a named struct should be used.
   * Files approaching/exceeding ~200 lines without justification.
   * Over-commented trivial code or missing error handling.
   * Excessive public exports (`pub` instead of `pub(crate)`).

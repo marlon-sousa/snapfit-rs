@@ -1,22 +1,16 @@
-use std::fmt;
+use thiserror::Error;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub enum WireupError {
+    #[error("resolution failed: {0}")]
     ResolutionFailed(String),
+
+    #[error("missing dependency: {0}")]
     MissingDependency(String),
+
+    #[error("initialization failed: {0}")]
     InitializationFailed(String),
+
+    #[error("unknown dependency key: {0}")]
     UnknownKey(String),
 }
-
-impl fmt::Display for WireupError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::ResolutionFailed(reason) => write!(f, "resolution failed: {reason}"),
-            Self::MissingDependency(dep) => write!(f, "missing dependency: {dep}"),
-            Self::InitializationFailed(reason) => write!(f, "initialization failed: {reason}"),
-            Self::UnknownKey(key) => write!(f, "unknown dependency key: {key}"),
-        }
-    }
-}
-
-impl std::error::Error for WireupError {}

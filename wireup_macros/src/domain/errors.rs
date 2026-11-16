@@ -1,40 +1,19 @@
-use std::fmt;
+use thiserror::Error;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub enum DomainError {
+    #[error("dependency cycle detected: {}", .0.join(" -> "))]
     CycleDetected(Vec<String>),
+
+    #[error("dependency '{dependency}' is missing prerequisites: {}", .missing.join(", "))]
     MissingPrerequisites {
         dependency: String,
         missing: Vec<String>,
     },
+
+    #[error("duplicate dependency name: '{0}'")]
     DuplicateDependency(String),
+
+    #[error("invalid configuration: {0}")]
     InvalidConfiguration(String),
 }
-
-impl fmt::Display for DomainError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::CycleDetected(cycle) => {
-                write!(f, "dependency cycle detected: {}", cycle.join(" -> "))
-            }
-            Self::MissingPrerequisites {
-                dependency,
-                missing,
-            } => {
-                write!(
-                    f,
-                    "dependency '{dependency}' is missing prerequisites: {}",
-                    missing.join(", ")
-                )
-            }
-            Self::DuplicateDependency(name) => {
-                write!(f, "duplicate dependency name: '{name}'")
-            }
-            Self::InvalidConfiguration(msg) => {
-                write!(f, "invalid configuration: {msg}")
-            }
-        }
-    }
-}
-
-impl std::error::Error for DomainError {}

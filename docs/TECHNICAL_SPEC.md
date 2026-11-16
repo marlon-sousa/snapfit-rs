@@ -335,9 +335,9 @@ impl AppContainer {
                 wireup::introspection::NodeDescriptor { name: "controller".into(), lifecycle: "transient".into() },
             ],
             edges: vec![
-                ("db".into(), "config".into()),
-                ("controller".into(), "config".into()),
-                ("controller".into(), "db".into()),
+                wireup::introspection::EdgeDescriptor { from: "db".into(), to: "config".into() },
+                wireup::introspection::EdgeDescriptor { from: "controller".into(), to: "config".into() },
+                wireup::introspection::EdgeDescriptor { from: "controller".into(), to: "db".into() },
             ],
         }
     }

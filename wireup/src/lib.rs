@@ -7,4 +7,4 @@ pub mod introspection;
 pub use container::{AsyncContainer, Container};
 pub use error::WireupError;
 pub type Error = WireupError;
-pub use introspection::{GraphDescriptor, NodeDescriptor};
+pub use introspection::{EdgeDescriptor, GraphDescriptor, NodeDescriptor};
