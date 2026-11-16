@@ -8,12 +8,10 @@ license.workspace = true
 publish = false
 
 [dependencies]
-rayon = { workspace = true }
-wireup = { workspace = true }
-
-[dev-dependencies]
 cucumber = { workspace = true }
 futures = { workspace = true }
+rayon = { workspace = true }
+wireup = { workspace = true }
 
 [[test]]
 name = "bdd"
