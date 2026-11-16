@@ -73,13 +73,17 @@ Every agent (coder or reviewer) working in this repository **must** enforce thes
 7. **Strongly-Typed Domain Modeling (No Anonymous Tuples):**
    * Never use anonymous tuples (e.g. `(String, String)`) or loose primitives where a domain concept exists.
    * If a concept or relationship can be modeled, define an explicit named struct (e.g. `EdgeDescriptor { pub from: String, pub to: String }`). Every field must convey intent.
+8. **Anti-Corruption Service Boundaries (Domain In, Domain Out):**
+   * If an external crate is highly specific, complex, or exposes idiosyncratic types, never bleed its types into higher-level consumers (e.g. controllers, use case orchestrators, or domain entities).
+   * Encapsulate the crate inside a focused service or adapter that operates strictly on **Domain In, Domain Out**.
+   * The consumer interacts exclusively with clean domain contracts; the third-party crate's implementation details and external types remain fully quarantined inside that service.
 
 ---
 
 ## 4. Role Instructions for Subagents
 
 ### `wireup-coder` (Lead Implementer):
-* Follows the 7 engineering principles above.
+* Follows the 8 engineering principles above.
 * **Exercises Engineering Judgment:** Never writes 300 lines of complex algorithmic or boilerplate logic by hand when an established, focused crate solves the problem cleanly without side effects or adapter coupling.
 * Runs `cargo fmt`, `cargo clippy -- -D warnings`, and in-memory unit tests before submitting.
 * Keeps tests fast (< 5ms) without `trybuild`.
