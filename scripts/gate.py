@@ -96,7 +96,7 @@ def check_architectural_invariants() -> bool:
                         )
 
     # 2. File line length guideline check and modern module layout (no mod.rs)
-    for crate_name in ["wireup", "wireup_macros", "xtask"]:
+    for crate_name in ["wireup", "wireup_macros", "xtask", "tests"]:
         crate_src = root / crate_name / "src"
         if not crate_src.exists():
             continue

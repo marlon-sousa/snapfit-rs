@@ -67,3 +67,20 @@ fn test_full_adapter_and_use_case_pipeline_emits_valid_syntax() {
         syn::parse2(tokens).expect("end-to-end emitted tokens must parse as valid Rust");
     assert_eq!(parsed_file.items.len(), 4);
 }
+
+#[test]
+fn test_quote_emitter_adapter_emits_derive_impls_without_duplicate_struct() {
+    let plan = make_plan_with_dep("db", "Arc<Database>");
+    let emitter = QuoteEmitterAdapter::new();
+
+    let tokens = emitter.emit_derive_impls(&plan);
+    let code = tokens.to_string();
+
+    assert!(!code.contains("pub struct AppContainer"));
+    assert!(code.contains("pub fn new () -> Self"));
+    assert!(code.contains("pub fn get_db (& self) -> Arc < Database >"));
+
+    let parsed_file: syn::File =
+        syn::parse2(tokens).expect("derive impl tokens must be valid Rust syntax");
+    assert_eq!(parsed_file.items.len(), 3);
+}

@@ -66,7 +66,16 @@ impl<'a> IndexedGraph<'a> {
             .ok_or_else(|| DomainError::MissingPrerequisites {
                 dependency: dep.name.clone(),
                 missing,
+                available: self.wireable_candidates_for(dep),
             })
+    }
+
+    fn wireable_candidates_for(&self, dep: &DependencyIR) -> Vec<DependencyName> {
+        self.dependencies
+            .iter()
+            .filter(|candidate| candidate.name != dep.name)
+            .map(|candidate| candidate.name.clone())
+            .collect()
     }
 
     fn missing_prerequisites_for(&self, dep: &DependencyIR) -> Vec<DependencyName> {

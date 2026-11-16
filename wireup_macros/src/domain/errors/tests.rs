@@ -14,11 +14,12 @@ fn test_domain_error_display() {
 
     let missing_err = DomainError::MissingPrerequisites {
         dependency: dep_name("db"),
-        missing: vec![dep_name("config"), dep_name("pool")],
+        missing: vec![dep_name("confog")],
+        available: vec![dep_name("config"), dep_name("user_service")],
     };
     assert_eq!(
         missing_err.to_string(),
-        "dependency 'db' is missing prerequisites: config, pool"
+        "unknown dependency 'confog' on field 'db'. You must choose between the dependencies the container can wire: [config, user_service]"
     );
 
     let dup_err = DomainError::DuplicateDependency(dep_name("cache"));

@@ -6,13 +6,18 @@ mod tests;
 
 #[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub enum DomainError {
-    #[error("dependency cycle detected: {}", .0.iter().map(|d| d.as_str()).collect::<Vec<_>>().join(" -> "))]
+    #[error("dependency cycle detected: {}", join_names(.0, " -> "))]
     CycleDetected(Vec<DependencyName>),
 
-    #[error("dependency '{dependency}' is missing prerequisites: {}", .missing.iter().map(|d| d.as_str()).collect::<Vec<_>>().join(", "))]
+    #[error(
+        "unknown dependency '{}' on field '{dependency}'. You must choose between the dependencies the container can wire: [{}]",
+        join_names(.missing, ", "),
+        join_names(.available, ", ")
+    )]
     MissingPrerequisites {
         dependency: DependencyName,
         missing: Vec<DependencyName>,
+        available: Vec<DependencyName>,
     },
 
     #[error("duplicate dependency name: '{0}'")]
@@ -20,4 +25,12 @@ pub enum DomainError {
 
     #[error("invalid configuration: {0}")]
     InvalidConfiguration(String),
+}
+
+fn join_names(names: &[DependencyName], sep: &str) -> String {
+    names
+        .iter()
+        .map(DependencyName::as_str)
+        .collect::<Vec<_>>()
+        .join(sep)
 }

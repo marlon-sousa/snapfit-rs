@@ -133,16 +133,16 @@ fn test_figure_eight_scc_backtracking_cycle_detection() {
 #[test]
 fn test_missing_prerequisites_and_duplicate_validation() {
     let engine = GraphEngine::new();
-    let missing = vec![make_dep(
-        "user_service",
-        "Arc<UserService>",
-        &["db", "cache"],
-    )];
+    let missing = vec![
+        make_dep("config", "Arc<Config>", &[]),
+        make_dep("user_service", "Arc<UserService>", &["db", "cache"]),
+    ];
     assert_eq!(
         engine.topological_sort(&missing).unwrap_err(),
         DomainError::MissingPrerequisites {
             dependency: dep_name("user_service"),
             missing: vec![dep_name("db"), dep_name("cache")],
+            available: vec![dep_name("config")],
         }
     );
 

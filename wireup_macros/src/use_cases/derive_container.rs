@@ -1,20 +1,20 @@
-use derive_new::new;
-
 use crate::domain::{ConstructionPlan, ContainerIR, DomainError};
 use crate::use_cases::{ExecutionPlanner, GraphEngine};
 
 #[cfg(test)]
 mod tests;
 
-#[derive(new, Debug, Default, Clone)]
+#[derive(Debug, Default, Clone)]
 pub(crate) struct DeriveContainerUseCase {
-    #[new(default)]
     graph_engine: GraphEngine,
-    #[new(default)]
     planner: ExecutionPlanner,
 }
 
 impl DeriveContainerUseCase {
+    pub(crate) fn new() -> Self {
+        Self::with_components(GraphEngine::new(), ExecutionPlanner::new())
+    }
+
     pub(crate) fn with_components(graph_engine: GraphEngine, planner: ExecutionPlanner) -> Self {
         Self {
             graph_engine,

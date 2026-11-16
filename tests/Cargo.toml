@@ -1,0 +1,19 @@
+[package]
+name = "wireup_bdd"
+description = "BDD integration test suite and reference application fixtures for wireup"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+cucumber = { workspace = true }
+futures = { workspace = true }
+rayon = { workspace = true }
+wireup = { workspace = true }
+
+[[test]]
+name = "bdd"
+path = "src/bdd.rs"
+harness = false

@@ -36,7 +36,7 @@ main (Stack 1: Workspace & Domain IR — PR #1)
                 └── stack/05-async-container-boot
                      └── stack/06-transient-lifecycles
                           └── stack/07-enum-dispatch-polymorphism
-                               └── stack/08-companion-builders
+                               └── stack/08-companion-builders (and #[external] / before_init hooks)
                                     └── stack/09-fork-and-rewire-overrides
                                          └── stack/10-child-containers-scoping
 ```

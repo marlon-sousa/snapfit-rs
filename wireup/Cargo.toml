@@ -13,3 +13,4 @@ readme.workspace = true
 derive-new = { workspace = true }
 derive_more = { workspace = true }
 thiserror = { workspace = true }
+wireup_macros = { workspace = true }
