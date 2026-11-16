@@ -19,3 +19,4 @@ readme = "README.md"
 thiserror = "2.0"
 strum = { version = "0.27", features = ["derive"] }
 derive-new = "0.7"
+derive_more = { version = "2.1", features = ["deref", "display", "from", "into", "as_ref"] }

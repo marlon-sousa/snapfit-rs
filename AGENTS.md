@@ -80,13 +80,16 @@ Every agent (coder or reviewer) working in this repository **must** enforce thes
 9. **Modern Rust Module Layout (No `mod.rs`):**
    * Modules declare `<module_name>.rs` at the parent directory level, and private submodules reside in a `<module_name>/` folder.
    * `mod.rs` is strictly forbidden across the repository (enforced automatically by `cargo xtask arch-check`).
+10. **Semantic Types & Newtype Judgment (Avoid Primitive Obsession):**
+    * Use types that carry domain semantics and invariants where they prevent bugs or clarify intent (e.g. `NonZeroU32` for non-zero IDs, or dedicated newtypes via `derive_more` like `DependencyName` to prevent accidentally swapping field names and type identifiers).
+    * **Judgment over Dogma:** If a value is genuinely just a string or primitive without distinct domain rules, keep it simple. Do not introduce newtypes blindly for the sake of ceremony; apply them where they provide real compiler-enforced safety and clarity.
 
 ---
 
 ## 4. Role Instructions for Subagents
 
 ### `wireup-coder` (Lead Implementer):
-* Follows the 9 engineering principles above.
+* Follows the 10 engineering principles above.
 * **Exercises Engineering Judgment:** Never writes 300 lines of complex algorithmic or boilerplate logic by hand when an established, focused crate solves the problem cleanly without side effects or adapter coupling.
 * Runs `cargo fmt`, `cargo clippy -- -D warnings`, and in-memory unit tests before submitting.
 * Keeps tests fast (< 5ms) without `trybuild`.

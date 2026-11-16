@@ -1,5 +1,51 @@
+use derive_more::{AsRef, Deref, Display, From, Into};
 use derive_new::new;
 use strum::{AsRefStr, EnumIs, IntoStaticStr};
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deref, Display, From, Into, AsRef)]
+pub struct DependencyName(String);
+
+impl DependencyName {
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<&str> for DependencyName {
+    fn from(s: &str) -> Self {
+        Self(s.to_string())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deref, Display, From, Into, AsRef)]
+pub struct TypeName(String);
+
+impl TypeName {
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<&str> for TypeName {
+    fn from(s: &str) -> Self {
+        Self(s.to_string())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deref, Display, From, Into, AsRef)]
+pub struct ContainerName(String);
+
+impl ContainerName {
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<&str> for ContainerName {
+    fn from(s: &str) -> Self {
+        Self(s.to_string())
+    }
+}
 
 #[derive(EnumIs, AsRefStr, IntoStaticStr, Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[strum(serialize_all = "snake_case")]
@@ -34,11 +80,11 @@ pub enum TraitDispatch {
 #[derive(new, Debug, Clone, PartialEq, Eq)]
 pub struct DependencyIR {
     #[new(into)]
-    pub name: String,
+    pub name: DependencyName,
     #[new(into)]
-    pub type_string: String,
+    pub type_string: TypeName,
     #[new(default)]
-    pub prerequisites: Vec<String>,
+    pub prerequisites: Vec<DependencyName>,
     #[new(default)]
     pub lifecycle: Lifecycle,
     #[new(default)]
@@ -54,11 +100,11 @@ pub struct DependencyIR {
 #[derive(new, Debug, Clone, PartialEq, Eq)]
 pub struct ContainerIR {
     #[new(into)]
-    pub name: String,
+    pub name: ContainerName,
     #[new(default)]
     pub is_async: bool,
     #[new(default)]
-    pub parent_type: Option<String>,
+    pub parent_type: Option<TypeName>,
     #[new(default)]
     pub introspection: bool,
     #[new(default)]

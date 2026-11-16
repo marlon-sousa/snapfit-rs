@@ -1,18 +1,19 @@
+use crate::domain::ir::DependencyName;
 use thiserror::Error;
 
 #[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub enum DomainError {
-    #[error("dependency cycle detected: {}", .0.join(" -> "))]
-    CycleDetected(Vec<String>),
+    #[error("dependency cycle detected: {}", .0.iter().map(|d| d.as_str()).collect::<Vec<_>>().join(" -> "))]
+    CycleDetected(Vec<DependencyName>),
 
-    #[error("dependency '{dependency}' is missing prerequisites: {}", .missing.join(", "))]
+    #[error("dependency '{dependency}' is missing prerequisites: {}", .missing.iter().map(|d| d.as_str()).collect::<Vec<_>>().join(", "))]
     MissingPrerequisites {
-        dependency: String,
-        missing: Vec<String>,
+        dependency: DependencyName,
+        missing: Vec<DependencyName>,
     },
 
     #[error("duplicate dependency name: '{0}'")]
-    DuplicateDependency(String),
+    DuplicateDependency(DependencyName),
 
     #[error("invalid configuration: {0}")]
     InvalidConfiguration(String),

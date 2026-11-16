@@ -44,8 +44,8 @@ fn test_trait_dispatch_variants() {
 #[test]
 fn test_dependency_ir_creation() {
     let mut dep = DependencyIR::new("database", "Arc<Database>");
-    assert_eq!(dep.name, "database");
-    assert_eq!(dep.type_string, "Arc<Database>");
+    assert_eq!(*dep.name, "database");
+    assert_eq!(*dep.type_string, "Arc<Database>");
     assert!(dep.prerequisites.is_empty());
     assert_eq!(dep.lifecycle, Lifecycle::Singleton);
     assert!(!dep.is_async);
@@ -53,12 +53,12 @@ fn test_dependency_ir_creation() {
     assert_eq!(dep.custom_builder, None);
     assert_eq!(dep.trait_dispatch, TraitDispatch::None);
 
-    dep.prerequisites.push("config".to_string());
+    dep.prerequisites.push("config".into());
     dep.lifecycle = Lifecycle::Transient;
     dep.is_async = true;
     dep.constructor_name = "connect".to_string();
 
-    assert_eq!(dep.prerequisites, vec!["config"]);
+    assert_eq!(dep.prerequisites, vec!["config".into()]);
     assert_eq!(dep.lifecycle, Lifecycle::Transient);
     assert!(dep.is_async);
     assert_eq!(dep.constructor_name, "connect");
@@ -67,7 +67,7 @@ fn test_dependency_ir_creation() {
 #[test]
 fn test_container_ir_creation() {
     let mut container = ContainerIR::new("AppContainer");
-    assert_eq!(container.name, "AppContainer");
+    assert_eq!(*container.name, "AppContainer");
     assert!(!container.is_async);
     assert_eq!(container.parent_type, None);
     assert!(!container.introspection);
@@ -88,7 +88,7 @@ fn test_container_ir_creation() {
 #[test]
 fn test_construction_plan_and_steps() {
     let mut plan = ConstructionPlan::new("AppContainer", true, "AppContainerKey");
-    assert_eq!(plan.container_name, "AppContainer");
+    assert_eq!(*plan.container_name, "AppContainer");
     assert!(plan.is_async);
     assert_eq!(plan.key_enum_name, "AppContainerKey");
     assert!(plan.ordered_steps.is_empty());
@@ -102,10 +102,10 @@ fn test_construction_plan_and_steps() {
         Lifecycle::Singleton,
     );
     plan.ordered_steps.push(step);
-    plan.parallel_batches.push(vec!["config".to_string()]);
+    plan.parallel_batches.push(vec!["config".into()]);
 
     assert_eq!(plan.ordered_steps.len(), 1);
-    assert_eq!(plan.ordered_steps[0].dep_name, "config");
+    assert_eq!(*plan.ordered_steps[0].dep_name, "config");
     assert_eq!(plan.ordered_steps[0].lifecycle, Lifecycle::Singleton);
     assert_eq!(plan.parallel_batches.len(), 1);
 }
