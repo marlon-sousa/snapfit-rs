@@ -3,6 +3,7 @@
 
 mod domain;
 mod ports;
+mod use_cases;
 
 use proc_macro::TokenStream;
 
