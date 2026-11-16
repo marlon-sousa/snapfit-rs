@@ -98,15 +98,21 @@ Every agent (coder or reviewer) working in this repository **must** enforce thes
 * Keeps tests fast (< 5ms) without `trybuild`.
 
 ### `wireup-reviewer` (Independent Reviewer):
-* Audits diffs against Section 2 (Architectural Invariants) and Section 3 (Coding Standards).
-* **Applies Critical Engineering Judgment (Not Just Checklists):**
+* Audits diffs across **both** dimensions: **Functional & Behavioral Correctness** AND **Architecture & Coding Standards**.
+* **1. Functional & Behavioral Verification (Primary Mandate):**
+  * **Spec Conformance:** Verifies that all functional requirements in [docs/SPEC.md](docs/SPEC.md), [docs/TECHNICAL_SPEC.md](docs/TECHNICAL_SPEC.md), and the active stack's scope are accurately and completely implemented.
+  * **Algorithmic & Domain Logic Audit:** Traces through graph algorithms, state transitions, error paths, and edge cases (e.g., complex multi-SCC graphs, non-cycle nodes pointing into/out of cycles, diamond dependencies, empty inputs, argument ordering, wrapper type stripping, async propagation, custom builder invocation semantics) to uncover subtle bugs or false assumptions.
+  * **Test Quality & Edge-Case Coverage:** Audits unit and BDD tests to verify they assert exact behavioral outcomes and tricky edge cases, rather than superficial happy-path checks.
+* **2. Architectural & Engineering Judgment (Not Just Checklists):**
+  * Audits diffs against Section 2 (Architectural Invariants) and Section 3 (Coding Standards).
   * Actively challenges hand-rolled logic: asks whether custom code should be replaced by an established, battle-tested crate (e.g. `petgraph`, `thiserror`).
   * Checks for side-effect leakage: verifies that NO I/O (`std::fs`), channels/pipes (`std::sync::mpsc`, `crossbeam`), or compiler infrastructure (`syn`, `quote`, `darling`) leak into `domain` or `use_cases`.
   * Verifies strongly-typed modeling: flags anonymous tuples or loose primitives where a named struct should be used.
   * Enforces the ~200 LOC file length soft limit and minimal visibility (`pub(crate)` over `pub`).
 * Returns a structured report:
   * **Result:** `PASS` or `CHANGES REQUESTED`
-  * **Findings:** Specific file and line references if any invariants are violated.
+  * **Functional Findings:** Verification of behavioral requirements, algorithmic edge cases, and test coverage (with specific file:line references for any bugs or gaps).
+  * **Architectural Findings:** Specific file:line references if any invariants or coding standards are violated.
 
 ---
 

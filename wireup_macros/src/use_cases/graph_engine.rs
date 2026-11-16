@@ -87,19 +87,25 @@ impl GraphEngine {
                 }
             } else if scc.len() > 1 {
                 let scc_set: HashSet<NodeIndex> = scc.iter().copied().collect();
-                let start = scc
-                    .iter()
-                    .copied()
-                    .min_by_key(|&n| indexed.graph[n])
-                    .expect("scc has at least two nodes");
+                let mut candidates = scc;
+                candidates.sort_by_key(|&n| indexed.graph[n]);
 
-                let mut visited = HashSet::new();
-                let mut path = Vec::new();
-                if Self::find_cycle_dfs(indexed, start, start, &scc_set, &mut visited, &mut path) {
-                    return path
-                        .into_iter()
-                        .map(|n| indexed.dependencies[indexed.graph[n]].name.clone())
-                        .collect();
+                for start in candidates {
+                    let mut visited = HashSet::new();
+                    let mut path = Vec::new();
+                    if Self::find_cycle_dfs(
+                        indexed,
+                        start,
+                        start,
+                        &scc_set,
+                        &mut visited,
+                        &mut path,
+                    ) {
+                        return path
+                            .into_iter()
+                            .map(|n| indexed.dependencies[indexed.graph[n]].name.clone())
+                            .collect();
+                    }
                 }
             }
         }
@@ -136,6 +142,7 @@ impl GraphEngine {
         }
 
         path.pop();
+        visited.remove(&current);
         false
     }
 }
