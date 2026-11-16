@@ -21,11 +21,7 @@ fn test_references_dependency_matches_exact_argument_ident() {
 
 #[test]
 fn test_build_call_expr_wraps_standard_arc_and_preserves_custom_builder() {
-    let plan = ConstructionPlan::new(
-        ContainerName::new("AppContainer").unwrap(),
-        true,
-        "AppContainerKey",
-    );
+    let plan = ConstructionPlan::new(ContainerName::new("AppContainer").unwrap(), true);
     let standard_step = make_step("db", "Arc<Database>", "Database::connect()", true);
     let builder_step = make_step(
         "auth",

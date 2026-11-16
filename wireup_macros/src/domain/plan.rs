@@ -21,8 +21,6 @@ pub struct ConstructionPlan {
     #[new(into)]
     pub container_name: ContainerName,
     pub is_async: bool,
-    #[new(into)]
-    pub key_enum_name: String,
     #[new(default)]
     pub ordered_steps: Vec<InstantiationStep>,
     #[new(default)]

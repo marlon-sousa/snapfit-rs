@@ -19,11 +19,7 @@ fn make_step(
 
 #[test]
 fn test_emit_sync_struct_strips_transients_and_wraps_arc_singletons() {
-    let mut plan = ConstructionPlan::new(
-        ContainerName::new("AppContainer").unwrap(),
-        false,
-        "AppContainerKey",
-    );
+    let mut plan = ConstructionPlan::new(ContainerName::new("AppContainer").unwrap(), false);
     plan.ordered_steps = vec![
         make_step(
             "config",
@@ -66,8 +62,7 @@ fn test_emit_sync_struct_strips_transients_and_wraps_arc_singletons() {
 
 #[test]
 fn test_emit_async_init_supports_sequential_and_parallel_batches() {
-    let mut plan =
-        ConstructionPlan::new(ContainerName::new("AsyncApp").unwrap(), true, "AsyncAppKey");
+    let mut plan = ConstructionPlan::new(ContainerName::new("AsyncApp").unwrap(), true);
     plan.ordered_steps = vec![
         make_step(
             "config",

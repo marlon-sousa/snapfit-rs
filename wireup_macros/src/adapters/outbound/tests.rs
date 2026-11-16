@@ -3,11 +3,7 @@ use crate::domain::{ContainerName, DependencyName, InstantiationStep, Lifecycle,
 use crate::ports::CodeEmitterPort;
 
 fn make_plan_with_dep(name: &str, ty: &str) -> ConstructionPlan {
-    let mut plan = ConstructionPlan::new(
-        ContainerName::new("AppContainer").unwrap(),
-        false,
-        "AppContainerKey",
-    );
+    let mut plan = ConstructionPlan::new(ContainerName::new("AppContainer").unwrap(), false);
     plan.ordered_steps = vec![InstantiationStep::new(
         DependencyName::new(name).unwrap(),
         TypeName::new(ty).unwrap(),
@@ -27,13 +23,13 @@ fn test_quote_emitter_adapter_emits_valid_rust_items() {
     let code = tokens.to_string();
 
     assert!(code.contains("pub struct AppContainer"));
-    assert!(code.contains("pub enum AppContainerKey"));
     assert!(code.contains("pub fn get_db (& self) -> Arc < Database >"));
-    assert!(code.contains("pub fn get_dependency < T"));
+    assert!(!code.contains("AppContainerKey"));
+    assert!(!code.contains("get_dependency"));
 
     let parsed_file: syn::File =
         syn::parse2(tokens).expect("emitted tokens must be valid Rust syntax");
-    assert!(!parsed_file.items.is_empty());
+    assert_eq!(parsed_file.items.len(), 4);
 }
 
 #[test]
@@ -61,7 +57,13 @@ fn test_full_adapter_and_use_case_pipeline_emits_valid_syntax() {
         .execute(ir)
         .unwrap();
     let tokens = QuoteEmitterAdapter::new().emit_container(&plan);
+    let code = tokens.to_string();
+
+    assert!(code.contains(
+        "pub fn get_user_controller (& self) -> UserController { let config = self . get_config () ; let db = self . get_db () ; UserController :: new (config . clone () , db . clone ()) }"
+    ));
+
     let parsed_file: syn::File =
         syn::parse2(tokens).expect("end-to-end emitted tokens must parse as valid Rust");
-    assert_eq!(parsed_file.items.len(), 8);
+    assert_eq!(parsed_file.items.len(), 4);
 }

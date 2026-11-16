@@ -59,7 +59,6 @@ fn test_execution_planner_builds_steps_and_infers_async() {
         .unwrap();
 
     assert_eq!(plan.container_name, container_name("AppContainer"));
-    assert_eq!(plan.key_enum_name, "AppContainerKey");
     assert!(plan.is_async);
     assert_eq!(plan.ordered_steps.len(), 4);
     assert_eq!(

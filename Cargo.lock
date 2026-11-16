@@ -272,7 +272,6 @@ dependencies = [
  "darling",
  "derive-new",
  "derive_more",
- "heck",
  "petgraph",
  "proc-macro2",
  "quote",

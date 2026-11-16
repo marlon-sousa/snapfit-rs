@@ -10,7 +10,4 @@ pub enum WireupError {
 
     #[error("initialization failed: {0}")]
     InitializationFailed(String),
-
-    #[error("unknown dependency key: {0}")]
-    UnknownKey(String),
 }

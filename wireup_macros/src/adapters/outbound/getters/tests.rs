@@ -13,11 +13,7 @@ fn make_step(name: &str, ty: &str, call: &str, lifecycle: Lifecycle) -> Instanti
 
 #[test]
 fn test_emit_getters_generates_singleton_and_transient_getters() {
-    let mut plan = ConstructionPlan::new(
-        ContainerName::new("AppContainer").unwrap(),
-        false,
-        "AppContainerKey",
-    );
+    let mut plan = ConstructionPlan::new(ContainerName::new("AppContainer").unwrap(), false);
     plan.ordered_steps = vec![
         make_step(
             "db",
@@ -37,8 +33,6 @@ fn test_emit_getters_generates_singleton_and_transient_getters() {
 
     assert!(code.contains("pub fn get_db (& self) -> Arc < Database > { self . db . clone () }"));
     assert!(code.contains("pub fn get_controller (& self) -> UserController { let db = self . get_db () ; UserController :: new (db . clone ()) }"));
-    assert!(code.contains("pub fn get_dependency < T : 'static + Clone >"));
-    assert!(code.contains(
-        "AppContainerKey :: Db => self . downcast_dep :: < Arc < Database > , T > (self . get_db () , key_str)"
-    ));
+    assert!(!code.contains("get_dependency"));
+    assert!(!code.contains("downcast_dep"));
 }
