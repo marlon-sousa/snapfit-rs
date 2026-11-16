@@ -1,0 +1,23 @@
+[package]
+name = "wireup_macros"
+description = "Procedural derive macros for wireup dependency injection"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+readme.workspace = true
+
+[lib]
+proc-macro = true
+
+[dependencies]
+darling = "0.20"
+derive-new = { workspace = true }
+derive_more = { workspace = true }
+proc-macro2 = "1.0"
+quote = "1.0"
+strum = { workspace = true }
+syn = { version = "2.0", features = ["full", "extra-traits"] }
+thiserror = { workspace = true }

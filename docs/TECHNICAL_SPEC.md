@@ -177,7 +177,8 @@ pub struct InstantiationStep {
 use crate::domain::{ContainerIR, DomainError};
 
 pub trait ContainerParserPort {
-    fn parse_container(&self, input: &syn::DeriveInput) -> Result<ContainerIR, DomainError>;
+    /// Parses an ItemStruct (from #[container]) or DeriveInput into pure domain IR.
+    fn parse_container(&self, input: &syn::ItemStruct) -> Result<ContainerIR, DomainError>;
 }
 
 // wireup_macros/src/ports/emitter_port.rs
@@ -185,55 +186,59 @@ use crate::domain::ConstructionPlan;
 use proc_macro2::TokenStream;
 
 pub trait CodeEmitterPort {
+    /// Emits the rewritten struct (transients stripped, traits rewritten to enums) and impl blocks.
     fn emit_container(&self, plan: &ConstructionPlan) -> TokenStream;
 }
 ```
 
 ---
 
-## 6. Pure Use Case Orchestration
+## 6. Pure Use Case Orchestration (100% Pure Standard Rust)
+
+In strict adherence to Hexagonal Architecture, Use Cases know nothing about compiler ASTs or tokens. They accept pure `ContainerIR` and return a pure `ConstructionPlan`.
 
 ```rust
-// wireup_macros/src/use_cases/derive_container.rs
+// wireup_macros/src/use_cases/plan_container.rs
 
-use crate::ports::{ContainerParserPort, CodeEmitterPort};
+use crate::domain::{ContainerIR, ConstructionPlan, DomainError};
 use crate::use_cases::{GraphEngine, ExecutionPlanner};
-use crate::domain::DomainError;
-use proc_macro2::TokenStream;
 
-pub struct DeriveContainerUseCase<P, E> 
-where
-    P: ContainerParserPort,
-    E: CodeEmitterPort,
-{
-    parser: P,
+pub struct PlanContainerUseCase {
     graph_engine: GraphEngine,
     planner: ExecutionPlanner,
-    emitter: E,
 }
 
-impl<P, E> DeriveContainerUseCase<P, E>
-where
-    P: ContainerParserPort,
-    E: CodeEmitterPort,
-{
-    pub fn new(parser: P, graph_engine: GraphEngine, planner: ExecutionPlanner, emitter: E) -> Self {
-        Self { parser, graph_engine, planner, emitter }
+impl PlanContainerUseCase {
+    pub fn new(graph_engine: GraphEngine, planner: ExecutionPlanner) -> Self {
+        Self { graph_engine, planner }
     }
 
-    pub fn execute(&self, raw_input: &syn::DeriveInput) -> Result<TokenStream, DomainError> {
-        // 1. Inbound Adapter: Parse compiler AST -> Pure Domain IR
-        let container_ir = self.parser.parse_container(raw_input)?;
-
-        // 2. Pure Domain Logic: DAG Topological Sort & Cycle Detection
+    pub fn execute(&self, container_ir: ContainerIR) -> Result<ConstructionPlan, DomainError> {
+        // 1. Pure Domain Logic: DAG Topological Sort & Cycle Detection
         let sorted_dependencies = self.graph_engine.topological_sort(&container_ir.dependencies)?;
 
-        // 3. Pure Domain Logic: Plan sequential vs. parallel tokio::join batches
+        // 2. Pure Domain Logic: Plan sequential vs. parallel tokio::join batches
         let plan = self.planner.build_plan(&container_ir, sorted_dependencies)?;
 
-        // 4. Outbound Adapter: Render ConstructionPlan -> proc_macro2::TokenStream via quote!
-        Ok(self.emitter.emit_container(&plan))
+        Ok(plan)
     }
+}
+```
+
+### The End-to-End Orchestration in `wireup_macros/src/lib.rs` (Outer Handler Layer):
+```rust
+#[proc_macro_attribute]
+pub fn container(args: TokenStream, input: TokenStream) -> TokenStream {
+    let item_struct = syn::parse_macro_input!(input as syn::ItemStruct);
+
+    // 1. Inbound Adapter: Compiler AST -> Pure Domain IR
+    let ir = SynParserAdapter::parse(&item_struct)?;
+
+    // 2. Pure Use Case: Domain IR -> ConstructionPlan (ZERO compiler types)
+    let plan = PlanContainerUseCase::default().execute(ir)?;
+
+    // 3. Outbound Adapter: ConstructionPlan -> proc_macro2::TokenStream
+    QuoteEmitterAdapter::emit(&plan).into()
 }
 ```
 
@@ -248,9 +253,9 @@ Because of this separation, unit testing each component is clean, deterministic,
 #[test]
 fn test_darling_parser_extracts_prerequisites() {
     let input: syn::DeriveInput = syn::parse_quote! {
-        #[derive(Container)]
+        #[container]
         pub struct App {
-            #[dep(config, constructor = "connect")]
+            #[singleton(deps = [config], constructor = "connect")]
             db: Arc<Database>,
         }
     };
@@ -304,17 +309,16 @@ For integration tests verifying end-to-end container assembly, `wireup` uses **B
 Users can explicitly request debug inspection methods directly in the derive settings:
 
 ```rust
-#[derive(Container)]
 #[container(
     mode = "async",
     introspection = true, // 🚀 Generates .dependency_graph()
 )]
 pub struct AppContainer {
-    #[dep]
+    #[singleton]
     config: Arc<Config>,
-    #[dep(config)]
+    #[singleton(deps = [config])]
     db: Arc<Database>,
-    #[dep(config, db, transient)]
+    #[transient(deps = [config, db])]
     controller: UserController,
 }
 ```
@@ -331,9 +335,9 @@ impl AppContainer {
                 wireup::introspection::NodeDescriptor { name: "controller".into(), lifecycle: "transient".into() },
             ],
             edges: vec![
-                ("db".into(), "config".into()),
-                ("controller".into(), "config".into()),
-                ("controller".into(), "db".into()),
+                wireup::introspection::EdgeDescriptor { from: "db".into(), to: "config".into() },
+                wireup::introspection::EdgeDescriptor { from: "controller".into(), to: "config".into() },
+                wireup::introspection::EdgeDescriptor { from: "controller".into(), to: "db".into() },
             ],
         }
     }
@@ -342,21 +346,31 @@ impl AppContainer {
 
 ---
 
-### 2. Executable Gherkin Scenarios (`tests/features/container.feature`)
+### 2. Executable Gherkin Scenarios (`tests/features/container_resolution.feature`)
 
 ```gherkin
 Feature: Container Dependency Resolution
 
-  Scenario: Singleton dependencies are shared by reference
-    Given an AppContainer with Config, Database, and UserController
-    When the container is initialized
-    Then the dependency "db" should depend on "config" in the dependency graph
-    And the "user_controller" should receive the exact same "db" instance as the container
+  As a Rust developer building services with wireup
+  I want container-managed singletons to resolve topologically
+  So that dependent components receive shared instances without domain pollution
 
-  Scenario: Transient dependencies produce fresh instances
-    Given an initialized AppContainer
-    When I request "user_controller" twice
-    Then the two controller instances should have different memory addresses
+  @mvp
+  Scenario: Singletons are instantiated once and shared by reference
+    Given an AppContainer with leaf Config, Database, and UserService
+    When the container is instantiated
+    Then the container should provide a Config singleton
+    And the container should provide a Database singleton
+    And the container should provide a UserService singleton
+    And the Database singleton should reference the exact same Config instance as the container
+    And the UserService singleton should reference the exact same Database instance as the container
+
+  @mvp
+  Scenario: Multiple dependencies of the same type are distinguished by field name
+    Given an AppContainer with "read_db" and "write_db" singletons of type Database
+    When the container is instantiated
+    Then the container should provide separate "read_db" and "write_db" instances
+    And the "read_db" instance should have a different memory address from the "write_db" instance
 ```
 
 ---
@@ -372,36 +386,56 @@ use std::sync::Arc;
 #[derive(Default, World)]
 pub struct ContainerWorld {
     container: Option<AppContainer>,
-    controller_1: Option<UserController>,
-    controller_2: Option<UserController>,
 }
 
-#[when("the container is initialized")]
-async fn init_container(world: &mut ContainerWorld) {
-    world.container = Some(AppContainer::init().await.expect("Failed to boot container"));
+#[when("the container is instantiated")]
+fn instantiate_container(world: &mut ContainerWorld) {
+    world.container = Some(AppContainer::new());
 }
 
-#[then(regex = r#"the dependency "([^"]*)" should depend on "([^"]*)" in the dependency graph"#)]
-fn verify_graph_edge(_world: &mut ContainerWorld, from: String, to: String) {
-    let graph = AppContainer::dependency_graph();
-    assert!(
-        graph.edges.contains(&(from.clone(), to.clone())),
-        "Expected graph edge from {} to {}", from, to
-    );
-}
-
-#[then(regex = r#"the "([^"]*)" should receive the exact same "([^"]*)" instance as the container"#)]
-fn verify_pointer_equality(world: &mut ContainerWorld, _consumer: String, _dep: String) {
+#[then(regex = r#"the Database singleton should reference the exact same Config instance as the container"#)]
+fn verify_db_config_equality(world: &mut ContainerWorld) {
     let container = world.container.as_ref().unwrap();
-    let controller = container.get_controller();
-
-    let container_db = container.get_db();
-    let controller_db = controller.get_db_ref();
+    let container_config = container.get_config();
+    let db_config = container.get_db().get_config_ref();
 
     // 🚀 Exact pointer equality assertion:
     assert!(
-        Arc::ptr_eq(&container_db, &controller_db),
-        "Expected controller's Database pointer to match Container's Database pointer"
+        Arc::ptr_eq(&container_config, &db_config),
+        "Expected Database's Config pointer to match Container's Config pointer"
+    );
+}
+
+#[then(regex = r#"the UserService singleton should reference the exact same Database instance as the container"#)]
+fn verify_user_service_db_equality(world: &mut ContainerWorld) {
+    let container = world.container.as_ref().unwrap();
+    let container_db = container.get_db();
+    let service_db = container.get_user_service().get_db_ref();
+
+    assert!(
+        Arc::ptr_eq(&container_db, &service_db),
+        "Expected UserService's Database pointer to match Container's Database pointer"
     );
 }
 ```
+
+---
+
+## 9. Automated Architectural Boundary Enforcement (`cargo xtask arch-check`)
+
+To guarantee that the **Hexagonal Architecture** invariants are never violated as the codebase evolves, the workspace includes an automated verification task (`cargo xtask arch-check`).
+
+### Automated Invariant Checks:
+1. **Zero Compiler Leaks in Domain & Use Cases:**
+   * Scans all Rust source files in `wireup_macros/src/domain/` and `wireup_macros/src/use_cases/`.
+   * Forbids any import or reference to compiler crates:
+     * ❌ `syn::`
+     * ❌ `quote::`
+     * ❌ `darling::`
+     * ❌ `proc_macro::`
+     * ❌ `proc_macro2::`
+   * CI fails immediately if a compiler type leaks into domain or use case modules.
+2. **File Size Guideline Enforcement (~200 Lines):**
+   * Inspects all `.rs` files across the workspace.
+   * Emits warnings if a file approaches or exceeds the ~200-line soft limit, signaling the author to refactor into cohesive submodules.
+

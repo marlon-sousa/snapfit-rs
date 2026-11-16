@@ -22,17 +22,22 @@
 Every agent (coder or reviewer) working in this repository **must** enforce these non-negotiable rules:
 
 ### A. Hexagonal Architecture (Ports & Adapters)
-* **The Domain & Use Cases MUST be 100% pure standard Rust.**
-* **Forbidden Imports in `domain/` and `use_cases/`:**
-  * ❌ `syn::*` (no `syn::Ident`, `syn::Type`, etc.)
-  * ❌ `quote::*` (no `quote!`, `format_ident!`)
-  * ❌ `darling::*`
-  * ❌ `proc_macro::*` or `proc_macro2::*`
-* All identifiers in the Domain Intermediate Representation (IR) must be standard library types (`String`, `bool`, `Vec`, custom enums).
+* **The Domain & Use Cases represent pure, deterministic computation and business/graph logic.**
+* **Decoupling from Side-Effects & Infrastructure:**
+  * Even if a facility exists in the standard library (`std`), **side-effecting and infrastructural operations are strictly forbidden in `domain/` and `use_cases/`**:
+    * ❌ No I/O or filesystem operations (`std::fs`, file writes/reads).
+    * ❌ No channels or concurrency pipes (`std::sync::mpsc`, `crossbeam`) mediating external communication.
+    * ❌ No compiler infrastructure, token streams, or AST crates (`syn::*`, `quote::*`, `darling::*`, `proc_macro::*`, `proc_macro2::*`).
+  * The inbound adapter's sole job is to parse external compiler AST and adapt flow into domain types. The domain must never be coupled to how adapters parse or emit.
+* **Permitted & Encouraged in `domain/` and `use_cases/`:**
+  * High-quality, pure-Rust domain problem-solving crates (e.g. `petgraph` for DAG algorithms, `thiserror` for error modeling, pure in-memory data structures).
+  * Domain IR identifiers and models must represent core domain concepts, not compiler syntax trees.
 
-### B. Outer Adapters are Strictly Isolated
-* **Inbound Adapter (`adapters::inbound`):** The ONLY place where `darling` and `syn` are permitted. Responsible for converting AST into Domain IR.
-* **Outbound Adapter (`adapters::outbound`):** The ONLY place where `quote!` is permitted. Responsible for rendering a `ConstructionPlan` into tokens.
+### B. Outer Adapters are Purpose-Built Integrations
+* Adapters leverage specialized external crates suited for their integration responsibilities:
+  * **Inbound Adapter (`adapters::inbound`):** Leverages `darling` and `syn` to parse external compiler syntax trees and adapt them into pure domain IR.
+  * **Outbound Adapter (`adapters::outbound`):** Leverages `quote!` and `proc_macro2` to render a domain `ConstructionPlan` into compiler tokens.
+* The architectural invariant is strictly directional: Outer adapters depend on Domain Ports; the Domain NEVER depends on Adapters or adapter technologies.
 
 ### C. Container Subclassing & Overrides
 * Use **Option 1: The Fork & Re-wire Pattern** (`parent.fork_with().with_*(mock).build()`).
@@ -47,11 +52,13 @@ Every agent (coder or reviewer) working in this repository **must** enforce thes
 
 ## 3. Coding Standards & Engineering Principles
 
-1. **Dependency Reuse Priority:**
-   * **Tier 1:** Standard library first (`std`).
+1. **Dependency Reuse is an Engineering Judgment (No Hand-Rolled Boilerplate):**
+   * **Engineering Judgment over Dogmatic Rules:** Preferring standard library types does NOT mean writing 300 lines of complex, error-prone algorithms or boilerplate by hand. Between writing a pure `std` implementation of 300 lines vs. using a battle-tested, focused, well-maintained crate, **use the crate**. Both the coder and the reviewer must actively apply this judgment.
+   * **Tier 1:** Standard library first (`std`) — for standard in-memory types, data structures, and traits (strictly excluding I/O, channels, and side effects in the domain).
    * **Tier 2:** Crates already present in our workspace dependencies.
-   * **Tier 3:** Well-known, actively maintained, and compatible external crates (e.g. `darling`, `quote`, `syn`, `tokio`).
-   * **Tier 4:** Only if none exist, write custom logic by hand.
+   * **Tier 3:** Well-known, actively maintained, and compatible external crates (e.g. `petgraph` for DAGs, `thiserror` for error derives, `strum` for enum utilities, `derive-new` for constructors, `tokio` for async).
+   * **Tier 4:** Only if no suitable crate exists, write custom logic by hand. Hand-rolling graph traversal, cycle backtracking, manual `Display`/`Error` formatting, or manual `is_*`/constructor boilerplate when `petgraph`, `thiserror`, `strum`, and `derive-new` exist is a failure of judgment.
+   * **Error Handling & Formatting:** All domain and runtime error enums **MUST derive `thiserror::Error`**. Never write manual `impl fmt::Display` or `impl std::error::Error` by hand.
 2. **File Size Guideline (~200 Lines):**
    * Keep files under ~200 lines as a soft limit. If a file exceeds this threshold, treat it as a signal to refactor into cohesive private submodules.
 3. **Self-Documenting Code (No Obvious Comments):**
@@ -63,23 +70,40 @@ Every agent (coder or reviewer) working in this repository **must** enforce thes
    * Modules expose their interface through `pub(crate) use` or controlled `pub use` at the module root.
 6. **Stop and Ask:**
    * If any question, ambiguity, or design trade-off arises during implementation, **stop and ask the Tech Lead** before making assumptions.
+7. **Strongly-Typed Domain Modeling (No Anonymous Tuples):**
+   * Never use anonymous tuples (e.g. `(String, String)`) or loose primitives where a domain concept exists.
+   * If a concept or relationship can be modeled, define an explicit named struct (e.g. `EdgeDescriptor { pub from: String, pub to: String }`). Every field must convey intent.
+8. **Anti-Corruption Service Boundaries (Domain In, Domain Out):**
+   * If an external crate is highly specific, complex, or exposes idiosyncratic types, never bleed its types into higher-level consumers (e.g. controllers, use case orchestrators, or domain entities).
+   * Encapsulate the crate inside a focused service or adapter that operates strictly on **Domain In, Domain Out**.
+   * The consumer interacts exclusively with clean domain contracts; the third-party crate's implementation details and external types remain fully quarantined inside that service.
+9. **Modern Rust Module Layout (No `mod.rs`):**
+   * Modules declare `<module_name>.rs` at the parent directory level, and private submodules reside in a `<module_name>/` folder.
+   * `mod.rs` is strictly forbidden across the repository (enforced automatically by `cargo xtask arch-check`).
+10. **Types Enforce Invariants (Make Illegal States Unrepresentable):**
+    * **Types Must Be the Invariant:** Whenever a domain concept has invariants or constraints, encode them into the type system at construction time so that downstream code is guaranteed to receive valid data without defensive checks.
+    * **Non-Zero & Numeric Invariants:** If a number cannot be zero, use standard library types like `NonZeroU32`, `NonZeroUsize`, etc.
+    * **Non-Blank & Distinct Strings:** If an identifier cannot be empty or blank (e.g. `DependencyName`, `ContainerName`, `TypeName`), enforce that invariant on construction (via `TryFrom` or validated constructors) so blank values are unrepresentable.
+    * **Distinct Concepts over Raw Primitives:** Keep distinct concepts as distinct types (e.g. `DependencyName` vs `TypeName`) to prevent accidental argument swapping at compile time.
+    * **Judgment over Dogma:** If a value is genuinely unconstrained or arbitrary data without domain rules, keep it simple. Apply invariants where they provide real compiler-enforced safety and prevent illegal states.
 
 ---
 
 ## 4. Role Instructions for Subagents
 
 ### `wireup-coder` (Lead Implementer):
-* Follows the 6 engineering principles above.
+* Follows the 10 engineering principles above.
+* **Exercises Engineering Judgment:** Never writes 300 lines of complex algorithmic or boilerplate logic by hand when an established, focused crate solves the problem cleanly without side effects or adapter coupling.
 * Runs `cargo fmt`, `cargo clippy -- -D warnings`, and in-memory unit tests before submitting.
 * Keeps tests fast (< 5ms) without `trybuild`.
 
 ### `wireup-reviewer` (Independent Reviewer):
 * Audits diffs against Section 2 (Architectural Invariants) and Section 3 (Coding Standards).
-* Checks for:
-  * Any compiler types leaking into `domain` or `use_cases`.
-  * Files approaching/exceeding ~200 lines without justification.
-  * Over-commented trivial code or missing error handling.
-  * Excessive public exports (`pub` instead of `pub(crate)`).
+* **Applies Critical Engineering Judgment (Not Just Checklists):**
+  * Actively challenges hand-rolled logic: asks whether custom code should be replaced by an established, battle-tested crate (e.g. `petgraph`, `thiserror`).
+  * Checks for side-effect leakage: verifies that NO I/O (`std::fs`), channels/pipes (`std::sync::mpsc`, `crossbeam`), or compiler infrastructure (`syn`, `quote`, `darling`) leak into `domain` or `use_cases`.
+  * Verifies strongly-typed modeling: flags anonymous tuples or loose primitives where a named struct should be used.
+  * Enforces the ~200 LOC file length soft limit and minimal visibility (`pub(crate)` over `pub`).
 * Returns a structured report:
   * **Result:** `PASS` or `CHANGES REQUESTED`
   * **Findings:** Specific file and line references if any invariants are violated.

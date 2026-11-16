@@ -26,7 +26,7 @@ wireup:          Domain types stay pure Rust. The container wires them at compil
 
 ```rust
 use std::sync::Arc;
-use wireup::Container;
+use wireup::container;
 
 // 1. Your domain types are 100% pure Rust (ZERO macros, ZERO framework traits!)
 pub struct UserController {
@@ -40,19 +40,19 @@ impl UserController {
     }
 }
 
-// 2. The container declares the dependency graph in one place:
-#[derive(Container)]
+// 2. The container declares the dependency graph centrally:
 #[container(mode = "async")]
 pub struct AppContainer {
-    #[dep]
+    // Leaf singleton: calls Config::new()
+    #[singleton]
     config: Arc<Config>,
 
-    // Async constructor: Database::connect(config).await
-    #[dep(config, async, constructor = "connect")]
+    // Async constructor: calls Database::connect(config).await
+    #[singleton(deps = [config], async, constructor = "connect")]
     db: Arc<Database>,
 
-    // Transient: freshly constructed on every call
-    #[dep(config, db, transient)]
+    // Transient: freshly constructed via UserController::new(...) on every get
+    #[transient(deps = [config, db])]
     user_controller: UserController,
 }
 
@@ -74,9 +74,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ## Key Highlights
 
 * **Zero Domain Pollution:** Your business logic, controllers, and services require **no macros or framework traits**. They are plain Rust structs with standard `pub fn new(...)` constructors.
-* **Compile-Time DAG Verification:** Missing prerequisites and circular dependencies (e.g. `A -> B -> A`) are caught during `cargo build` with clear compiler errors.
+* **Compile-Time DAG Verification:** Missing prerequisites and circular dependencies (e.g. `A -> B -> A`) are caught during `cargo build` with clear compiler errors via Kahn's algorithm.
+* **Companion Builders Trait:** Declaring custom builders (`builder = "..."`) generates a `<ContainerName>Builders` trait, giving instant `rust-analyzer` IDE auto-completion.
 * **Zero `dyn Any` Overhead:** Direct, strongly-typed getters (`get_<dep>()`) with zero runtime downcasting.
-* **Static Trait Polymorphism:** Automatically generates `enum_dispatch` enums for traits (`#[dep(trait = Database, impls = [PgDb, MockDb])]`), giving trait abstraction with zero vtables and zero heap indirection.
+* **Static Trait Polymorphism:** Automatically generates `enum_dispatch` enums for traits (`#[dispatch(PostgresDb, MockDb)]`), giving trait abstraction with zero vtables and zero heap indirection.
 * **Fork-and-Rewire Testing:** Override any dependency with a mock (`container.fork_with().with_db(mock).build()`). Downstream dependents are automatically re-instantiated.
 * **Request-Scoped Child Containers:** Lightweight child containers (`#[container(parent = AppContainer)]`) allow request data (like `UserSession`) to borrow application singletons without re-creating them.
 

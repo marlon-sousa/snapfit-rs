@@ -1,0 +1,15 @@
+[package]
+name = "wireup"
+description = "Compile-time verified, zero-cost dependency injection framework for Rust"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+readme.workspace = true
+
+[dependencies]
+derive-new = { workspace = true }
+derive_more = { workspace = true }
+thiserror = { workspace = true }
