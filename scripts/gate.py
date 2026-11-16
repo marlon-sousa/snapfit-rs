@@ -96,13 +96,8 @@ def check_architectural_invariants() -> bool:
                         )
 
     # 2. File line length guideline check and modern module layout (no mod.rs)
-    checked_dirs = [
-        root / "wireup" / "src",
-        root / "wireup_macros" / "src",
-        root / "xtask" / "src",
-        root / "tests",
-    ]
-    for crate_src in checked_dirs:
+    for crate_name in ["wireup", "wireup_macros", "xtask", "tests"]:
+        crate_src = root / crate_name / "src"
         if not crate_src.exists():
             continue
         for rs_file in crate_src.rglob("*.rs"):

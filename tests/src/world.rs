@@ -1,5 +1,7 @@
 use cucumber::World;
-use wireup_bdd::{AppContainer, CompileOutcome, compile_fixture, multi_db};
+
+use crate::compile_harness::{CompileOutcome, compile_fixture};
+use crate::containers::{AppContainer, multi_db};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ScenarioBlueprint {

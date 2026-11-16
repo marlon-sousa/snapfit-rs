@@ -1,5 +1,8 @@
 #![deny(warnings)]
 
+mod compile_harness;
+mod containers;
+mod services;
 mod steps;
 mod world;
 

@@ -15,5 +15,5 @@ wireup = { workspace = true }
 
 [[test]]
 name = "bdd"
-path = "bdd.rs"
+path = "src/bdd.rs"
 harness = false
