@@ -14,15 +14,19 @@ mod tests;
 
 pub(super) fn emit_struct_and_init(plan: &ConstructionPlan) -> TokenStream {
     let struct_def = emit_struct_definition(plan);
-    let init_impl = if plan.is_async {
-        emit_async_init_impl(plan)
-    } else {
-        emit_sync_new_impl(plan)
-    };
+    let init_impl = emit_init_impl(plan);
 
     quote! {
         #struct_def
         #init_impl
+    }
+}
+
+pub(super) fn emit_init_impl(plan: &ConstructionPlan) -> TokenStream {
+    if plan.is_async {
+        emit_async_init_impl(plan)
+    } else {
+        emit_sync_new_impl(plan)
     }
 }
 

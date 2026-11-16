@@ -5,20 +5,17 @@ mod type_inspector;
 #[cfg(test)]
 mod tests;
 
+use derive_new::new;
 use proc_macro2::TokenStream;
 
 use crate::domain::{ContainerIR, ContainerName, DependencyIR, DomainError, TypeName};
 use crate::ports::ContainerParserPort;
 use darling_models::ContainerAttrMeta;
 
-#[derive(Debug, Default, Clone)]
+#[derive(new, Debug, Default, Clone)]
 pub(crate) struct SynParserAdapter;
 
 impl SynParserAdapter {
-    pub(crate) fn new() -> Self {
-        Self
-    }
-
     pub(crate) fn parse_with_args(
         &self,
         args: TokenStream,

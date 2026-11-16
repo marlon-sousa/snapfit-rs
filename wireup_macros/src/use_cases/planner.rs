@@ -1,3 +1,5 @@
+use derive_new::new;
+
 use crate::domain::{
     ConstructionPlan, ContainerIR, ContainerName, DependencyIR, DependencyName, DomainError,
     InstantiationStep,
@@ -6,14 +8,10 @@ use crate::domain::{
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, Default, Clone)]
+#[derive(new, Debug, Default, Clone)]
 pub(crate) struct ExecutionPlanner;
 
 impl ExecutionPlanner {
-    pub(crate) fn new() -> Self {
-        Self
-    }
-
     pub(crate) fn build_plan(
         &self,
         container_ir: &ContainerIR,
