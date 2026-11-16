@@ -36,6 +36,9 @@ impl<'g, 'a> CycleFinder<'g, 'a> {
             .collect()
     }
 
+    /// Depth-first search for a path back to `target`. Nodes stay visited
+    /// after a dead end: if `target` was not reachable from a node once, it
+    /// will not be on a later branch either, so the search stays linear.
     fn search(&mut self, current: NodeIndex, target: NodeIndex) -> bool {
         self.enter(current);
         let found = self
@@ -43,7 +46,7 @@ impl<'g, 'a> CycleFinder<'g, 'a> {
             .prerequisite_nodes_of(current)
             .any(|next| self.step_to(next, target));
         if !found {
-            self.backtrack(current);
+            self.path.pop();
         }
         found
     }
@@ -62,10 +65,5 @@ impl<'g, 'a> CycleFinder<'g, 'a> {
     fn enter(&mut self, node: NodeIndex) {
         self.visited.insert(node);
         self.path.push(node);
-    }
-
-    fn backtrack(&mut self, node: NodeIndex) {
-        self.path.pop();
-        self.visited.remove(&node);
     }
 }

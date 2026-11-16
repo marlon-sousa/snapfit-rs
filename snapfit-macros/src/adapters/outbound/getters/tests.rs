@@ -1,38 +1,24 @@
-use super::*;
-use crate::domain::{ContainerName, DependencyName, Lifecycle, TypeName};
+use syn::parse_quote;
 
-fn make_step(name: &str, ty: &str, call: &str, lifecycle: Lifecycle) -> InstantiationStep {
-    InstantiationStep::new(
-        DependencyName::new(name).unwrap(),
-        TypeName::new(ty).unwrap(),
-        call,
-        false,
-        lifecycle,
-    )
-}
+use super::*;
+use crate::adapters::outbound::test_support::{compact, plan_for};
 
 #[test]
-fn test_emit_getters_generates_singleton_and_transient_getters() {
-    let mut plan = ConstructionPlan::new(ContainerName::new("AppContainer").unwrap(), false);
-    plan.ordered_steps = vec![
-        make_step(
-            "db",
-            "Arc<Database>",
-            "Database::new()",
-            Lifecycle::Singleton,
-        ),
-        make_step(
-            "controller",
-            "UserController",
-            "UserController::new(db.clone())",
-            Lifecycle::Transient,
-        ),
-    ];
+fn test_getters_clone_singletons_and_build_transients() {
+    let (plan, syntax) = plan_for(parse_quote! {
+        struct App {
+            #[singleton]
+            config: std::sync::Arc<Config>,
+            #[transient(deps = [config])]
+            cart: Cart,
+            #[singleton]
+            r#type: Kind,
+        }
+    });
 
-    let code = emit_getters_impl(&plan).to_string();
+    let code = compact(emit_getters_impl(&plan, &syntax));
 
-    assert!(code.contains("pub fn get_db (& self) -> Arc < Database > { self . db . clone () }"));
-    assert!(code.contains("pub fn get_controller (& self) -> UserController { let db = self . get_db () ; UserController :: new (db . clone ()) }"));
-    assert!(!code.contains("get_dependency"));
-    assert!(!code.contains("downcast_dep"));
+    assert!(code.contains("pubfnget_config(&self)->std::sync::Arc<Config>{self.config.clone()}"));
+    assert!(code.contains("pubfnget_cart(&self)->Cart{<Cart>::new(self.config.clone())}"));
+    assert!(code.contains("pubfnget_type(&self)->Kind{self.r#type.clone()}"));
 }

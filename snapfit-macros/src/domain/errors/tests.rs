@@ -31,15 +31,37 @@ fn test_domain_error_display() {
         "invalid configuration: mode cannot be empty"
     );
 
-    let unstable_err = DomainError::RequiresUnstable("transient dependency 'cart'".into());
+    let unstable_err = DomainError::RequiresUnstable {
+        feature: "transient dependency 'cart'".into(),
+        dependency: Some(dep_name("cart")),
+    };
     assert_eq!(
         unstable_err.to_string(),
         "transient dependency 'cart' is unstable in this version of snapfit; enable the `unstable` feature of the `snapfit` crate to use it"
     );
 
-    let planned_err = DomainError::NotYetImplemented("#[container(parent = ...)]".into());
+    let planned_err = DomainError::NotYetImplemented {
+        feature: "#[container(parent = ...)]".into(),
+        dependency: None,
+    };
     assert_eq!(
         planned_err.to_string(),
         "#[container(parent = ...)] is planned for a future version of snapfit and is not implemented yet"
     );
+}
+
+#[test]
+fn test_domain_error_subject_names_the_field_to_point_at() {
+    let cycle = DomainError::CycleDetected(vec![dep_name("a"), dep_name("b"), dep_name("a")]);
+    assert_eq!(cycle.subject(), Some(&dep_name("a")));
+
+    let invalid = DomainError::invalid_dependency(&dep_name("db"), "field 'db' is wrong");
+    assert_eq!(invalid.subject(), Some(&dep_name("db")));
+    assert_eq!(
+        invalid.to_string(),
+        "invalid configuration: field 'db' is wrong"
+    );
+
+    let container_level = DomainError::InvalidConfiguration("bad mode".into());
+    assert_eq!(container_level.subject(), None);
 }

@@ -53,8 +53,17 @@ fn test_parse_field_enum_dispatch_and_dyn_dispatch() {
         }
     );
 
-    let dyn_field: syn::Field = parse_quote! {
+    let bare_dyn: syn::Field = parse_quote! {
         #[singleton]
+        plugin: Arc<dyn Database + Send + Sync>
+    };
+    assert_eq!(
+        parse_field(&bare_dyn).unwrap_err().to_string(),
+        "invalid configuration: field 'plugin' has a trait-object type, which has no constructor; build it with builder = \"...\" (unstable feature)"
+    );
+
+    let dyn_field: syn::Field = parse_quote! {
+        #[singleton(builder = "build_plugin")]
         plugin: Arc<dyn Database + Send + Sync>
     };
     let dyn_dep = parse_field(&dyn_field).unwrap();
@@ -95,4 +104,25 @@ fn test_parse_field_rejects_invalid_attribute_combinations() {
         controller: UserController
     };
     assert!(parse_field(&async_transient).is_err());
+}
+
+#[test]
+fn test_parse_field_rejects_conditional_fields_and_non_identifier_names() {
+    let conditional: syn::Field = parse_quote! {
+        #[cfg(test)]
+        #[singleton]
+        config: Arc<Config>
+    };
+    let err = parse_field(&conditional).unwrap_err();
+    assert_eq!(err.subject(), Some(&DependencyName::new("config").unwrap()));
+    assert!(err.to_string().contains("cannot use #[cfg] or #[cfg_attr]"));
+
+    let call_syntax: syn::Field = parse_quote! {
+        #[singleton(constructor = "connect()")]
+        db: Arc<Database>
+    };
+    assert_eq!(
+        parse_field(&call_syntax).unwrap_err().to_string(),
+        "invalid configuration: constructor 'connect()' on field 'db' must be a function name, such as \"connect\""
+    );
 }

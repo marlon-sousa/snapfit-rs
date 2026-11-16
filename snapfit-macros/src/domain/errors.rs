@@ -26,13 +26,47 @@ pub enum DomainError {
     #[error("invalid configuration: {0}")]
     InvalidConfiguration(String),
 
-    #[error(
-        "{0} is unstable in this version of snapfit; enable the `unstable` feature of the `snapfit` crate to use it"
-    )]
-    RequiresUnstable(String),
+    #[error("invalid configuration: {reason}")]
+    InvalidDependency {
+        dependency: DependencyName,
+        reason: String,
+    },
 
-    #[error("{0} is planned for a future version of snapfit and is not implemented yet")]
-    NotYetImplemented(String),
+    #[error(
+        "{feature} is unstable in this version of snapfit; enable the `unstable` feature of the `snapfit` crate to use it"
+    )]
+    RequiresUnstable {
+        feature: String,
+        dependency: Option<DependencyName>,
+    },
+
+    #[error("{feature} is planned for a future version of snapfit and is not implemented yet")]
+    NotYetImplemented {
+        feature: String,
+        dependency: Option<DependencyName>,
+    },
+}
+
+impl DomainError {
+    pub fn invalid_dependency(dependency: &DependencyName, reason: impl Into<String>) -> Self {
+        Self::InvalidDependency {
+            dependency: dependency.clone(),
+            reason: reason.into(),
+        }
+    }
+
+    /// The dependency the error is about, so diagnostics can point at its field.
+    pub fn subject(&self) -> Option<&DependencyName> {
+        match self {
+            Self::CycleDetected(path) => path.first(),
+            Self::MissingPrerequisites { dependency, .. }
+            | Self::DuplicateDependency(dependency)
+            | Self::InvalidDependency { dependency, .. } => Some(dependency),
+            Self::RequiresUnstable { dependency, .. }
+            | Self::NotYetImplemented { dependency, .. } => dependency.as_ref(),
+            Self::InvalidConfiguration(_) => None,
+        }
+    }
 }
 
 fn join_names(names: &[DependencyName], sep: &str) -> String {

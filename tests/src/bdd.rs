@@ -1,5 +1,6 @@
 #![deny(warnings)]
 
+mod codegen_containers;
 mod compile_harness;
 mod containers;
 mod services;

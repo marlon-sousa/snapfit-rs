@@ -1,8 +1,7 @@
 use derive_new::new;
 
 use crate::domain::{
-    ConstructionPlan, ContainerIR, ContainerName, DependencyIR, DependencyName, DomainError,
-    InstantiationStep,
+    Construction, ConstructionPlan, ContainerIR, DependencyIR, DomainError, InstantiationStep,
 };
 
 #[cfg(test)]
@@ -22,7 +21,7 @@ impl ExecutionPlanner {
         let mut plan = ConstructionPlan::new(container_ir.name.clone(), is_async);
         plan.ordered_steps = sorted_dependencies
             .into_iter()
-            .map(|dep| Self::build_step(&container_ir.name, dep))
+            .map(Self::build_step)
             .collect();
         Ok(plan)
     }
@@ -31,41 +30,18 @@ impl ExecutionPlanner {
         container_ir.is_async || dependencies.iter().any(|dep| dep.is_async)
     }
 
-    fn build_step(container_name: &ContainerName, dep: DependencyIR) -> InstantiationStep {
-        let constructor_call = Self::format_constructor_call(container_name, &dep);
+    fn build_step(dep: DependencyIR) -> InstantiationStep {
+        let construction = dep.custom_builder.map_or(
+            Construction::Constructor(dep.constructor_name),
+            Construction::Builder,
+        );
         InstantiationStep::new(
             dep.name,
             dep.type_string,
-            constructor_call,
+            construction,
+            dep.prerequisites,
             dep.is_async,
             dep.lifecycle,
         )
-    }
-
-    fn format_constructor_call(container_name: &ContainerName, dep: &DependencyIR) -> String {
-        let args = Self::format_cloned_args(&dep.prerequisites);
-
-        if let Some(custom_builder) = &dep.custom_builder {
-            return format!("{container_name}::{custom_builder}({args})");
-        }
-
-        let target_type = Self::strip_arc_wrapper(dep.type_string.as_str());
-        format!("{target_type}::{}({args})", dep.constructor_name)
-    }
-
-    fn format_cloned_args(prerequisites: &[DependencyName]) -> String {
-        prerequisites
-            .iter()
-            .map(|prereq| format!("{prereq}.clone()"))
-            .collect::<Vec<_>>()
-            .join(", ")
-    }
-
-    fn strip_arc_wrapper(type_str: &str) -> &str {
-        let trimmed = type_str.trim();
-        ["std::sync::Arc<", "alloc::sync::Arc<", "Arc<"]
-            .into_iter()
-            .find_map(|prefix| trimmed.strip_prefix(prefix)?.strip_suffix('>'))
-            .map_or(trimmed, str::trim)
     }
 }

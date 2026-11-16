@@ -28,3 +28,15 @@ fn then_compilation_fails_with(world: &mut ContainerWorld, expected_error: Strin
         outcome.stderr
     );
 }
+
+#[then(expr = "the error should point at line {int} of the fixture")]
+fn then_error_points_at_line(world: &mut ContainerWorld, line: u32) {
+    let outcome = world.compile_outcome();
+    let location = format!("{}.rs:{line}:", outcome.fixture_name);
+    assert!(
+        outcome.stderr.contains(&location),
+        "Expected the diagnostic for fixture '{}' to point at '{location}'. Actual stderr:\n{}",
+        outcome.fixture_name,
+        outcome.stderr
+    );
+}

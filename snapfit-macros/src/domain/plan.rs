@@ -4,14 +4,23 @@ use derive_new::new;
 #[cfg(test)]
 mod tests;
 
+/// How a dependency's value is produced.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Construction {
+    /// An associated function on the dependency's own type, e.g. `Database::connect`.
+    Constructor(String),
+    /// An associated function on the container, e.g. `AppContainer::build_auth`.
+    Builder(String),
+}
+
 #[derive(new, Debug, Clone, PartialEq, Eq)]
 pub struct InstantiationStep {
     #[new(into)]
     pub dep_name: DependencyName,
     #[new(into)]
     pub dep_type: TypeName,
-    #[new(into)]
-    pub constructor_call: String,
+    pub construction: Construction,
+    pub prerequisites: Vec<DependencyName>,
     pub is_async: bool,
     pub lifecycle: Lifecycle,
 }
@@ -23,6 +32,12 @@ pub struct ConstructionPlan {
     pub is_async: bool,
     #[new(default)]
     pub ordered_steps: Vec<InstantiationStep>,
-    #[new(default)]
-    pub parallel_batches: Vec<Vec<DependencyName>>,
+}
+
+impl ConstructionPlan {
+    pub fn step(&self, name: &DependencyName) -> Option<&InstantiationStep> {
+        self.ordered_steps
+            .iter()
+            .find(|step| &step.dep_name == name)
+    }
 }

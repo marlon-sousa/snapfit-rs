@@ -1,0 +1,55 @@
+Feature: Generated code follows the container as written
+
+  As a Rust developer declaring a snapfit container
+  I want the generated code to reuse my types, attributes and visibility exactly as I wrote them
+  So that any valid Rust field type works and mistakes are reported on the line that caused them
+
+  @v0_1_0 @regression
+  Scenario: Fields of plain, fully qualified and raw-identifier types are wired
+    Given a container whose fields use plain, fully qualified and raw-identifier types
+    When the container is instantiated
+    Then the plain fields should be built with their own constructors
+    And the database should hold the container's fully qualified config singleton
+
+  @v0_1_0 @regression
+  Scenario Outline: Derives on the container are kept whichever side of #[container] they are written
+    Given a container that derives Clone and Debug <placement> #[container]
+    When the container is instantiated
+    Then a clone of the container should share its singletons
+    And its Debug output should start with "<container> {"
+
+    Examples:
+      | placement | container              |
+      | before    | DerivedBeforeContainer |
+      | after     | DerivedAfterContainer  |
+
+  @v0_1_0 @regression
+  Scenario: The container keeps the visibility it was declared with
+    Given an invalid container fixture "private_container"
+    When the fixture is compiled
+    Then compilation should fail with "struct `HiddenContainer` is private"
+
+  @v0_1_0 @regression
+  Scenario Outline: Fields snapfit cannot generate code for are refused with a clear error
+    Given an invalid container fixture "<fixture>"
+    When the fixture is compiled
+    Then compilation should fail with "<expected_error>"
+    And the error should point at line <line> of the fixture
+
+    Examples:
+      | fixture                      | line | expected_error                                                                                                    |
+      | conditional_field            | 10   | field 'metrics' cannot use #[cfg] or #[cfg_attr]; conditional dependencies are not supported                      |
+      | trait_object_without_builder | 8    | field 'store' has a trait-object type, which has no constructor; build it with builder = "..." (unstable feature) |
+      | invalid_constructor_name     | 12   | constructor 'connect()' on field 'db' must be a function name, such as "connect"                                  |
+
+  @v0_1_0 @regression
+  Scenario Outline: Graph errors point at the declaration that caused them
+    Given an invalid container fixture "<fixture>"
+    When the fixture is compiled
+    Then the error should point at line <line> of the fixture
+
+    Examples:
+      | fixture            | line |
+      | unknown_dependency | 13   |
+      | generic_container  | 4    |
+      | dependency_cycle   | 9    |

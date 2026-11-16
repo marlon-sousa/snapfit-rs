@@ -22,6 +22,7 @@ impl SynParserAdapter {
         input: &syn::ItemStruct,
     ) -> Result<ContainerIR, DomainError> {
         let meta = Self::extract_container_meta(args, &input.attrs)?;
+        Self::ensure_no_generics(&input.ident, &input.generics)?;
         Self::build_container_ir(&input.ident, &input.fields, meta)
     }
 
@@ -35,7 +36,18 @@ impl SynParserAdapter {
             ));
         };
         let meta = Self::extract_container_meta(TokenStream::new(), &input.attrs)?;
+        Self::ensure_no_generics(&input.ident, &input.generics)?;
         Self::build_container_ir(&input.ident, &data_struct.fields, meta)
+    }
+
+    fn ensure_no_generics(ident: &syn::Ident, generics: &syn::Generics) -> Result<(), DomainError> {
+        let is_generic = !generics.params.is_empty() || generics.where_clause.is_some();
+        (!is_generic)
+            .then_some(())
+            .ok_or_else(|| DomainError::NotYetImplemented {
+                feature: format!("generic parameters on container '{ident}'"),
+                dependency: None,
+            })
     }
 
     fn build_container_ir(

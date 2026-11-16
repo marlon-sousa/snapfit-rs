@@ -24,14 +24,14 @@ fn unstable() -> FeatureGate {
 
 fn requires_unstable(gate: FeatureGate, container: &ContainerIR) -> String {
     match gate.check(container) {
-        Err(DomainError::RequiresUnstable(feature)) => feature,
+        Err(DomainError::RequiresUnstable { feature, .. }) => feature,
         other => panic!("expected RequiresUnstable, got {other:?}"),
     }
 }
 
 fn not_yet_implemented(gate: FeatureGate, container: &ContainerIR) -> String {
     match gate.check(container) {
-        Err(DomainError::NotYetImplemented(feature)) => feature,
+        Err(DomainError::NotYetImplemented { feature, .. }) => feature,
         other => panic!("expected NotYetImplemented, got {other:?}"),
     }
 }

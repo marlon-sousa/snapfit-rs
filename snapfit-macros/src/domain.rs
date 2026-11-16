@@ -6,4 +6,4 @@ pub use errors::DomainError;
 pub use ir::{
     ContainerIR, ContainerName, DependencyIR, DependencyName, Lifecycle, TraitDispatch, TypeName,
 };
-pub use plan::{ConstructionPlan, InstantiationStep};
+pub use plan::{Construction, ConstructionPlan, InstantiationStep};
