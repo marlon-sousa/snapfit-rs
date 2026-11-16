@@ -60,7 +60,7 @@ jobs:
         env:
           BOOK_VERSION: ${{ inputs.version }}
           BOOK_SOURCE_REF: ${{ inputs.version }}
-          WIREUP_RELEASES_FILE: ${{ runner.temp }}/site-pages/wireup-site.json
+          SNAPFIT_RELEASES_FILE: ${{ runner.temp }}/site-pages/snapfit-site.json
         run: npm run verify
 
       - name: Commit and push ${{ inputs.version }} to site branch

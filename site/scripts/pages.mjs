@@ -19,7 +19,7 @@ for (const page of expected) {
 }
 if (!existsSync(join(DIST, '404.html'))) problems.push('404.html was not built.');
 if (!existsSync(join(DIST, 'index.md'))) problems.push('index.md was not built.');
-if (!existsSync(join(DIST, 'wireup-site.json'))) problems.push('wireup-site.json was not built.');
+if (!existsSync(join(DIST, 'snapfit-site.json'))) problems.push('snapfit-site.json was not built.');
 if (!existsSync(join(DIST, 'book', build.version, 'llms.txt'))) {
 	problems.push(`book/${build.version}/llms.txt was not built.`);
 }

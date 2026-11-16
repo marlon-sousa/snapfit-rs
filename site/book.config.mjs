@@ -11,8 +11,8 @@ import { resolve } from 'node:path';
  */
 
 export const site = 'https://marlon-sousa.github.io';
-export const base = '/wireup-rs';
-export const repository = 'https://github.com/marlon-sousa/wireup-rs';
+export const base = '/snapfit-rs';
+export const repository = 'https://github.com/marlon-sousa/snapfit-rs';
 export const root = resolve(process.env.BOOK_ROOT ?? resolve(process.cwd(), '..'));
 
 const SEGMENT = /^[a-zA-Z0-9][a-zA-Z0-9._+-]*$/;
@@ -82,8 +82,8 @@ function loadReleases() {
 	/** @type {Map<string, ReleaseEntry>} */
 	const byVersion = new Map();
 	const manifestSources = [resolve(process.cwd(), 'releases.json')];
-	if (process.env.WIREUP_RELEASES_FILE) {
-		manifestSources.unshift(resolve(process.env.WIREUP_RELEASES_FILE));
+	if (process.env.SNAPFIT_RELEASES_FILE) {
+		manifestSources.unshift(resolve(process.env.SNAPFIT_RELEASES_FILE));
 	}
 	for (const source of manifestSources) {
 		for (const entry of readReleasesFile(source)) {
@@ -94,7 +94,7 @@ function loadReleases() {
 		byVersion.set(build.version, {
 			version: build.version,
 			date: new Date().toISOString().slice(0, 10),
-			summary: `wireup ${build.version} release and verified edition of The Wireup Book.`,
+			summary: `snapfit ${build.version} release and verified edition of The Snapfit Book.`,
 			prerelease: build.version.includes('-'),
 		});
 	}
@@ -108,7 +108,7 @@ export const chapters = 'book/chapters';
 export const bookDirectories = ['chapters', 'examples', 'expected', 'compile-errors'];
 
 /**
- * URL of a page in the current book edition (`/wireup-rs/book/<version>/...`).
+ * URL of a page in the current book edition (`/snapfit-rs/book/<version>/...`).
  * @param {string} [page] Chapter slug without `.md`; omitted for the edition's contents.
  * @param {string} [ver] Optional version override.
  */
@@ -117,7 +117,7 @@ export function pageHref(page, ver = build.version) {
 }
 
 /**
- * URL of a page's Markdown copy (`/wireup-rs/book/<version>/<page>.md`).
+ * URL of a page's Markdown copy (`/snapfit-rs/book/<version>/<page>.md`).
  * @param {string} [page]
  * @param {string} [ver]
  */

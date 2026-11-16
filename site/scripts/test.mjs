@@ -8,33 +8,33 @@ import { stripReadmeMarkdown } from '../src/lib/readme-strip.mjs';
 
 test('stripReadmeMarkdown strips github-only, unwraps site-only, and expands releases marker', () => {
 	const input = [
-		'# wireup',
+		'# snapfit',
 		'<!-- site-only',
 		'Site intro',
 		'-->',
 		'<!-- github-only -->',
 		'![badge](x)',
 		'<!-- end github-only -->',
-		'<!-- wireup:releases -->',
+		'<!-- snapfit:releases -->',
 	].join('\n');
 
 	const output = stripReadmeMarkdown(input, '| v0.1.0 |');
-	assert.equal(output, ['# wireup', 'Site intro', '| v0.1.0 |'].join('\n'));
+	assert.equal(output, ['# snapfit', 'Site intro', '| v0.1.0 |'].join('\n'));
 });
 
 test('stripReadmeMarkdown rejects unclosed, nested, or duplicate markers', () => {
 	assert.throws(
-		() => stripReadmeMarkdown('# wireup\n<!-- github-only -->\nx\n<!-- wireup:releases -->', 'rel'),
+		() => stripReadmeMarkdown('# snapfit\n<!-- github-only -->\nx\n<!-- snapfit:releases -->', 'rel'),
 		/never closed/,
 	);
 	assert.throws(
-		() => stripReadmeMarkdown('# wireup\n<!-- site-only\n<!-- github-only -->\n-->', 'rel'),
+		() => stripReadmeMarkdown('# snapfit\n<!-- site-only\n<!-- github-only -->\n-->', 'rel'),
 		/opens inside another block/,
 	);
-	assert.throws(() => stripReadmeMarkdown('# wireup\nno marker', 'rel'), /missing <!-- wireup:releases -->/);
+	assert.throws(() => stripReadmeMarkdown('# snapfit\nno marker', 'rel'), /missing <!-- snapfit:releases -->/);
 	assert.throws(
-		() => stripReadmeMarkdown('# wireup\n<!-- wireup:releases -->\n<!-- wireup:releases -->', 'rel'),
-		/second <!-- wireup:releases -->/,
+		() => stripReadmeMarkdown('# snapfit\n<!-- snapfit:releases -->\n<!-- snapfit:releases -->', 'rel'),
+		/second <!-- snapfit:releases -->/,
 	);
 });
 
@@ -54,11 +54,11 @@ function makeFakeDist(dir, version, assetName) {
 	writeFileSync(join(dir, 'book', version, 'index.html'), `<h1>Book ${version}</h1>`);
 	writeFileSync(join(dir, 'book', 'index.html'), `<h1>Books (latest ${version})</h1>`);
 	writeFileSync(join(dir, 'releases', 'index.html'), `<h1>Releases (${version})</h1>`);
-	writeFileSync(join(dir, 'index.html'), `<h1>wireup (${version})</h1>`);
-	writeFileSync(join(dir, 'index.md'), `# wireup (${version})`);
+	writeFileSync(join(dir, 'index.html'), `<h1>snapfit (${version})</h1>`);
+	writeFileSync(join(dir, 'index.md'), `# snapfit (${version})`);
 	writeFileSync(join(dir, '404.html'), '<h1>404</h1>');
 	writeFileSync(join(dir, 'favicon.svg'), '<svg></svg>');
-	writeFileSync(join(dir, 'wireup-site.json'), JSON.stringify([{ version }]));
+	writeFileSync(join(dir, 'snapfit-site.json'), JSON.stringify([{ version }]));
 	writeFileSync(join(dir, '_astro', assetName), `/* ${version} */`);
 }
 
@@ -69,7 +69,7 @@ test('publish.sh creates orphan site branch and preserves older book editions an
 		return;
 	}
 
-	const scratch = mkdtempSync(join(tmpdir(), 'wireup-publish-test-'));
+	const scratch = mkdtempSync(join(tmpdir(), 'snapfit-publish-test-'));
 	try {
 		const remote = join(scratch, 'remote.git');
 		const repo = join(scratch, 'repo');
@@ -79,7 +79,7 @@ test('publish.sh creates orphan site branch and preserves older book editions an
 		execFileSync('git', ['clone', remote, repo]);
 		execFileSync('git', ['-C', repo, 'config', 'user.name', 'Test']);
 		execFileSync('git', ['-C', repo, 'config', 'user.email', 'test@example.com']);
-		writeFileSync(join(repo, 'README.md'), '# wireup\n');
+		writeFileSync(join(repo, 'README.md'), '# snapfit\n');
 		execFileSync('git', ['-C', repo, 'add', 'README.md']);
 		execFileSync('git', ['-C', repo, 'commit', '-m', 'init']);
 		execFileSync('git', ['-C', repo, 'push', '-u', 'origin', 'HEAD']);
@@ -104,7 +104,7 @@ test('publish.sh creates orphan site branch and preserves older book editions an
 		assert.equal(readFileSync(join(verifyClone, 'book', 'v0.2.0', 'index.html'), 'utf8'), '<h1>Book v0.2.0</h1>');
 		assert.equal(readFileSync(join(verifyClone, '_astro', 'base.v1.css'), 'utf8'), '/* v0.1.0 */');
 		assert.equal(readFileSync(join(verifyClone, '_astro', 'base.v2.css'), 'utf8'), '/* v0.2.0 */');
-		assert.equal(readFileSync(join(verifyClone, 'index.html'), 'utf8'), '<h1>wireup (v0.2.0)</h1>');
+		assert.equal(readFileSync(join(verifyClone, 'index.html'), 'utf8'), '<h1>snapfit (v0.2.0)</h1>');
 
 		assert.throws(
 			() => execFileSync(bash, [scriptSrc, 'publish', wt2, dist2, '../bad'], { cwd: repo, stdio: 'pipe' }),

@@ -16,7 +16,7 @@ function watchBookAndReadme() {
 	const shapesBook = (file) => file.startsWith(chapterDirectory + sep);
 
 	return {
-		name: 'wireup-site:watch',
+		name: 'snapfit-site:watch',
 		apply: /** @type {const} */ ('serve'),
 		/** @param {import('vite').ViteDevServer} server */
 		configureServer(server) {

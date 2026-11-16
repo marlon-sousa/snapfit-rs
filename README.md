@@ -41,9 +41,9 @@ Most Rust applications eventually face three unsatisfying choices for wiring com
 
 ---
 
-## Releases and The snapfit Book
+## Releases and The Snapfit Book
 
-**The snapfit Book** walks through the framework step by step with complete, compiled Rust programs for each release.
+**The Snapfit Book** walks through the framework step by step with complete, compiled Rust programs for each release.
 
 <!-- snapfit:releases -->
 
@@ -149,7 +149,7 @@ The exact toolchain and required components (`clippy`, `rustfmt`, `rust-src`) ar
 
 ## Internal Repository Documentation
 
-* [The snapfit Book (`book/`)](book/chapters/README.md): step-by-step guide with compiled, verified examples.
+* [The Snapfit Book (`book/`)](book/chapters/README.md): step-by-step guide with compiled, verified examples.
 * [Specification & API Guide (`docs/SPEC.md`)](docs/SPEC.md): functional specification, attribute syntax, and lifecycles.
 * [Technical Architecture (`docs/TECHNICAL_SPEC.md`)](docs/TECHNICAL_SPEC.md): Hexagonal Ports & Adapters blueprint and Intermediate Representation (IR).
 * [Development Workflow (`docs/WORKFLOW.md`)](docs/WORKFLOW.md): stacked PR roadmap, Double-Loop BDD, and agentic review loops.

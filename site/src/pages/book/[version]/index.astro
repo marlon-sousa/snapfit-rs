@@ -14,7 +14,7 @@ const introduction = await renderMarkdown(book.introduction, `${chapters}/README
 
 <Base
 	title="Contents"
-	description={`The contents of The Wireup Book (${build.version}): every part and chapter in reading order.`}
+	description={`The contents of The Snapfit Book (${build.version}): every part and chapter in reading order.`}
 	edition={{ page: '' }}
 >
 	<div class="toc">
@@ -43,7 +43,7 @@ const introduction = await renderMarkdown(book.introduction, `${chapters}/README
 									<li>
 										<a href={pageHref(page.slug)}>
 											{page.label}
-											{page.kind === 'without-wireup' && <span class="visually-hidden">, {part.title}</span>}
+											{page.kind === 'without-snapfit' && <span class="visually-hidden">, {part.title}</span>}
 										</a>
 									</li>
 								))}

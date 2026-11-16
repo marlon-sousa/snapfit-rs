@@ -39,10 +39,10 @@ fn root_readme_has_valid_site_and_github_markers() {
                 );
                 mode = "";
             }
-            "<!-- wireup:releases -->" => {
+            "<!-- snapfit:releases -->" => {
                 assert!(
                     mode.is_empty(),
-                    "README.md:{line_no}: wireup:releases marker must be outside conditional blocks"
+                    "README.md:{line_no}: snapfit:releases marker must be outside conditional blocks"
                 );
                 releases_markers += 1;
             }
@@ -53,6 +53,6 @@ fn root_readme_has_valid_site_and_github_markers() {
     assert!(mode.is_empty(), "README.md has an unclosed '{mode}' block");
     assert_eq!(
         releases_markers, 1,
-        "README.md must contain exactly one <!-- wireup:releases --> marker"
+        "README.md must contain exactly one <!-- snapfit:releases --> marker"
     );
 }

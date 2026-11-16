@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Publishes one version of the wireup site and book to the `site` branch,
+# Publishes one version of the snapfit site and book to the `site` branch,
 # preserving every previously published `/book/<older-version>/` directory and
 # preserving existing hashed files in `_astro/` so older book pages stay styled.
 #
@@ -56,8 +56,8 @@ publish_version() {
   cp "$dist/index.md" "$folder/index.md"
   cp "$dist/404.html" "$folder/404.html"
   cp "$dist/favicon.svg" "$folder/favicon.svg"
-  if [ -f "$dist/wireup-site.json" ]; then
-    cp "$dist/wireup-site.json" "$folder/wireup-site.json"
+  if [ -f "$dist/snapfit-site.json" ]; then
+    cp "$dist/snapfit-site.json" "$folder/snapfit-site.json"
   fi
   if [ -d "$dist/_astro" ]; then
     cp -R "$dist/_astro/." "$folder/_astro/"
@@ -67,8 +67,8 @@ publish_version() {
   local checkout=$PWD
   cd "$folder"
   git add --all -- "book/$version" "book/index.html" "releases" "index.html" "index.md" "404.html" "favicon.svg" ".nojekyll" "_astro"
-  if [ -e "wireup-site.json" ]; then
-    git add -- "wireup-site.json"
+  if [ -e "snapfit-site.json" ]; then
+    git add -- "snapfit-site.json"
   fi
 
   local stray

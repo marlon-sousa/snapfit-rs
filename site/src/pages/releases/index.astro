@@ -8,12 +8,12 @@ const prereleases = releases.filter((rel) => rel.prerelease);
 
 <Base
 	title="Releases"
-	description="All releases of wireup and their frozen editions of The Wireup Book."
+	description="All releases of snapfit and their frozen editions of The Snapfit Book."
 	currentNav="releases"
 >
 	<h1>Releases</h1>
 	<p class="lede">
-		Every release of <code>wireup</code> publishes its own frozen edition of <strong>The Wireup Book</strong>,
+		Every release of <code>snapfit</code> publishes its own frozen edition of <strong>The Snapfit Book</strong>,
 		with every example compiled and verified as a release gate. Pick the version your project uses to read its book.
 	</p>
 
@@ -23,12 +23,12 @@ const prereleases = releases.filter((rel) => rel.prerelease);
 				<h2 id="stable-releases">Releases</h2>
 				{stableReleases.map((rel) => (
 					<article class="release-card">
-						<h3>wireup {rel.version}</h3>
+						<h3>snapfit {rel.version}</h3>
 						<p class="release-card__meta">Released on {rel.date}</p>
 						<p>{rel.summary}</p>
 						<p>
 							<a href={pageHref(undefined, rel.version)}>
-								<strong>Read The Wireup Book ({rel.version})</strong>
+								<strong>Read The Snapfit Book ({rel.version})</strong>
 							</a>
 							{' · '}
 							<a href={`${repository}/releases/tag/${rel.version}`}>
@@ -49,12 +49,12 @@ const prereleases = releases.filter((rel) => rel.prerelease);
 					<summary>Show {prereleases.length} pre-release(s)</summary>
 					{prereleases.map((rel) => (
 						<article class="release-card">
-							<h3>wireup {rel.version}</h3>
+							<h3>snapfit {rel.version}</h3>
 							<p class="release-card__meta">Released on {rel.date}</p>
 							<p>{rel.summary}</p>
 							<p>
 								<a href={pageHref(undefined, rel.version)}>
-									<strong>Read The Wireup Book ({rel.version})</strong>
+									<strong>Read The Snapfit Book ({rel.version})</strong>
 								</a>
 								{' · '}
 								<a href={`${repository}/releases/tag/${rel.version}`}>

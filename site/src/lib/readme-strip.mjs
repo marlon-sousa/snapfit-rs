@@ -2,7 +2,7 @@
 
 /**
  * Strips `<!-- github-only -->` blocks, unwraps `<!-- site-only ... -->` blocks,
- * and replaces `<!-- wireup:releases -->` with `releasesMarkdown`.
+ * and replaces `<!-- snapfit:releases -->` with `releasesMarkdown`.
  *
  * @param {string} source
  * @param {string} releasesMarkdown
@@ -45,9 +45,9 @@ export function stripReadmeMarkdown(source, releasesMarkdown) {
 		}
 		if (mode === 'github') continue;
 
-		if (line === '<!-- wireup:releases -->') {
+		if (line === '<!-- snapfit:releases -->') {
 			if (sawReleasesMarker) {
-				throw new Error(`README.md:${lineNo}: holds a second <!-- wireup:releases --> marker.`);
+				throw new Error(`README.md:${lineNo}: holds a second <!-- snapfit:releases --> marker.`);
 			}
 			sawReleasesMarker = true;
 			out.push(releasesMarkdown);
@@ -60,7 +60,7 @@ export function stripReadmeMarkdown(source, releasesMarkdown) {
 		throw new Error(`README.md:${openedAt}: ${mode} block is never closed.`);
 	}
 	if (!sawReleasesMarker) {
-		throw new Error('README.md: missing <!-- wireup:releases --> marker.');
+		throw new Error('README.md: missing <!-- snapfit:releases --> marker.');
 	}
 	return out.join('\n');
 }
