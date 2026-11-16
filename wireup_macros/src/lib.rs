@@ -1,6 +1,7 @@
 #![deny(warnings)]
 #![allow(dead_code, unused_imports)]
 
+mod adapters;
 mod domain;
 mod ports;
 mod use_cases;

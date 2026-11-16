@@ -76,14 +76,9 @@ wireup/
         │   │   └── syn_parser_adapter.rs # Implements ContainerParserPort
         │   │
         │   └── outbound/        # Outbound: Adapting Domain Plans to quote!
-        │       ├── mod.rs
-        │       ├── quote_emitter_adapter.rs # Implements CodeEmitterPort
-        │       ├── templates/
-        │       │   ├── key_enum.rs
-        │       │   ├── getters.rs
-        │       │   ├── init_constructor.rs
-        │       │   ├── builder.rs
-        │       │   └── enum_dispatch.rs
+        │       ├── getters.rs
+        │       ├── init_constructor.rs
+        │       └── step_expr.rs
         │
         ├── domain/              # Pure Domain Entities (ZERO syn/quote dependencies)
         │   ├── mod.rs
@@ -153,7 +148,6 @@ pub struct ContainerIR {
 pub struct ConstructionPlan {
     pub container_name: String,
     pub is_async: bool,
-    pub key_enum_name: String,
     pub ordered_steps: Vec<InstantiationStep>,
     pub parallel_batches: Vec<Vec<String>>, // Groups of independent async tasks
 }
@@ -294,8 +288,8 @@ fn test_emitter_generates_getters() {
     let tokens = emitter.emit_container(&plan);
     let code = tokens.to_string();
 
+    assert!(code.contains("pub struct AppContainer"));
     assert!(code.contains("pub fn get_db (& self) -> Arc < Database >"));
-    assert!(code.contains("pub fn get_dependency < T"));
 }
 ```
 

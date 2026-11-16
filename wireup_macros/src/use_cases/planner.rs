@@ -20,9 +20,8 @@ impl ExecutionPlanner {
         sorted_dependencies: Vec<DependencyIR>,
     ) -> Result<ConstructionPlan, DomainError> {
         let is_async = Self::is_plan_async(container_ir, &sorted_dependencies);
-        let key_enum_name = format!("{}Key", container_ir.name);
 
-        let mut plan = ConstructionPlan::new(container_ir.name.clone(), is_async, key_enum_name);
+        let mut plan = ConstructionPlan::new(container_ir.name.clone(), is_async);
         plan.ordered_steps = sorted_dependencies
             .into_iter()
             .map(|dep| Self::build_step(&container_ir.name, dep))

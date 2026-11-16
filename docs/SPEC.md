@@ -15,8 +15,7 @@ Most dependency injection frameworks in Rust fall into two undesirable extremes:
 ### Key Design Pillars:
 * **Zero Domain Pollution:** Your services, repositories, and controllers require **zero framework macros or traits**. They are standard Rust structs with plain `pub fn new(...)` constructors.
 * **Compile-Time Graph Verification:** The derive macro builds the Directed Acyclic Graph (DAG) during `cargo build` and rejects dependency cycles with compile errors.
-* **Dual Resolution APIs:** Direct, zero-cost generated getters (`get_<dep>()`) for fast production code, plus a type-checked key lookup (`get_dependency::<T>(key)`) with descriptive runtime diagnostics.
-* **Auto-Generated Key Enum:** The macro automatically creates a strongly-typed `enum` of all dependency keys with `&str` and `FromStr` conversions.
+* **Zero-Cost Direct Getters:** Direct, compile-time checked getters (`get_<dep>()`) for fast production code — singletons are cloned on read, and transients are freshly constructed on every call with zero `dyn Any` overhead.
 * **First-Class Static Polymorphism:** Integrates automatic `enum_dispatch` generation for traits, enabling test mocking and swappable backends with zero vtable overhead.
 * **Eager Async Boot with Synchronous Getters:** All async connections (databases, external APIs) are resolved during `Container::init().await`, while runtime getters remain **100% synchronous, non-blocking, and instant** for web request handlers.
 * **Child Containers & Testing Overrides:** Fluent `.builder().with_*(mock)` overrides for testing, and macro-driven child containers that copy parent singletons for request-scoped workflows.
@@ -82,64 +81,9 @@ pub struct AppContainer {
 
 ---
 
-## 3. The Generated Key Enum & String Mappings
+## 3. Zero-Cost Direct Getters & Flexible Return Types
 
-When `#[derive(Container)]` processes the struct fields, it automatically generates a companion key enum. 
-
-For the `AppContainer` above, the macro generates:
-
-```rust
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum AppContainerKey {
-    Config,
-    Db,
-    UserController,
-    Cache,
-    Auth,
-}
-
-impl AppContainerKey {
-    /// Returns the snake_case identifier matching the field name.
-    pub const fn as_str(&self) -> &'static str {
-        match self {
-            Self::Config => "config",
-            Self::Db => "db",
-            Self::UserController => "user_controller",
-            Self::Cache => "cache",
-            Self::Auth => "auth",
-        }
-    }
-}
-
-impl std::convert::AsRef<str> for AppContainerKey {
-    fn as_ref(&self) -> &str {
-        self.as_str()
-    }
-}
-
-impl std::str::FromStr for AppContainerKey {
-    type Err = wireup::Error;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "config" => Ok(Self::Config),
-            "db" => Ok(Self::Db),
-            "user_controller" => Ok(Self::UserController),
-            "cache" => Ok(Self::Cache),
-            "auth" => Ok(Self::Auth),
-            unknown => Err(wireup::Error::UnknownKey(unknown.to_string())),
-        }
-    }
-}
-```
-
----
-
-## 4. Dual Resolution APIs & Flexible Return Types
-
-`wireup` provides two complementary ways to retrieve dependencies, with flexible return types:
-
-### A. Strongly-Typed Direct Getters (Zero-Cost, Compile-Time Checked)
-For each field `foo: T`, the macro emits a direct getter returning `T` (or a reference):
+For each dependency field `foo: T`, the macro emits a strongly-typed, zero-cost getter returning `T`:
 
 ```rust
 impl AppContainer {
@@ -147,61 +91,22 @@ impl AppContainer {
     pub fn get_config(&self) -> Arc<Config> { self.config.clone() }
     pub fn get_db_pool(&self) -> sqlx::PgPool { self.db_pool.clone() } // Zero redundant Arc!
 
-    // 2. Zero-cost borrowed getters for read-only access (no atomic ref-count cost)
-    pub fn config(&self) -> &Config { &self.config }
-
-    // 3. Transient: Freshly evaluates factory on every call; returns owned T
+    // 2. Transient: Freshly evaluates constructor on every call; returns a new owned T
     pub fn get_user_controller(&self) -> UserController {
-        UserController::new(self.get_config(), self.get_database())
+        let config = self.get_config();
+        let db = self.get_db();
+        UserController::new(config.clone(), db.clone())
     }
 }
 ```
 
+* **Zero `dyn Any` Indirection:** Resolution is 100% static and compile-time type-checked, with zero runtime downcasting or string lookup overhead.
 * **No Forced `Arc<T>`:** Singletons require only `T: Clone`. If a type is already internally ref-counted (`sqlx::PgPool`, `reqwest::Client`) or a lightweight config struct, you declare it bare without a wasteful `Arc<Pool>` double indirection.
-
-### B. Key-Based Resolution (`get_dependency::<T>`)
-For dynamic dispatch, testing, or reflection-style access, the container provides generic key-based lookup accepting either `AppContainerKey` or string slices (`&str`):
-
-```rust
-impl AppContainer {
-    /// Generic lookup accepting an enum key or &str.
-    pub fn get_dependency<T: 'static + Clone>(&self, key: impl AsRef<str>) -> T {
-        let key_str = key.as_ref();
-        let enum_key: AppContainerKey = key_str.parse().unwrap_or_else(|_| {
-            panic!("[wireup Error] Unknown dependency key: \"{}\"", key_str);
-        });
-
-        match enum_key {
-            AppContainerKey::Config => self.downcast_dep::<Arc<Config>, T>(self.get_config(), key_str),
-            AppContainerKey::DbPool => self.downcast_dep::<sqlx::PgPool, T>(self.get_db_pool(), key_str),
-            AppContainerKey::Database => self.downcast_dep::<Arc<AppContainerDatabase>, T>(self.get_database(), key_str),
-            AppContainerKey::UserController => self.downcast_dep::<UserController, T>(self.get_user_controller(), key_str),
-            AppContainerKey::Auth => self.downcast_dep::<Arc<AuthService>, T>(self.get_auth(), key_str),
-        }
-    }
-
-    fn downcast_dep<Actual: 'static + Clone, Target: 'static>(&self, val: Actual, key: &str) -> Target {
-        let any_val = &val as &dyn std::any::Any;
-        match any_val.downcast_ref::<Target>() {
-            Some(matched) => matched.clone(),
-            None => {
-                panic!(
-                    "\n[wireup Error] Type mismatch for dependency key: \"{}\"\n\
-                     Expected type: {}\n\
-                     Actual type:   {}\n",
-                    key,
-                    std::any::type_name::<Target>(),
-                    std::any::type_name::<Actual>()
-                );
-            }
-        }
-    }
-}
-```
+* **Fresh Transient Instantiation:** Calling `get_<transient>()` resolves its prerequisites via their getters and invokes the transient's constructor to return a brand-new instance on every call.
 
 ---
 
-## 5. Dependency Lifecycles & Struct Storage Rewriting
+## 4. Dependency Lifecycles & Struct Storage Rewriting
 
 The `#[container]` attribute macro actively shapes the memory layout of the generated container struct:
 
@@ -214,7 +119,7 @@ The `#[container]` attribute macro actively shapes the memory layout of the gene
 
 ---
 
-## 6. Dependency Wiring & Companion Builders Trait
+## 5. Dependency Wiring & Companion Builders Trait
 
 `wireup` eliminates invasive domain macros entirely. Container wiring is declared centrally in the container definition, keeping all service structs 100% pure Rust.
 
@@ -279,7 +184,7 @@ When a dependency requires custom construction (such as unpacking config fields,
 
 ---
 
-## 7. Compile-Time DAG & Cycle Detection
+## 6. Compile-Time DAG & Cycle Detection
 
 Because all dependencies and their prerequisites are declared within the struct AST, the procedural macro performs graph analysis at compile time:
 
@@ -298,7 +203,7 @@ error: Dependency cycle detected in AppContainer:
 
 ---
 
-## 8. Trait Abstraction via Auto-Generated `enum_dispatch`
+## 7. Trait Abstraction via Auto-Generated `enum_dispatch`
 
 To avoid `Arc<dyn Trait>` (heap allocation, vtable indirection, and inability to inline), `wireup` automatically generates static dispatch enums:
 
@@ -348,7 +253,7 @@ pub struct AppContainer {
 
 ---
 
-## 9. Asynchronous Containers (`mode = "async"`)
+## 8. Asynchronous Containers (`mode = "async"`)
 
 For applications where databases, message brokers, and clients require asynchronous setup, `wireup` provides dedicated async support.
 
@@ -408,7 +313,7 @@ impl AppContainer {
 
 ---
 
-## 10. Testing Overrides via Generated Builders
+## 9. Testing Overrides via Generated Builders
 
 No `build.rs` or runtime configuration files are required for testing. The macro generates a fluent builder that allows overriding any node in the dependency graph:
 
@@ -432,7 +337,7 @@ async fn test_controller_with_mock_db() {
 
 ---
 
-## 11. Request-Scoped Child Containers
+## 10. Request-Scoped Child Containers
 
 Child containers allow request-scoped dependencies (e.g. `UserSession`, `RequestId`) to borrow application singletons without re-creating them:
 
@@ -466,7 +371,7 @@ async fn handle_request(
 
 ---
 
-## 12. Crate Layout & Architecture Blueprint
+## 11. Crate Layout & Architecture Blueprint
 
 ```text
 wireup-rs/

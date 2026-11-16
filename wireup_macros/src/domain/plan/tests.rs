@@ -6,10 +6,9 @@ fn test_construction_plan_and_steps() {
     let dep = DependencyName::new("config").unwrap();
     let ty = TypeName::new("Arc<Config>").unwrap();
 
-    let mut plan = ConstructionPlan::new(container, true, "AppContainerKey");
+    let mut plan = ConstructionPlan::new(container, true);
     assert_eq!(*plan.container_name, "AppContainer");
     assert!(plan.is_async);
-    assert_eq!(plan.key_enum_name, "AppContainerKey");
     assert!(plan.ordered_steps.is_empty());
 
     let step = InstantiationStep::new(

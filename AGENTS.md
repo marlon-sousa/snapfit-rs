@@ -44,9 +44,9 @@ Every agent (coder or reviewer) working in this repository **must** enforce thes
 * Do NOT use `OnceLock` for container caches because it prevents child container overrides and downstream re-wiring.
 * Unaffected singletons are cloned (`Arc::clone`), while dependents of the overridden node are automatically re-instantiated.
 
-### D. Zero-Cost Trait Polymorphism
-* Trait fields default to `dispatch = "enum"` which auto-generates static `enum_dispatch` enums.
-* Avoid `dyn Any` in normal resolution. Direct typed getters (`get_<dep>()`) must always be emitted alongside generic key lookup.
+### D. Zero-Cost Trait Polymorphism & Resolution
+* Trait fields with `#[dispatch(...)]` auto-generate static `enum_dispatch` enums.
+* Zero `dyn Any` in resolution. Direct typed getters (`get_<dep>()`) are emitted for all singletons (cloned on read) and transients (freshly constructed on every call).
 
 ---
 
