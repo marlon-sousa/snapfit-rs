@@ -41,6 +41,6 @@ name: ch08_async_container
 
 ## Remember
 
-1. Add `async` inside `#[singleton(..., async, constructor = "...")]` when a singleton's constructor is an `async fn` returning `Result<T, E>`.
+1. Add `async` inside `#[singleton(..., async, constructor = <fn>)]` when a singleton's constructor is an `async fn` returning `Result<T, E>`.
 2. If any field in a container is marked `async`, `#[container]` automatically switches to asynchronous mode (unless `mode = "sync"` was explicitly forced, which fails compilation).
 3. Runtime getters (`get_<name>()`) are always synchronous, even on an asynchronous container.

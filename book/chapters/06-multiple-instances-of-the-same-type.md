@@ -35,7 +35,7 @@ name: ch06_multiple_instances
 
 ## How it works
 
-1. **Named-edge graph:** In `wireup`, nodes in the dependency graph are identified by their **container field name** (`read_db`, `write_db`), never by `TypeId`.
+1. **Named-edge graph:** In `snapfit`, nodes in the dependency graph are identified by their **container field name** (`read_db`, `write_db`), never by `TypeId`.
 2. **Positional mapping from `deps`:** Because `order_store` declares `deps = [read_db, write_db]`, `ShopContainer::new()` calls `CqrsOrderStore::new(read_db.clone(), write_db.clone())`.
 3. **Distinct getters:** `ShopContainer` generates `get_read_db(&self) -> Arc<Database>` and `get_write_db(&self) -> Arc<Database>`, returning the two separate allocations.
 

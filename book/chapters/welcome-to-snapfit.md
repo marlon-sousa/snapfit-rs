@@ -1,8 +1,8 @@
-# Welcome to Wireup
+# Welcome to Snapfit
 
-Hello, and welcome to **The Wireup Book**.
+Hello, and welcome to **The Snapfit Book**.
 
-`wireup` is a zero-cost, compile-time verified dependency injection framework for Rust. It is built around one architectural inversion: **the container struct declares the dependency graph, leaving your domain structs 100% pure Rust.**
+`snapfit` is a zero-cost, compile-time verified dependency injection framework for Rust. It is built around one architectural inversion: **the container struct declares the dependency graph, leaving your domain structs 100% pure Rust.**
 
 ## What we are solving
 
@@ -16,7 +16,7 @@ Keeping domain logic clean and making the dependency graph explicit in one place
 
 ## How the book is laid out
 
-- **[Part 1: Introduction](01-why-wireup.md)** makes the case for container-driven dependency injection, shows why domain types need zero annotations, and demonstrates how reading one container struct tells you the full dependency graph.
-- **[Part 2: Wiring a Container](04-installing-and-first-singleton.md)** walks through every lifecycle and wiring feature in `v0.1.0`: singletons, custom constructors and builders, multiple instances of the same type (`read_db` and `write_db`), zero-byte transients, and eager asynchronous containers.
-- **[Part 3: Compile-Time Guarantees & Agents](09-mistakes-caught-by-the-compiler.md)** shows every mistake `wireup` catches at compile time with the exact `rustc` error messages, and how to structure `AGENTS.md` so coding agents take full advantage of `wireup`.
+- **[Part 1: Introduction](01-why-snapfit.md)** makes the case for container-driven dependency injection, shows why domain types need zero annotations, and demonstrates how reading one container struct tells you the full dependency graph.
+- **[Part 2: Wiring a Container](04-installing-and-first-singleton.md)** walks through every stable wiring feature in `v0.1.0`: singletons, custom constructors, and multiple instances of the same type (`read_db` and `write_db`).
+- **[Part 3: Compile-Time Guarantees & Agents](07-mistakes-caught-by-the-compiler.md)** shows every mistake `snapfit` catches at compile time with the exact `rustc` error messages, and how to structure `AGENTS.md` so coding agents take full advantage of `snapfit`.
 - **[Appendices](appendix-1-cheat-sheet.md)** provide a one-page attribute cheat sheet and the capability summary for `v0.1.0`.

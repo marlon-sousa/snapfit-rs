@@ -6,7 +6,7 @@ Not every struct uses a zero-argument `new()` or needs to be wrapped in `Arc`. I
 
 - `TaxRateTable` is a small `Clone` struct that you want stored directly by value without `Arc`;
 - `CatalogDb` is constructed via `CatalogDb::from_tax_table(tax)` instead of `new`;
-- `ShippingClient` needs custom URL assembly via a helper method on the container (`build_shipping`).
+- `ShippingClient` assembles its endpoint from the database via `ShippingClient::for_catalog(db)`.
 
 ## The code
 
@@ -17,7 +17,7 @@ name: ch05_wiring_and_constructors
 region: domain
 ```
 
-Here is `ShopContainer`, combining bare `Clone` storage, `constructor = "..."`, and `builder = "..."`:
+Here is `ShopContainer`, combining bare `Clone` storage and two named constructors:
 
 ```example
 name: ch05_wiring_and_constructors
@@ -40,12 +40,11 @@ name: ch05_wiring_and_constructors
 ## How it works
 
 1. **No forced `Arc<T>` (`tax: TaxRateTable`):** Singletons only require `T: Clone`. Because `TaxRateTable` is declared without `Arc<...>`, `ShopContainer` stores `TaxRateTable` inline and `get_tax()` returns `self.tax.clone()` with zero heap indirection. This is also ideal for types that are already internally reference-counted, such as connection pools or HTTP clients.
-2. **Named constructors (`constructor = "from_tax_table"`):** Setting `constructor = "from_tax_table"` on `db: Arc<CatalogDb>` tells `wireup` to call `CatalogDb::from_tax_table(tax.clone())` and wrap the returned `CatalogDb` in `Arc::new(...)`.
-3. **Custom container builders (`builder = "build_shipping"`):** When construction requires custom formatting or unpacking fields, `builder = "build_shipping"` delegates to `ShopContainer::build_shipping(db.clone())`. Unlike `constructor`, a custom `builder` method returns the exact declared field type (`Arc<ShippingClient>`).
+2. **Named constructors (`constructor = from_tax_table`):** Setting `constructor = from_tax_table` on `db: Arc<CatalogDb>` tells `snapfit` to call `CatalogDb::from_tax_table(tax.clone())` and wrap the returned `CatalogDb` in `Arc::new(...)`.
+3. **Constructors receive their prerequisites (`deps = [db], constructor = for_catalog`):** `snapfit` calls `ShippingClient::for_catalog(db.clone())`, passing the prerequisites in the order listed in `deps`, so the endpoint can be assembled from the database's DSN inside the domain type itself.
 
 ## Remember
 
 1. Omit `Arc<...>` whenever a singleton type already implements `Clone` cheaply (such as small config structs, `PgPool`, or `reqwest::Client`).
-2. Use `constructor = "<fn_name>"` when the target type's constructor has a custom name and returns `T`.
-3. Use `builder = "<method_name>"` when you want to call an associated function on the container struct that returns the exact field type.
-4. A field cannot specify both `constructor` and `builder` at the same time.
+2. Use `constructor = <fn_name>` when the target type's constructor has a custom name and returns `T`. Write the name bare, without quotes, so your editor can jump to it and rename it.
+3. Put construction logic in the domain type's own named constructor. Custom container builders (`builder = <fn>`), which return the field type from a function on the container, are available behind the `unstable` feature and are not covered in `v0.1.0`.
