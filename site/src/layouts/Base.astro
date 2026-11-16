@@ -1,0 +1,115 @@
+---
+import '../styles/global.css';
+import { base, build, markdownHref, pageHref, repository, sourceHref } from '../../book.config.mjs';
+
+interface Props {
+	title?: string;
+	description: string;
+	edition?: { page: string };
+	currentNav?: 'home' | 'releases' | 'book';
+}
+
+const { title, description, edition, currentNav } = Astro.props;
+const siteName = edition ? `The Wireup Book (${build.version})` : 'wireup';
+const fullTitle = title ? `${title} · ${siteName}` : siteName;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const markdown = edition ? markdownHref(edition.page || undefined) : currentNav === 'home' ? `${base}/index.md` : undefined;
+const llms = `${base}/book/${build.version}/llms.txt`;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="color-scheme" content="light dark" />
+		<meta name="theme-color" content="#fbf9f4" media="(prefers-color-scheme: light)" />
+		<meta name="theme-color" content="#171a19" media="(prefers-color-scheme: dark)" />
+		<title>{fullTitle}</title>
+		<meta name="description" content={description} />
+		<link rel="canonical" href={canonical} />
+		<link rel="icon" type="image/svg+xml" href={`${base}/favicon.svg`} />
+		{markdown && <link rel="alternate" type="text/markdown" title="This page in Markdown" href={markdown} />}
+	</head>
+	<body>
+		<a class="skip-link" href="#main">Skip to the text</a>
+		<header class="masthead">
+			<div class="masthead__inner">
+				<p class="masthead__book">
+					<a class="masthead__title" href={`${base}/`}>wireup</a>
+					{edition && <span class="masthead__edition">The Wireup Book ({build.version})</span>}
+				</p>
+				<div class="masthead__nav">
+					<nav aria-label="Site">
+						<ul>
+							{
+								edition ? (
+									<>
+										<li>
+											<a href={`${base}/`}>Home</a>
+										</li>
+										<li>
+											{edition.page === '' ? (
+												<span aria-current="page">Contents</span>
+											) : (
+												<a href={pageHref()}>Contents</a>
+											)}
+										</li>
+									</>
+								) : (
+									<>
+										<li>
+											{currentNav === 'home' ? (
+												<span aria-current="page">Home</span>
+											) : (
+												<a href={`${base}/`}>Home</a>
+											)}
+										</li>
+										<li>
+											{currentNav === 'book' ? (
+												<span aria-current="page">Book ({build.version})</span>
+											) : (
+												<a href={pageHref()}>Book ({build.version})</a>
+											)}
+										</li>
+									</>
+								)
+							}
+							<li>
+								{currentNav === 'releases' ? (
+									<span aria-current="page">Releases</span>
+								) : (
+									<a href={`${base}/releases/`}>Releases</a>
+								)}
+							</li>
+							<li>
+								<a href={repository}>GitHub</a>
+							</li>
+						</ul>
+					</nav>
+				</div>
+			</div>
+		</header>
+		<main id="main" tabindex="-1" class="page">
+			<slot />
+		</main>
+		<footer class="site-footer">
+			<div class="site-footer__inner">
+				<p>
+					<a href={`${base}/`}>wireup</a> is a zero-cost, compile-time verified, pure-Rust dependency injection framework.
+					Read <a href={pageHref()}>The Wireup Book ({build.version})</a> or browse <a href={`${base}/releases/`}>all releases</a>.
+				</p>
+				<p>
+					For agents: <a href={llms}>llms.txt</a>{markdown && <>, and <a href={markdown}>this page in Markdown</a></>}.
+				</p>
+				<p>
+					<a href={repository}>Source on GitHub</a>, licensed under{' '}
+					<a href={sourceHref('LICENSE-APACHE')}>Apache 2.0</a> or <a href={sourceHref('LICENSE-MIT')}>MIT</a>.
+				</p>
+			</div>
+		</footer>
+		<script>
+			import '../scripts/diagrams.ts';
+		</script>
+	</body>
+</html>

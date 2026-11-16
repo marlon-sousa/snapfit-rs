@@ -1,0 +1,68 @@
+name: Publish Site & Book Edition
+
+# Publishes a tagged release's stripped README front page, Releases index,
+# and frozen `/book/<version>/` edition to the `site` branch without
+# altering previously published release editions.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Release tag/version to publish (for example, v0.1.0)
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release tag/version to publish (for example, v0.1.0)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: site-publish
+  cancel-in-progress: false
+
+jobs:
+  publish-site:
+    name: Publish ${{ inputs.version }} to site branch
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - name: Checkout tag ${{ inputs.version }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version }}
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Install site dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Open site branch worktree
+        working-directory: .
+        run: site/scripts/publish.sh open "$RUNNER_TEMP/site-pages"
+
+      - name: Verify and build site for ${{ inputs.version }}
+        env:
+          BOOK_VERSION: ${{ inputs.version }}
+          BOOK_SOURCE_REF: ${{ inputs.version }}
+          WIREUP_RELEASES_FILE: ${{ runner.temp }}/site-pages/wireup-site.json
+        run: npm run verify
+
+      - name: Commit and push ${{ inputs.version }} to site branch
+        working-directory: .
+        run: site/scripts/publish.sh publish "$RUNNER_TEMP/site-pages" "site/dist" "${{ inputs.version }}"

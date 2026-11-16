@@ -1,0 +1,8 @@
+[
+	{
+		"version": "v0.1.0",
+		"date": "2026-11-16",
+		"summary": "Compile-time verified dependency injection with pure-Rust domain types, singletons, zero-byte transients, custom constructors/builders, multi-instance named edges, and eager asynchronous initialization.",
+		"prerelease": false
+	}
+]

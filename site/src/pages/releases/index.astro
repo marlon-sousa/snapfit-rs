@@ -1,0 +1,70 @@
+---
+import { pageHref, releases, repository } from '../../../book.config.mjs';
+import Base from '../../layouts/Base.astro';
+
+const stableReleases = releases.filter((rel) => !rel.prerelease);
+const prereleases = releases.filter((rel) => rel.prerelease);
+---
+
+<Base
+	title="Releases"
+	description="All releases of wireup and their frozen editions of The Wireup Book."
+	currentNav="releases"
+>
+	<h1>Releases</h1>
+	<p class="lede">
+		Every release of <code>wireup</code> publishes its own frozen edition of <strong>The Wireup Book</strong>,
+		with every example compiled and verified as a release gate. Pick the version your project uses to read its book.
+	</p>
+
+	{
+		stableReleases.length > 0 && (
+			<section aria-labelledby="stable-releases">
+				<h2 id="stable-releases">Releases</h2>
+				{stableReleases.map((rel) => (
+					<article class="release-card">
+						<h3>wireup {rel.version}</h3>
+						<p class="release-card__meta">Released on {rel.date}</p>
+						<p>{rel.summary}</p>
+						<p>
+							<a href={pageHref(undefined, rel.version)}>
+								<strong>Read The Wireup Book ({rel.version})</strong>
+							</a>
+							{' · '}
+							<a href={`${repository}/releases/tag/${rel.version}`}>
+								Release notes on GitHub ({rel.version})
+							</a>
+						</p>
+					</article>
+				))}
+			</section>
+		)
+	}
+
+	{
+		prereleases.length > 0 && (
+			<section aria-labelledby="pre-releases">
+				<h2 id="pre-releases">Pre-releases</h2>
+				<details>
+					<summary>Show {prereleases.length} pre-release(s)</summary>
+					{prereleases.map((rel) => (
+						<article class="release-card">
+							<h3>wireup {rel.version}</h3>
+							<p class="release-card__meta">Released on {rel.date}</p>
+							<p>{rel.summary}</p>
+							<p>
+								<a href={pageHref(undefined, rel.version)}>
+									<strong>Read The Wireup Book ({rel.version})</strong>
+								</a>
+								{' · '}
+								<a href={`${repository}/releases/tag/${rel.version}`}>
+									Release notes on GitHub ({rel.version})
+								</a>
+							</p>
+						</article>
+					))}
+				</details>
+			</section>
+		)
+	}
+</Base>
