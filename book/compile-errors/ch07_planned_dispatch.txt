@@ -1,0 +1,5 @@
+error: #[dispatch(...)] on dependency 'payments' is planned for a future version of snapfit and is not implemented yet
+  --> book/compile-errors/ch07_planned_dispatch.rs:10:5
+   |
+10 |     #[dispatch(StripeGateway, FakeGateway)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

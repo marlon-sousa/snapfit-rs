@@ -16,8 +16,8 @@ const FORBIDDEN_COMPILER_TOKENS: &[&str] = &[
 ];
 
 const SOFT_LINE_LIMIT: usize = 200;
-const ISOLATED_DIRS: &[&str] = &["wireup_macros/src/domain", "wireup_macros/src/use_cases"];
-const WORKSPACE_CRATES: &[&str] = &["wireup", "wireup_macros", "xtask", "tests", "book"];
+const ISOLATED_DIRS: &[&str] = &["snapfit-macros/src/domain", "snapfit-macros/src/use_cases"];
+const WORKSPACE_CRATES: &[&str] = &["snapfit", "snapfit-macros", "xtask", "tests", "book"];
 const CRATE_SUBDIRS: &[&str] = &["src", "examples"];
 
 pub(crate) fn check_architectural_invariants(root: &Path) -> bool {

@@ -1,15 +1,14 @@
 [package]
-name = "wireup_book"
+name = "snapfit_book"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish = false
-description = "Compiled examples and compile-error fixtures for The Wireup Book."
+description = "Compiled examples and compile-error fixtures for The Snapfit Book."
 
 [lib]
 path = "src/lib.rs"
 
 [dependencies]
-wireup = { workspace = true }
-futures = { workspace = true }
+snapfit = { workspace = true }

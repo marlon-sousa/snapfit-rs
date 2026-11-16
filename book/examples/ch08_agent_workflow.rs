@@ -1,8 +1,8 @@
 #![deny(warnings)]
-//! Chapter 10: adding a new domain capability touches only its struct and one container field.
+//! Chapter 8: adding a new domain capability touches only its struct and one container field.
 
+use snapfit::container;
 use std::sync::Arc;
-use wireup::container;
 
 // ANCHOR: domain_step
 #[derive(Default)]
@@ -60,8 +60,8 @@ pub struct ShopContainer {
     #[singleton(deps = [config])]
     guard: Arc<FraudGuard>,
 
-    #[transient(deps = [guard])]
-    checkout: CheckoutService,
+    #[singleton(deps = [guard])]
+    checkout: Arc<CheckoutService>,
 }
 // ANCHOR_END: container
 

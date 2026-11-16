@@ -1,8 +1,8 @@
 #![deny(warnings)]
 //! Chapter 4: leaf singletons are constructed once at boot and shared across getters.
 
+use snapfit::container;
 use std::sync::Arc;
-use wireup::container;
 
 // ANCHOR: domain
 #[derive(Default)]

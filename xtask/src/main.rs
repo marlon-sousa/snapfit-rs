@@ -70,7 +70,11 @@ fn execute_mode(root: &Path, mode: &str) -> bool {
         ok = run_cargo(root, &["doc", "--workspace", "--no-deps"], true) && ok;
     }
     if matches!(mode, "book" | "book-check") {
-        ok = run_cargo(root, &["test", "-p", "wireup_book", "--all-targets"], false) && ok;
+        ok = run_cargo(
+            root,
+            &["test", "-p", "snapfit_book", "--all-targets"],
+            false,
+        ) && ok;
     }
     ok
 }

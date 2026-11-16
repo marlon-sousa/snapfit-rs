@@ -11,14 +11,14 @@ fn compile_error_fixtures_fail_and_match_recorded_diagnostics() {
     let book_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     let ce_dir = book_dir.join("compile-errors");
     let deps_dir = target_deps_dir();
-    let wireup_rlib = find_latest_wireup_rlib(&deps_dir);
+    let snapfit_rlib = find_latest_snapfit_rlib(&deps_dir);
     let out_dir = deps_dir.join("book_compile_errors_out");
     fs::create_dir_all(&out_dir).expect("failed to create book_compile_errors_out");
-    let bless = env::var("WIREUP_BOOK_BLESS").is_ok();
+    let bless = env::var("SNAPFIT_BOOK_BLESS").is_ok();
 
     for rs_file in sorted_files(&ce_dir, "rs") {
         let name = file_stem(&rs_file);
-        let actual = compile_failing_fixture(&rs_file, &name, &wireup_rlib, &deps_dir, &out_dir);
+        let actual = compile_failing_fixture(&rs_file, &name, &snapfit_rlib, &deps_dir, &out_dir);
         let txt_path = ce_dir.join(format!("{name}.txt"));
 
         if bless {
@@ -39,7 +39,7 @@ fn compile_error_fixtures_fail_and_match_recorded_diagnostics() {
 fn compile_failing_fixture(
     rs_file: &Path,
     name: &str,
-    wireup_rlib: &Path,
+    snapfit_rlib: &Path,
     deps_dir: &Path,
     out_dir: &Path,
 ) -> String {
@@ -53,7 +53,7 @@ fn compile_failing_fixture(
         .arg(name)
         .arg("--out-dir")
         .arg(out_dir)
-        .arg(format!("--extern=wireup={}", wireup_rlib.display()))
+        .arg(format!("--extern=snapfit={}", snapfit_rlib.display()))
         .arg(format!("-Ldependency={}", deps_dir.display()))
         .arg(rs_file)
         .output()
@@ -86,18 +86,18 @@ fn normalize_stderr(stderr: &str, rs_file: &Path, name: &str) -> String {
     format!("{}\n", filtered.join("\n").trim())
 }
 
-fn find_latest_wireup_rlib(deps_dir: &Path) -> PathBuf {
+fn find_latest_snapfit_rlib(deps_dir: &Path) -> PathBuf {
     fs::read_dir(deps_dir)
         .expect("failed to read deps dir")
         .filter_map(Result::ok)
         .map(|e| e.path())
         .filter(|p| {
             let fname = p.file_name().and_then(|s| s.to_str()).unwrap_or("");
-            (fname == "libwireup.rlib" || fname.starts_with("libwireup-"))
+            (fname == "libsnapfit.rlib" || fname.starts_with("libsnapfit-"))
                 && fname.ends_with(".rlib")
         })
         .max_by_key(|p| modified_time(p))
-        .expect("failed to find compiled libwireup.rlib")
+        .expect("failed to find compiled libsnapfit.rlib")
 }
 
 fn modified_time(path: &Path) -> SystemTime {

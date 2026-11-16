@@ -207,7 +207,7 @@ def main() -> int:
 
     if mode in ("book", "book-check"):
         success = (
-            run_command(["cargo", "test", "-p", "wireup_book", "--all-targets"])
+            run_command(["cargo", "test", "-p", "snapfit_book", "--all-targets"])
             and success
         )
 

@@ -4,7 +4,7 @@
 use std::mem::size_of;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
-use wireup::container;
+use snapfit::container;
 
 static NEXT_CART_ID: AtomicU32 = AtomicU32::new(1);
 

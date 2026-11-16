@@ -1,8 +1,8 @@
 #![deny(warnings)]
 //! Chapter 6: multiple instances of the exact same type wired by field name.
 
+use snapfit::container;
 use std::sync::Arc;
-use wireup::container;
 
 // ANCHOR: domain
 pub struct Database {
@@ -46,10 +46,10 @@ impl CqrsOrderStore {
 // ANCHOR: container
 #[container]
 pub struct ShopContainer {
-    #[singleton(constructor = "replica")]
+    #[singleton(constructor = replica)]
     read_db: Arc<Database>,
 
-    #[singleton(constructor = "primary")]
+    #[singleton(constructor = primary)]
     write_db: Arc<Database>,
 
     #[singleton(deps = [read_db, write_db])]

@@ -1,0 +1,5 @@
+error: dependency cycle detected: ledger -> ledger
+ --> book/compile-errors/ch07_self_dependency_cycle.rs:8:5
+  |
+8 |     #[singleton(deps = [ledger])]
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

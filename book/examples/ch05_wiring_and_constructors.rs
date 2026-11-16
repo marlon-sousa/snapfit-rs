@@ -1,8 +1,8 @@
 #![deny(warnings)]
-//! Chapter 5: wiring prerequisites, custom constructors, custom builders, and Clone types without Arc.
+//! Chapter 5: wiring prerequisites, named constructors, and Clone types without Arc.
 
+use snapfit::container;
 use std::sync::Arc;
-use wireup::container;
 
 // ANCHOR: domain
 #[derive(Clone, Default)]
@@ -37,8 +37,10 @@ pub struct ShippingClient {
 }
 
 impl ShippingClient {
-    pub fn custom(endpoint: String) -> Self {
-        Self { endpoint }
+    pub fn for_catalog(db: Arc<CatalogDb>) -> Self {
+        Self {
+            endpoint: format!("https://ship.example.com?source={}", db.dsn()),
+        }
     }
 
     pub fn endpoint(&self) -> &str {
@@ -53,20 +55,11 @@ pub struct ShopContainer {
     #[singleton]
     tax: TaxRateTable,
 
-    #[singleton(deps = [tax], constructor = "from_tax_table")]
+    #[singleton(deps = [tax], constructor = from_tax_table)]
     db: Arc<CatalogDb>,
 
-    #[singleton(deps = [db], builder = "build_shipping")]
+    #[singleton(deps = [db], constructor = for_catalog)]
     shipping: Arc<ShippingClient>,
-}
-
-impl ShopContainer {
-    fn build_shipping(db: Arc<CatalogDb>) -> Arc<ShippingClient> {
-        Arc::new(ShippingClient::custom(format!(
-            "https://ship.example.com?source={}",
-            db.dsn()
-        )))
-    }
 }
 // ANCHOR_END: container
 

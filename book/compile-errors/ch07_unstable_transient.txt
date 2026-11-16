@@ -1,0 +1,5 @@
+error: transient dependency 'checkout' is unstable in this version of snapfit; enable the `unstable` feature of the `snapfit` crate to use it
+  --> book/compile-errors/ch07_unstable_transient.rs:12:5
+   |
+12 |     #[transient(deps = [config])]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

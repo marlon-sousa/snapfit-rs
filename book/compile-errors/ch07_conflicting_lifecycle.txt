@@ -1,0 +1,5 @@
+error: invalid configuration: field 'config' cannot declare multiple lifecycle attributes
+ --> book/compile-errors/ch07_conflicting_lifecycle.rs:8:5
+  |
+8 |     #[singleton]
+  |     ^^^^^^^^^^^^

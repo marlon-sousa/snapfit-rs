@@ -1,8 +1,8 @@
 #![deny(warnings)]
 //! Chapter 2: pure domain types work both standalone in unit tests and inside a container.
 
+use snapfit::container;
 use std::sync::Arc;
-use wireup::container;
 
 // ANCHOR: domain
 #[derive(Default)]

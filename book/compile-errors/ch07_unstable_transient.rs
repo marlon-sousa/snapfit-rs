@@ -1,14 +1,14 @@
 use std::sync::Arc;
-use wireup::container;
+use snapfit::container;
 
 pub struct ShopConfig;
-pub struct Database;
+pub struct CartCheckout;
 
 #[container]
 pub struct ShopContainer {
     #[singleton]
     config: Arc<ShopConfig>,
 
-    #[singleton(deps = [confog])]
-    db: Arc<Database>,
+    #[transient(deps = [config])]
+    checkout: CartCheckout,
 }

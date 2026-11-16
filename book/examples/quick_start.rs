@@ -1,8 +1,8 @@
 #![deny(warnings)]
 //! Quick start: pure domain types wired by a single declarative container.
 
+use snapfit::container;
 use std::sync::Arc;
-use wireup::container;
 
 // ANCHOR: domain
 #[derive(Default)]
@@ -59,8 +59,8 @@ pub struct ShopContainer {
     #[singleton(deps = [config])]
     db: Arc<CatalogDb>,
 
-    #[transient(deps = [db])]
-    checkout: OrderCheckout,
+    #[singleton(deps = [db])]
+    checkout: Arc<OrderCheckout>,
 }
 // ANCHOR_END: container
 

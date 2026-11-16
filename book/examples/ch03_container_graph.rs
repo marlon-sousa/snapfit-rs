@@ -1,8 +1,8 @@
 #![deny(warnings)]
 //! Chapter 3: reading the container reveals the full dependency graph regardless of field order.
 
+use snapfit::container;
 use std::sync::Arc;
-use wireup::container;
 
 #[derive(Default)]
 pub struct ShopConfig {
@@ -79,8 +79,8 @@ impl CheckoutHandler {
 // ANCHOR: container
 #[container]
 pub struct ShopContainer {
-    #[transient(deps = [repo, payments])]
-    checkout: CheckoutHandler,
+    #[singleton(deps = [repo, payments])]
+    checkout: Arc<CheckoutHandler>,
 
     #[singleton(deps = [db])]
     repo: Arc<OrderRepository>,

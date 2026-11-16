@@ -1,5 +1,5 @@
 #![deny(warnings)]
-//! Chapter 1 (usual way): manual constructor threading across layers without wireup.
+//! Chapter 1 (usual way): manual constructor threading across layers without snapfit.
 
 use std::sync::Arc;
 

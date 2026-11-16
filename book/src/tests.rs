@@ -11,7 +11,7 @@ fn examples_compile_run_and_match_expected_output() {
     let book_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     let examples_dir = book_dir.join("examples");
     let expected_dir = book_dir.join("expected");
-    let bless = env::var("WIREUP_BOOK_BLESS").is_ok();
+    let bless = env::var("SNAPFIT_BOOK_BLESS").is_ok();
 
     build_all_example_binaries(book_dir);
 
@@ -38,13 +38,13 @@ fn examples_compile_run_and_match_expected_output() {
 fn build_all_example_binaries(book_dir: &Path) {
     let cargo = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     let status = Command::new(cargo)
-        .args(["build", "-p", "wireup_book", "--examples", "--quiet"])
+        .args(["build", "-p", "snapfit_book", "--examples", "--quiet"])
         .current_dir(book_dir)
         .status()
-        .expect("failed to invoke cargo build --examples for wireup_book");
+        .expect("failed to invoke cargo build --examples for snapfit_book");
     assert!(
         status.success(),
-        "cargo build -p wireup_book --examples failed"
+        "cargo build -p snapfit_book --examples failed"
     );
 }
 

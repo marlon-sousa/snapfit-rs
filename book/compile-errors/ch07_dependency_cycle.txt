@@ -1,0 +1,5 @@
+error: dependency cycle detected: orders -> inventory -> orders
+ --> book/compile-errors/ch07_dependency_cycle.rs:9:5
+  |
+9 |     #[singleton(deps = [inventory])]
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

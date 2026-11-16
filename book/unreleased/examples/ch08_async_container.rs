@@ -3,7 +3,7 @@
 
 use std::error::Error;
 use std::sync::Arc;
-use wireup::container;
+use snapfit::container;
 
 // ANCHOR: domain
 #[derive(Default)]
@@ -56,7 +56,7 @@ pub struct ShopContainer {
     #[singleton]
     config: Arc<ShopConfig>,
 
-    #[singleton(deps = [config], async, constructor = "connect")]
+    #[singleton(deps = [config], async, constructor = connect)]
     gateway: Arc<PaymentGateway>,
 
     #[singleton(deps = [gateway])]

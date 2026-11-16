@@ -1,6 +1,0 @@
-error: dependency cycle detected: ledger -> ledger
- --> book/compile-errors/ch09_self_dependency_cycle.rs:6:1
-  |
-6 | #[container]
-  | ^^^^^^^^^^^^
-  |

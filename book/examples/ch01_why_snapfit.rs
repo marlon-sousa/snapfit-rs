@@ -1,8 +1,8 @@
 #![deny(warnings)]
-//! Chapter 1 (with wireup): the same shop wired through a declarative container manifest.
+//! Chapter 1 (with snapfit): the same shop wired through a declarative container manifest.
 
+use snapfit::container;
 use std::sync::Arc;
-use wireup::container;
 
 #[derive(Default)]
 pub struct ShopConfig {
@@ -80,8 +80,8 @@ pub struct ShopContainer {
     #[singleton(deps = [db])]
     stock: Arc<StockService>,
 
-    #[transient(deps = [config, db, stock])]
-    orders: OrderService,
+    #[singleton(deps = [config, db, stock])]
+    orders: Arc<OrderService>,
 }
 // ANCHOR_END: container
 

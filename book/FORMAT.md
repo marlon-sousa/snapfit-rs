@@ -4,14 +4,14 @@ Where each part of the book lives in `book/`, and how a chapter embeds code that
 
 ## Chapters and files
 
-1. Each chapter is one Markdown file under `book/chapters/`, named after its two-digit number and slug, for example `book/chapters/01-why-wireup.md`. The `book/chapters/README.md` beside it lists the parts and chapters in reading order.
-2. Each "Without Wireup" section is a file of its own, named after the part it closes, for example `part-1-without-wireup.md`.
+1. Each chapter is one Markdown file under `book/chapters/`, named after its two-digit number and slug, for example `book/chapters/01-why-snapfit.md`. The `book/chapters/README.md` beside it lists the parts and chapters in reading order.
+2. Each "Without Snapfit" section is a file of its own, named after the part it closes, for example `part-1-without-snapfit.md`.
 3. Each appendix is a file named `appendix-N-short-name.md`.
 4. Each welcome page before Part 1 is a file named after its title without a number, for example `quick-start.md`. The contents list them unnumbered under the heading "Welcome".
 5. Every numbered chapter, and the quick start, opens with its title as the only level 1 heading (`#`), followed by the four sections of [BOOK.md](BOOK.md) as level 2 headings (`##`), in order: "What you want to do", "The code", "How it works", and "Remember". It may use level 3 headings (`###`) inside them.
-6. A "Without Wireup" section opens with the level 1 heading `# Without Wireup`, and an appendix or other welcome page opens with its own title; they choose their own level 2 and level 3 headings.
-7. Every name a chapter gives to an example or a compile error starts with the chapter's number (`ch04_first_singleton`), with the part's for a "Without Wireup" section (`part2_without_wireup`), or is `quick_start` for the quick start, so names never clash between chapters.
-8. Any chapter, "Without Wireup" section, or appendix may show a region of another chapter's example by naming it, so the same code is never written twice.
+6. A "Without Snapfit" section opens with the level 1 heading `# Without Snapfit`, and an appendix or other welcome page opens with its own title; they choose their own level 2 and level 3 headings.
+7. Every name a chapter gives to an example or a compile error starts with the chapter's number (`ch04_first_singleton`), with the part's for a "Without Snapfit" section (`part2_without_snapfit`), or is `quick_start` for the quick start, so names never clash between chapters.
+8. Any chapter, "Without Snapfit" section, or appendix may show a region of another chapter's example by naming it, so the same code is never written twice.
 9. A chapter never holds a multi-line Rust program in its prose. Code that compiles, what it prints, and what the compiler refuses are named by directives, below, so every listing in the book is compiled and checked in CI. Only a short fragment that is not a program, such as one attribute (`#[singleton]`) or a type's name (`Arc<Config>`), may be written inline in prose.
 
 ## Directives
@@ -43,11 +43,11 @@ Shows what `book/examples/ch04_first_singleton.rs` prints to standard output, as
 
 ````markdown
 ```compile-error
-name: ch09_dependency_cycle
+name: ch07_dependency_cycle
 ```
 ````
 
-Shows a program that the Rust compiler refuses to compile (`book/compile-errors/ch09_dependency_cycle.rs`), followed by the compiler's diagnostic message as recorded in `book/compile-errors/ch09_dependency_cycle.txt`.
+Shows a program that the Rust compiler refuses to compile (`book/compile-errors/ch07_dependency_cycle.rs`), followed by the compiler's diagnostic message as recorded in `book/compile-errors/ch07_dependency_cycle.txt`.
 
 ## Verification directories
 

@@ -1,10 +1,10 @@
 #![deny(warnings)]
-//! Part 2 Without Wireup: TypeMap collision when registering two instances of the same type.
+//! Part 2 Without Snapfit: TypeMap collision when registering two instances of the same type.
 
+use snapfit::container;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::sync::Arc;
-use wireup::container;
 
 pub struct Database {
     role: &'static str,
@@ -47,16 +47,16 @@ impl TypeMapLocator {
 }
 // ANCHOR_END: typemap_collision
 
-// ANCHOR: wireup_named_edges
+// ANCHOR: snapfit_named_edges
 #[container]
 pub struct NamedDatabaseContainer {
-    #[singleton(constructor = "replica")]
+    #[singleton(constructor = replica)]
     read_db: Arc<Database>,
 
-    #[singleton(constructor = "primary")]
+    #[singleton(constructor = primary)]
     write_db: Arc<Database>,
 }
-// ANCHOR_END: wireup_named_edges
+// ANCHOR_END: snapfit_named_edges
 
 // ANCHOR: run
 fn main() {
@@ -73,7 +73,7 @@ fn main() {
 
     let container = NamedDatabaseContainer::new();
     println!(
-        "wireup kept both: read={}, write={}",
+        "snapfit kept both: read={}, write={}",
         container.get_read_db().role(),
         container.get_write_db().role()
     );

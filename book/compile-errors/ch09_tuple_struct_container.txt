@@ -1,6 +1,0 @@
-error: invalid configuration: tuple structs are not supported by #[container]; use named fields
- --> book/compile-errors/ch09_tuple_struct_container.rs:6:1
-  |
-6 | #[container]
-  | ^^^^^^^^^^^^
-  |
