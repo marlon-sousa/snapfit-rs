@@ -3,18 +3,19 @@ use derive_more::{AsRef, Deref, Display, Into};
 use derive_new::new;
 use strum::{AsRefStr, EnumIs, IntoStaticStr};
 
+fn ensure_non_blank(value: impl Into<String>, label: &str) -> Result<String, DomainError> {
+    let text = value.into();
+    (!text.trim().is_empty()).then_some(text).ok_or_else(|| {
+        DomainError::InvalidConfiguration(format!("{label} cannot be empty or blank"))
+    })
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deref, Display, Into, AsRef)]
 pub struct DependencyName(String);
 
 impl DependencyName {
     pub fn new(name: impl Into<String>) -> Result<Self, DomainError> {
-        let s = name.into();
-        if s.trim().is_empty() {
-            return Err(DomainError::InvalidConfiguration(
-                "dependency name cannot be empty or blank".to_string(),
-            ));
-        }
-        Ok(Self(s))
+        ensure_non_blank(name, "dependency name").map(Self)
     }
 
     pub fn as_str(&self) -> &str {
@@ -43,13 +44,7 @@ pub struct TypeName(String);
 
 impl TypeName {
     pub fn new(name: impl Into<String>) -> Result<Self, DomainError> {
-        let s = name.into();
-        if s.trim().is_empty() {
-            return Err(DomainError::InvalidConfiguration(
-                "type name cannot be empty or blank".to_string(),
-            ));
-        }
-        Ok(Self(s))
+        ensure_non_blank(name, "type name").map(Self)
     }
 
     pub fn as_str(&self) -> &str {
@@ -78,13 +73,7 @@ pub struct ContainerName(String);
 
 impl ContainerName {
     pub fn new(name: impl Into<String>) -> Result<Self, DomainError> {
-        let s = name.into();
-        if s.trim().is_empty() {
-            return Err(DomainError::InvalidConfiguration(
-                "container name cannot be empty or blank".to_string(),
-            ));
-        }
-        Ok(Self(s))
+        ensure_non_blank(name, "container name").map(Self)
     }
 
     pub fn as_str(&self) -> &str {

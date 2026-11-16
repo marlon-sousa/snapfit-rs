@@ -86,14 +86,20 @@ Every agent (coder or reviewer) working in this repository **must** enforce thes
     * **Non-Blank & Distinct Strings:** If an identifier cannot be empty or blank (e.g. `DependencyName`, `ContainerName`, `TypeName`), enforce that invariant on construction (via `TryFrom` or validated constructors) so blank values are unrepresentable.
     * **Distinct Concepts over Raw Primitives:** Keep distinct concepts as distinct types (e.g. `DependencyName` vs `TypeName`) to prevent accidental argument swapping at compile time.
     * **Judgment over Dogma:** If a value is genuinely unconstrained or arbitrary data without domain rules, keep it simple. Apply invariants where they provide real compiler-enforced safety and prevent illegal states.
+11. **Small, Single-Responsibility Functions & Idiomatic Functional Composition:**
+    * **Read Like Prose (One Level of Abstraction per Function):** Every function should read like clear English prose at a single level of abstraction (~3–10 lines). Never mix multiple loops, validation passes, and state mutations in one function.
+    * **Prefer Iterator Combinators & Functional Pipelines over Imperative Loops:** Use `.try_for_each(...)`, `.find(...)`, `.find_map(...)`, `.any(...)`, `.all(...)`, `.filter(...)`, `.map_or(...)`, `.then(...)`, `.then_some(...)`, and `.ok_or_else(...)` instead of imperative `for` + `if` + `break`/`return` boilerplate.
+    * **Extract Focused Helpers & Propagate Early with `?`:** Extract inner steps, predicates, and state transitions into small, well-named private methods or helper structs (`CycleFinder`, `IndexedGraph`) and compose them cleanly with `?`.
+    * **Flat Control Flow:** Zero deep nesting (`for` -> `if` -> `for` -> `if`).
 
 ---
 
 ## 4. Role Instructions for Subagents
 
 ### `wireup-coder` (Lead Implementer):
-* Follows the 10 engineering principles above.
+* Follows the 11 engineering principles above.
 * **Exercises Engineering Judgment:** Never writes 300 lines of complex algorithmic or boilerplate logic by hand when an established, focused crate solves the problem cleanly without side effects or adapter coupling.
+* Writes small, single-responsibility methods composed with `?` and iterator combinators.
 * Runs `cargo fmt`, `cargo clippy -- -D warnings`, and in-memory unit tests before submitting.
 * Keeps tests fast (< 5ms) without `trybuild`.
 
@@ -105,6 +111,7 @@ Every agent (coder or reviewer) working in this repository **must** enforce thes
   * **Test Quality & Edge-Case Coverage:** Audits unit and BDD tests to verify they assert exact behavioral outcomes and tricky edge cases, rather than superficial happy-path checks.
 * **2. Architectural & Engineering Judgment (Not Just Checklists):**
   * Audits diffs against Section 2 (Architectural Invariants) and Section 3 (Coding Standards).
+  * **Enforces Function Simplicity (Principle 11):** Rejects long or deeply nested functions that mix multiple concerns; requires extracting small, single-responsibility helpers composed with `?` and combinators.
   * Actively challenges hand-rolled logic: asks whether custom code should be replaced by an established, battle-tested crate (e.g. `petgraph`, `thiserror`).
   * Checks for side-effect leakage: verifies that NO I/O (`std::fs`), channels/pipes (`std::sync::mpsc`, `crossbeam`), or compiler infrastructure (`syn`, `quote`, `darling`) leak into `domain` or `use_cases`.
   * Verifies strongly-typed modeling: flags anonymous tuples or loose primitives where a named struct should be used.
