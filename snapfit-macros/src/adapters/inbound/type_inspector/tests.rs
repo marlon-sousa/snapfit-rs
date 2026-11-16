@@ -4,7 +4,7 @@ use syn::parse_quote;
 use super::*;
 
 #[test]
-fn test_compact_type_tokens_formats_generics_and_trait_objects() {
+fn a_type_is_written_compactly_with_its_generics_and_trait_objects() {
     let arc_ty: syn::Type = parse_quote!(std::sync::Arc<Config<Prod>>);
     assert_eq!(
         compact_type_tokens(quote!(#arc_ty)),
@@ -19,7 +19,7 @@ fn test_compact_type_tokens_formats_generics_and_trait_objects() {
 }
 
 #[test]
-fn test_parse_dispatch_attribute_extracts_impls_and_rejects_empty() {
+fn a_dispatch_attribute_lists_its_implementations_and_refuses_an_empty_list() {
     let attr: syn::Attribute = parse_quote!(#[dispatch(PostgresDb, MockDb)]);
     let impls = parse_dispatch_attribute(&attr).unwrap();
     assert_eq!(impls, vec!["PostgresDb", "MockDb"]);
@@ -32,26 +32,54 @@ fn test_parse_dispatch_attribute_extracts_impls_and_rejects_empty() {
 }
 
 #[test]
-fn test_resolve_trait_dispatch_ignores_auto_traits_for_enum_and_detects_dyn() {
+fn the_dispatched_trait_ignores_auto_traits() {
     let ty: syn::Type = parse_quote!(Arc<dyn Send + Sync + Database>);
-    let enum_dispatch = resolve_trait_dispatch(
-        &ty,
-        Some(vec!["PostgresDb".to_string(), "MockDb".to_string()]),
-    )
-    .unwrap();
-    assert_eq!(
-        enum_dispatch,
-        TraitDispatch::Enum {
-            trait_name: "Database".to_string(),
-            impls: vec!["PostgresDb".to_string(), "MockDb".to_string()],
-        }
-    );
 
-    let dyn_dispatch = resolve_trait_dispatch(&ty, None).unwrap();
-    assert_eq!(
-        dyn_dispatch,
-        TraitDispatch::Dyn {
-            trait_type: "dyn Send + Sync + Database".to_string(),
-        }
-    );
+    assert_eq!(dispatched_trait(&ty).unwrap(), "Database");
+}
+
+#[test]
+fn a_dispatch_field_without_a_trait_object_is_refused() {
+    let ty: syn::Type = parse_quote!(Arc<Database>);
+
+    assert!(dispatched_trait(&ty).is_err());
+}
+
+#[test]
+fn a_type_holding_dyn_is_a_trait_object_even_inside_an_arc() {
+    let shapes: [(syn::Type, TypeShape); 5] = [
+        (parse_quote!(Arc<dyn Store>), TypeShape::TraitObject),
+        (parse_quote!(Box<dyn Store + Send>), TypeShape::TraitObject),
+        (parse_quote!(Arc<Store>), TypeShape::Arc),
+        (parse_quote!(std::rc::Rc<Store>), TypeShape::Value),
+        (parse_quote!(Store), TypeShape::Value),
+    ];
+    for (ty, shape) in shapes {
+        assert_eq!(type_shape(&ty), shape, "{}", quote!(#ty));
+    }
+}
+
+#[test]
+fn only_std_arc_paths_have_an_inner_type() {
+    let arcs: [syn::Type; 4] = [
+        parse_quote!(Arc<Config>),
+        parse_quote!(std::sync::Arc<Config>),
+        parse_quote!(::std::sync::Arc<Config>),
+        parse_quote!(alloc::sync::Arc<Config>),
+    ];
+    for ty in &arcs {
+        let inner = arc_inner_type(ty).unwrap();
+        assert_eq!(compact_type_tokens(quote!(#inner)), "Config");
+    }
+
+    let not_arcs: [syn::Type; 5] = [
+        parse_quote!(Vec<Config>),
+        parse_quote!(std::rc::Rc<Config>),
+        parse_quote!(::Arc<Config>),
+        parse_quote!(my::Arc<Config>),
+        parse_quote!(Arc<Config, Global>),
+    ];
+    for ty in &not_arcs {
+        assert!(arc_inner_type(ty).is_none(), "{}", quote!(#ty));
+    }
 }

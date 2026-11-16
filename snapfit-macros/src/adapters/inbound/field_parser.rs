@@ -1,165 +1,167 @@
-use quote::quote;
+//! Adapter: reads one field and its snapfit attributes into a dependency declaration.
 
-use super::darling_models::DependencyAttrMeta;
+use super::darling_models::{DependencyAttrMeta, PrerequisiteMeta};
 use super::type_inspector::{
-    compact_type_tokens, parse_dispatch_attribute, resolve_trait_dispatch,
+    arc_inner_type, dispatched_trait, parse_dispatch_attribute, type_shape,
 };
+use crate::adapters::syntax::{FieldDeclaration, FieldSyntax, is_user_attribute};
 use crate::domain::{
-    DependencyIR, DependencyName, DomainError, Lifecycle, TraitDispatch, TypeName,
+    AttributeProblem, DependencyDeclaration, DependencyName, DomainError, DomainErrors,
+    EnumDispatch, Execution, Lifecycle, TypeName,
 };
 
 mod rules;
 #[cfg(test)]
 mod tests;
 
-use rules::{ensure_constructible, ensure_unconditional, validate_function_name};
+use rules::{attribute_error, construction_of, ensure_unconditional};
 
-pub(super) fn parse_field(field: &syn::Field) -> Result<DependencyIR, DomainError> {
-    let name = extract_field_name(field)?;
-    ensure_unconditional(field, &name)?;
-    let ty = &field.ty;
-    let type_string = TypeName::new(compact_type_tokens(quote!(#ty)))?;
-    let lifecycle_entry = extract_lifecycle_attr(&field.attrs, &name)?;
-    let dispatch_impls = extract_dispatch_attr(&field.attrs, &name)?;
+/// The declaration, or every problem the field's attributes have.
+pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, DomainErrors> {
+    let (name, ident) = field_name(field)?;
+    let unconditional = ensure_unconditional(field, &name).map_err(DomainErrors::from);
+    let lifecycle = lifecycle_attr(&field.attrs, &name).map_err(DomainErrors::from);
+    let dispatch = dispatch_attr(field, &name).map_err(DomainErrors::from);
+    let ((_, lifecycle), dispatch) =
+        DomainErrors::both(DomainErrors::both(unconditional, lifecycle), dispatch)?;
+    let (lifecycle, meta) = match (lifecycle, &dispatch) {
+        (Some(found), _) => found,
+        (None, Some(_)) => (Lifecycle::Singleton, DependencyAttrMeta::default()),
+        (None, None) => return Err(unannotated(&name).into()),
+    };
+    let construction =
+        construction_of(&name, meta.constructor, meta.builder).map_err(DomainErrors::from);
+    let prerequisites = prerequisites_of(&name, meta.deps.0).map_err(DomainErrors::from);
+    let (construction, (prerequisites, parent_prerequisites)) =
+        DomainErrors::both(construction, prerequisites)?;
 
-    if lifecycle_entry.is_none() && dispatch_impls.is_none() {
-        return Err(DomainError::invalid_dependency(
-            &name,
-            format!(
-                "field '{name}' must be annotated with #[singleton], #[transient], or #[dispatch]"
-            ),
-        ));
+    let mut dependency = DependencyDeclaration::new(name, field_syntax(field, ident));
+    dependency.lifecycle = lifecycle;
+    dependency.execution = if meta.is_async {
+        Execution::Async
+    } else {
+        Execution::Sync
+    };
+    dependency.construction = construction;
+    dependency.shape = type_shape(&field.ty);
+    dependency.prerequisites = prerequisites;
+    dependency.parent_prerequisites = parent_prerequisites;
+    dependency.dispatch = dispatch;
+    Ok(dependency)
+}
+
+fn field_name(field: &syn::Field) -> Result<(DependencyName, syn::Ident), DomainError> {
+    let ident = field.ident.clone().ok_or(DomainError::TupleStruct)?;
+    Ok((DependencyName::new(ident.to_string())?, ident))
+}
+
+fn field_syntax(field: &syn::Field, ident: syn::Ident) -> FieldSyntax {
+    FieldSyntax {
+        ident,
+        ty: field.ty.clone(),
+        arc_inner: arc_inner_type(&field.ty).unwrap_or(&field.ty).clone(),
+        vis: field.vis.clone(),
+        attrs: field
+            .attrs
+            .iter()
+            .filter(is_user_attribute)
+            .cloned()
+            .collect(),
     }
-
-    let (lifecycle, meta) =
-        lifecycle_entry.unwrap_or((Lifecycle::Singleton, DependencyAttrMeta::default()));
-    let trait_dispatch = resolve_trait_dispatch(&field.ty, dispatch_impls)
-        .map_err(|err| DomainError::invalid_dependency(&name, err.to_string()))?;
-    let dep = build_dependency_ir(name, type_string, lifecycle, meta, trait_dispatch)?;
-    ensure_constructible(&dep)?;
-    Ok(dep)
 }
 
-fn extract_field_name(field: &syn::Field) -> Result<DependencyName, DomainError> {
-    let ident = field.ident.as_ref().ok_or_else(|| {
-        DomainError::InvalidConfiguration("container fields must be named".to_string())
-    })?;
-    DependencyName::new(ident.to_string())
+fn unannotated(name: &DependencyName) -> DomainError {
+    DomainError::Unannotated {
+        dependency: name.clone(),
+    }
 }
 
-fn extract_lifecycle_attr(
+fn lifecycle_attr(
     attrs: &[syn::Attribute],
-    field_name: &DependencyName,
+    name: &DependencyName,
 ) -> Result<Option<(Lifecycle, DependencyAttrMeta)>, DomainError> {
-    let matched: Vec<_> = attrs
-        .iter()
-        .filter_map(|attr| match_lifecycle(attr).map(|lc| (lc, attr)))
-        .collect();
-
+    let matched: Vec<_> = attrs.iter().filter_map(lifecycle_attribute).collect();
     if matched.len() > 1 {
-        return Err(DomainError::invalid_dependency(
-            field_name,
-            format!("field '{field_name}' cannot declare multiple lifecycle attributes"),
-        ));
+        return Err(DomainError::MultipleLifecycles {
+            dependency: name.clone(),
+        });
     }
-
     matched
         .into_iter()
         .next()
         .map(|(lifecycle, attr)| {
             DependencyAttrMeta::from_attribute(attr)
                 .map(|meta| (lifecycle, meta))
-                .map_err(|err| {
-                    DomainError::invalid_dependency(field_name, field_message(field_name, &err))
-                })
+                .map_err(|problem| attribute_error(name, problem))
         })
         .transpose()
 }
 
-fn match_lifecycle(attr: &syn::Attribute) -> Option<Lifecycle> {
+/// `#[singleton]` or `#[transient]`, with the lifecycle it declares.
+fn lifecycle_attribute(attr: &syn::Attribute) -> Option<(Lifecycle, &syn::Attribute)> {
     if attr.path().is_ident("singleton") {
-        Some(Lifecycle::Singleton)
+        Some((Lifecycle::Singleton, attr))
     } else if attr.path().is_ident("transient") {
-        Some(Lifecycle::Transient)
+        Some((Lifecycle::Transient, attr))
     } else {
         None
     }
 }
 
-fn extract_dispatch_attr(
-    attrs: &[syn::Attribute],
-    field_name: &DependencyName,
-) -> Result<Option<Vec<String>>, DomainError> {
-    let matched: Vec<_> = attrs
+fn dispatch_attr(
+    field: &syn::Field,
+    name: &DependencyName,
+) -> Result<Option<EnumDispatch>, DomainError> {
+    let matched: Vec<_> = field
+        .attrs
         .iter()
         .filter(|attr| attr.path().is_ident("dispatch"))
         .collect();
-
     if matched.len() > 1 {
-        return Err(DomainError::invalid_dependency(
-            field_name,
-            format!("field '{field_name}' cannot declare multiple #[dispatch] attributes"),
-        ));
+        return Err(DomainError::MultipleDispatches {
+            dependency: name.clone(),
+        });
     }
-
     matched
-        .into_iter()
-        .next()
+        .first()
         .map(|attr| {
-            parse_dispatch_attribute(attr).map_err(|err| {
-                DomainError::invalid_dependency(field_name, field_message(field_name, &err))
-            })
+            enum_dispatch(attr, &field.ty).map_err(|problem| attribute_error(name, problem))
         })
         .transpose()
 }
 
-fn build_dependency_ir(
-    name: DependencyName,
-    type_string: TypeName,
-    lifecycle: Lifecycle,
-    meta: DependencyAttrMeta,
-    trait_dispatch: TraitDispatch,
-) -> Result<DependencyIR, DomainError> {
-    if lifecycle.is_transient() && meta.is_async {
-        return Err(DomainError::invalid_dependency(
-            &name,
-            format!(
-                "transient dependency '{name}' cannot be async because getters are synchronous"
-            ),
-        ));
-    }
-    if meta.constructor.is_some() && meta.builder.is_some() {
-        return Err(DomainError::invalid_dependency(
-            &name,
-            format!("dependency '{name}' cannot specify both 'constructor' and 'builder'"),
-        ));
-    }
-
-    let constructor_name = validate_function_name(&name, meta.constructor, "constructor")?
-        .unwrap_or_else(|| "new".to_string());
-    let custom_builder = validate_function_name(&name, meta.builder, "builder")?;
-    let prerequisites = meta
-        .deps
-        .0
+fn enum_dispatch(attr: &syn::Attribute, ty: &syn::Type) -> Result<EnumDispatch, AttributeProblem> {
+    let implementations = parse_dispatch_attribute(attr)?
         .into_iter()
-        .map(DependencyName::new)
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|err| DomainError::invalid_dependency(&name, field_message(&name, &err)))?;
-
-    let mut dep = DependencyIR::new(name, type_string);
-    dep.prerequisites = prerequisites;
-    dep.lifecycle = lifecycle;
-    dep.is_async = meta.is_async;
-    dep.constructor_name = constructor_name;
-    dep.custom_builder = custom_builder;
-    dep.trait_dispatch = trait_dispatch;
-    Ok(dep)
+        .map(type_name)
+        .collect::<Result<_, _>>()?;
+    let trait_name = type_name(dispatched_trait(ty)?)?;
+    Ok(EnumDispatch::new(trait_name, implementations))
 }
 
-fn field_message(field_name: &DependencyName, err: &DomainError) -> String {
-    let detail = err.to_string();
-    let detail = detail
-        .strip_prefix("invalid configuration: ")
-        .unwrap_or(&detail);
-    format!("field '{field_name}': {detail}")
+fn type_name(text: String) -> Result<TypeName, AttributeProblem> {
+    TypeName::new(text).map_err(|_| AttributeProblem::BlankName)
+}
+
+/// Siblings and `parent(...)` entries of `deps`, each in the order written.
+fn prerequisites_of(
+    name: &DependencyName,
+    entries: Vec<PrerequisiteMeta>,
+) -> Result<(Vec<DependencyName>, Vec<DependencyName>), DomainError> {
+    let (siblings, parents): (Vec<_>, Vec<_>) =
+        entries.into_iter().partition(PrerequisiteMeta::is_sibling);
+    let siblings = dependency_names(siblings).map_err(|problem| attribute_error(name, problem))?;
+    let parents = dependency_names(parents).map_err(|problem| attribute_error(name, problem))?;
+    Ok((siblings, parents))
+}
+
+fn dependency_names(
+    entries: Vec<PrerequisiteMeta>,
+) -> Result<Vec<DependencyName>, AttributeProblem> {
+    entries
+        .into_iter()
+        .map(PrerequisiteMeta::into_name)
+        .map(DependencyName::new)
+        .collect::<Result<_, _>>()
+        .map_err(|_| AttributeProblem::BlankName)
 }

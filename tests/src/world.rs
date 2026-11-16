@@ -5,7 +5,7 @@ use crate::codegen_containers::{
     DerivedAfterContainer, DerivedBeforeContainer, DerivedContainer, TypedFieldsContainer,
 };
 use crate::compile_harness::{CompileOutcome, compile_fixture};
-use crate::containers::{AppContainer, multi_db};
+use crate::containers::{AppContainer, multi_db, ordered};
 #[cfg(feature = "unstable")]
 use crate::unstable_world::UnstableContainers;
 
@@ -37,6 +37,7 @@ pub struct ContainerWorld {
     unit_struct_named_field: Option<UnitStructNamedFieldContainer>,
     selected_fixture: Option<String>,
     compile_outcome: Option<CompileOutcome>,
+    construction_order: Vec<&'static str>,
     #[cfg(feature = "unstable")]
     unstable: UnstableContainers,
 }
@@ -121,6 +122,17 @@ impl ContainerWorld {
         self.unit_struct_named_field
             .as_ref()
             .expect("UnitStructNamedFieldContainer must be instantiated before Then assertions")
+    }
+
+    /// Builds the ordered container and keeps the order its values were built in.
+    pub fn instantiate_ordered(&mut self) {
+        ordered::take_built();
+        let _container = <ordered::OrderedContainer as snapfit::Container>::new();
+        self.construction_order = ordered::take_built();
+    }
+
+    pub fn construction_order(&self) -> &[&'static str] {
+        &self.construction_order
     }
 
     pub fn select_invalid_fixture(&mut self, fixture_name: String) {

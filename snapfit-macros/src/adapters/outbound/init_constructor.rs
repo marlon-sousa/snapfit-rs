@@ -1,24 +1,25 @@
+//! Adapter: the container's `new()` and its impls, or its async `init()`.
+
 use proc_macro2::TokenStream;
 use quote::quote;
 
-use super::expr::{ExprBuilder, ValueSource, local_ident};
-use crate::domain::{ConstructionPlan, InstantiationStep};
-use crate::ports::ContainerSyntax;
+use super::expr::{ValueSource, construct, local_ident};
+use crate::adapters::syntax::{FieldSyntax, Plan};
+use crate::domain::{Execution, Step};
 
 #[cfg(test)]
 mod tests;
 
-pub(super) fn emit_init_impl(plan: &ConstructionPlan, syntax: &ContainerSyntax) -> TokenStream {
-    if plan.is_async {
-        emit_async_init_impl(plan, syntax)
-    } else {
-        emit_sync_new_impl(plan, syntax)
+pub(super) fn emit_init_impl(plan: &Plan) -> TokenStream {
+    match plan.execution {
+        Execution::Sync => emit_sync_new_impl(plan),
+        Execution::Async => emit_async_init_impl(plan),
     }
 }
 
-fn emit_sync_new_impl(plan: &ConstructionPlan, syntax: &ContainerSyntax) -> TokenStream {
-    let container_ident = &syntax.ident;
-    let body = emit_construction_body(plan, syntax);
+fn emit_sync_new_impl(plan: &Plan) -> TokenStream {
+    let container_ident = &plan.syntax.ident;
+    let body = emit_construction_body(plan);
 
     quote! {
         impl #container_ident {
@@ -41,9 +42,9 @@ fn emit_sync_new_impl(plan: &ConstructionPlan, syntax: &ContainerSyntax) -> Toke
     }
 }
 
-fn emit_async_init_impl(plan: &ConstructionPlan, syntax: &ContainerSyntax) -> TokenStream {
-    let container_ident = &syntax.ident;
-    let body = emit_construction_body(plan, syntax);
+fn emit_async_init_impl(plan: &Plan) -> TokenStream {
+    let container_ident = &plan.syntax.ident;
+    let body = emit_construction_body(plan);
 
     quote! {
         impl #container_ident {
@@ -57,29 +58,10 @@ fn emit_async_init_impl(plan: &ConstructionPlan, syntax: &ContainerSyntax) -> To
     }
 }
 
-/// Binds every singleton in dependency order, then assembles `Self`.
-fn emit_construction_body(plan: &ConstructionPlan, syntax: &ContainerSyntax) -> TokenStream {
-    let builder = ExprBuilder::new(plan, syntax, ValueSource::Locals);
-    let singletons: Vec<&InstantiationStep> = plan
-        .ordered_steps
-        .iter()
-        .filter(|step| step.lifecycle.is_singleton())
-        .collect();
-    let bindings = singletons.iter().map(|step| {
-        let field = syntax
-            .field(step.dep_name.as_str())
-            .expect("every planned dependency comes from a named container field");
-        let (local, ty) = (local_ident(&field.ident), &field.ty);
-        let value = builder.construct(step);
-        quote!(let #local: #ty = #value;)
-    });
-    let field_inits = singletons
-        .iter()
-        .filter_map(|step| syntax.field(step.dep_name.as_str()))
-        .map(|field| {
-            let (ident, local) = (&field.ident, local_ident(&field.ident));
-            quote!(#ident: #local)
-        });
+/// Binds every singleton in construction order, then assembles `Self`.
+fn emit_construction_body(plan: &Plan) -> TokenStream {
+    let bindings = plan.singletons().map(binding);
+    let field_inits = plan.singletons().map(field_init);
 
     quote! {
         #(#bindings)*
@@ -87,4 +69,19 @@ fn emit_construction_body(plan: &ConstructionPlan, syntax: &ContainerSyntax) -> 
             #(#field_inits,)*
         }
     }
+}
+
+/// `let __snapfit_db: Arc<Database> = ...;`
+fn binding(step: &Step<FieldSyntax>) -> TokenStream {
+    let local = local_ident(&step.syntax.ident);
+    let ty = &step.syntax.ty;
+    let value = construct(step, ValueSource::Locals);
+    quote!(let #local: #ty = #value;)
+}
+
+/// `db: __snapfit_db`
+fn field_init(step: &Step<FieldSyntax>) -> TokenStream {
+    let ident = &step.syntax.ident;
+    let local = local_ident(ident);
+    quote!(#ident: #local)
 }

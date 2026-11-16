@@ -23,7 +23,7 @@ This document describes the full design. Only part of it ships as a stable API i
 | `#[dispatch(...)]` static trait dispatch | Planned | §7 |
 | Test overrides (`builder().with_*()` / `fork_with()`) | Planned | §9 |
 | Child containers (`parent = ...`, `parent(dep)`) | Planned | §10 |
-| Introspection (`introspection = true`, `dependency_graph()`) | Planned | TECHNICAL_SPEC §8 |
+| Introspection (`introspection = true`, `dependency_graph()`) | Planned | §12 |
 | `#[external]` inputs and `before_init` computed fields | Planned | §2 |
 
 Enable the unstable APIs with:
@@ -239,21 +239,25 @@ When a dependency requires custom construction (such as unpacking config fields,
 
 ---
 
-## 6. Compile-Time DAG & Cycle Detection
+## 6. Compile-Time Graph Checks & Diagnostics
 
-Because all dependencies and their prerequisites are declared within the struct AST, the procedural macro performs graph analysis at compile time:
+Because all dependencies and their prerequisites are declared within the struct, the procedural macro checks the whole graph at compile time:
 
-1. **Graph Construction:** Builds a Directed Acyclic Graph (DAG) using field names as nodes and `deps = [...]` prerequisites as directed edges.
-2. **Topological Sort:** Sorts the graph at macro expansion time (`petgraph`'s depth-first topological sort) to compute the exact instantiation sequence. Declaration order does not matter.
-3. **Cycle Rejection:** If a dependency cycle is detected (e.g. `service_a -> service_b -> service_a`), the macro finds the strongly connected component, names one concrete cycle through it, and emits a compile error on the first field of that cycle:
+1. **Construction order:** Each field's `deps = [...]` names the fields it needs. The macro visits the fields in the order they are declared and builds each one after the fields it needs, so the construction order follows the declaration wherever the graph allows it. Declaring a field before the fields it needs is allowed.
+2. **Unknown dependencies:** A `deps` entry that names no field of the container is refused, naming every unknown entry of that field and every field the container can wire.
+3. **Cycles:** A field that needs itself, directly or through other fields, is refused. The message reads as a sentence, without arrows, so that a screen reader speaks it naturally, and it points at the first field of the cycle in declaration order:
 
 ```text
-error: dependency cycle detected: service_a -> service_b -> service_a
+error: dependency cycle: service_a depends on service_b, which depends on service_a
   --> src/main.rs:12:5
    |
 12 |     #[singleton(deps = [service_b])]
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ```
+
+A field that needs only itself reads `dependency cycle: service_a depends on itself`.
+
+4. **Every problem at once:** The macro reports every problem it finds in one compile, each as its own error pointing at the field it is about (its snapfit attribute, or its name when it has none), or at the container's name when no field is at fault. Problems found while reading the fields, such as a missing `#[singleton]` or a quoted function name, are reported together; once every field reads, the unknown dependencies, cycles, refused features and other rules of the declaration are reported together. The struct is kept as written, without snapfit's attributes, so that the compiler adds no follow-on errors about a missing type.
 
 ---
 
@@ -312,7 +316,7 @@ pub struct AppContainer {
 For applications where databases, message brokers, and clients require asynchronous setup, `snapfit` provides dedicated async support.
 
 ### Philosophy: Eager Async Boot, Synchronous Getters
-* **`AppContainer::init().await`** handles all async setup topologically at boot.
+* **`AppContainer::init().await`** handles all async setup at boot, each dependency after the ones it needs.
 * **Independent async dependencies initialize concurrently** using `tokio::join!`.
 * **Runtime getters (`container.get_db()`) remain synchronous, non-blocking, and instant** for web request handlers.
 
@@ -425,28 +429,48 @@ async fn handle_request(
 
 ---
 
-## 11. Crate Layout & Architecture Blueprint
+## 11. Crate Layout
 
-```text
-snapfit-rs/
-├── Cargo.toml
-├── snapfit/                 # Core runtime crate (Container trait, macro re-exports)
-│   ├── Cargo.toml
-│   └── src/
-│       ├── lib.rs           # Core exports: Container trait, #[container], derive
-│       └── container.rs     # Container trait (AsyncContainer, introspection and errors: see §0)
-├── snapfit-macros/          # Procedural macros (Hexagonal Ports & Adapters)
-│   ├── Cargo.toml
-│   └── src/
-│       ├── lib.rs           # Macro entry points (#[container])
-│       ├── domain/          # Pure Domain IR, errors, and construction plan (No syn/quote)
-│       ├── ports/           # ParserPort and EmitterPort trait boundaries
-│       ├── use_cases/       # GraphEngine (topological sort, cycle search), planner, feature gate
-│       └── adapters/
-│           ├── inbound/     # syn/darling AST parser
-│           └── outbound/    # quote token emitter
-├── xtask/                   # Developer automation and CI gatekeeper
-└── tests/                   # BDD integration test suite (cucumber-rs)
-    └── features/
-        └── container_resolution.feature
+How the crates and the macro's code are organised, and the rules the code follows, are in [ARCHITECTURE.md](ARCHITECTURE.md).
+
+---
+
+## 12. Container Introspection (planned)
+
+> Not implemented in 0.1.0: `introspection = true` is a compile error and the descriptor types were removed from the runtime crate (see [§0](#0-what-ships-in-010)).
+
+Users can request a description of the container's graph in the container settings:
+
+```rust
+#[container(introspection = true)]
+pub struct AppContainer {
+    #[singleton]
+    config: Arc<Config>,
+    #[singleton(deps = [config])]
+    db: Arc<Database>,
+    #[transient(deps = [config, db])]
+    controller: UserController,
+}
+```
+
+When `introspection = true`, the code generator emits:
+
+```rust
+impl AppContainer {
+    /// Returns the complete compile-time graph descriptor
+    pub fn dependency_graph() -> snapfit::introspection::GraphDescriptor {
+        snapfit::introspection::GraphDescriptor {
+            nodes: vec![
+                snapfit::introspection::NodeDescriptor { name: "config".into(), lifecycle: "singleton".into() },
+                snapfit::introspection::NodeDescriptor { name: "db".into(), lifecycle: "singleton".into() },
+                snapfit::introspection::NodeDescriptor { name: "controller".into(), lifecycle: "transient".into() },
+            ],
+            edges: vec![
+                snapfit::introspection::EdgeDescriptor { from: "db".into(), to: "config".into() },
+                snapfit::introspection::EdgeDescriptor { from: "controller".into(), to: "config".into() },
+                snapfit::introspection::EdgeDescriptor { from: "controller".into(), to: "db".into() },
+            ],
+        }
+    }
+}
 ```

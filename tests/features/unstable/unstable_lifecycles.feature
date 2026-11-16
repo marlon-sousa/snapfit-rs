@@ -37,10 +37,11 @@ Feature: Unstable lifecycles behind the `unstable` feature
     Given an invalid container fixture "<fixture>"
     When the fixture is compiled
     Then compilation should fail with "<expected_error> is planned for a future version of snapfit and is not implemented yet"
+    And the error should point at line <line> of the fixture
 
     Examples:
-      | fixture                  | expected_error                          |
-      | planned_parent_container | #[container(parent = ...)]              |
-      | planned_introspection    | #[container(introspection = true)]      |
-      | planned_dispatch         | #[dispatch(...)] on dependency 'store'  |
-      | generic_container        | generic parameters on container 'Repo'  |
+      | fixture                  | line | expected_error                          |
+      | planned_parent_container | 7    | #[container(parent = ...)]              |
+      | planned_introspection    | 7    | #[container(introspection = true)]      |
+      | planned_dispatch         | 10   | #[dispatch(...)] on dependency 'store'  |
+      | generic_container        | 4    | generic parameters on container 'Repo'  |

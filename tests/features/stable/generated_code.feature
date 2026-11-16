@@ -48,6 +48,7 @@ Feature: Generated code follows the container as written
       | trait_object_without_builder | 8    | field 'store' has a trait-object type, which has no constructor; build it with a builder such as builder = build_store (unstable feature) |
       | invalid_constructor_name     | 12   | constructor 'connect()' on field 'db' must be a function name, such as constructor = connect                                              |
       | quoted_constructor_name      | 8    | constructor "connect" on field 'db' must be written without quotes: constructor = connect                                                 |
+      | trait_object_named_cache     | 8    | field 'cache' has a trait-object type, which has no constructor; build it with a builder such as builder = build_cache (unstable feature) |
 
   @v0_1_0 @regression
   Scenario Outline: Graph errors point at the declaration that caused them

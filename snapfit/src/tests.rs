@@ -48,7 +48,7 @@ pub struct ReverseOrderContainer {
 }
 
 #[derive(Container)]
-pub struct DerivedAppContainer {
+pub(crate) struct DerivedAppContainer {
     #[singleton]
     config: Arc<Config>,
 

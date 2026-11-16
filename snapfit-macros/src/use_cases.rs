@@ -1,9 +1,11 @@
-pub(crate) mod derive_container;
-pub(crate) mod feature_gate;
-pub(crate) mod graph_engine;
-pub(crate) mod planner;
+//! Service: the domain's decisions about a declared container, and the service
+//! that runs them.
 
-pub(crate) use derive_container::DeriveContainerUseCase;
+mod declaration_rules;
+mod derive_container;
+mod execution;
+mod feature_gate;
+mod resolver;
+
+pub(crate) use derive_container::plan_container;
 pub(crate) use feature_gate::FeatureGate;
-pub(crate) use graph_engine::GraphEngine;
-pub(crate) use planner::ExecutionPlanner;

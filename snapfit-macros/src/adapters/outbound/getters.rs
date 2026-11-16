@@ -1,21 +1,19 @@
+//! Adapter: one getter per dependency, which clones a singleton or builds a transient.
+
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::ext::IdentExt;
 
-use super::expr::{ExprBuilder, ValueSource};
-use crate::domain::{ConstructionPlan, InstantiationStep};
-use crate::ports::ContainerSyntax;
+use super::expr::{ValueSource, construct};
+use crate::adapters::syntax::{FieldSyntax, Plan};
+use crate::domain::Step;
 
 #[cfg(test)]
 mod tests;
 
-pub(super) fn emit_getters_impl(plan: &ConstructionPlan, syntax: &ContainerSyntax) -> TokenStream {
-    let container_ident = &syntax.ident;
-    let builder = ExprBuilder::new(plan, syntax, ValueSource::SelfFields);
-    let getters = plan
-        .ordered_steps
-        .iter()
-        .map(|step| emit_getter(syntax, &builder, step));
+pub(super) fn emit_getters_impl(plan: &Plan) -> TokenStream {
+    let container_ident = &plan.syntax.ident;
+    let getters = plan.declaration_order.iter().map(|step| emit_getter(step));
 
     quote! {
         impl #container_ident {
@@ -24,21 +22,13 @@ pub(super) fn emit_getters_impl(plan: &ConstructionPlan, syntax: &ContainerSynta
     }
 }
 
-fn emit_getter(
-    syntax: &ContainerSyntax,
-    builder: &ExprBuilder<'_>,
-    step: &InstantiationStep,
-) -> TokenStream {
-    let field = syntax
-        .field(step.dep_name.as_str())
-        .expect("every planned dependency comes from a named container field");
-    let getter = format_ident!("get_{}", field.ident.unraw());
-    let ty = &field.ty;
-    let ident = &field.ident;
+fn emit_getter(step: &Step<FieldSyntax>) -> TokenStream {
+    let FieldSyntax { ident, ty, .. } = &step.syntax;
+    let getter = format_ident!("get_{}", ident.unraw());
     let body = if step.lifecycle.is_singleton() {
         quote!(self.#ident.clone())
     } else {
-        builder.construct(step)
+        construct(step, ValueSource::SelfFields)
     };
 
     quote! {

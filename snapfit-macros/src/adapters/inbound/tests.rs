@@ -2,11 +2,13 @@ use quote::quote;
 use syn::parse_quote;
 
 use super::*;
-use crate::domain::{DependencyName, Lifecycle, TraitDispatch};
-use crate::ports::ContainerParserPort;
+use crate::domain::{
+    Construction, Constructor, EnumDispatch, Execution, FunctionName, Lifecycle, TypeShape,
+};
+use crate::test_support::names;
 
 #[test]
-fn test_syn_parser_adapter_parses_full_container_struct() {
+fn every_setting_and_field_is_read_into_the_declaration() {
     let input: syn::ItemStruct = parse_quote! {
         #[container(mode = "async", parent = RootContainer, introspection = true)]
         pub struct AppContainer {
@@ -16,7 +18,7 @@ fn test_syn_parser_adapter_parses_full_container_struct() {
             #[singleton(deps = [config], async, constructor = connect)]
             db: Arc<Database>,
 
-            #[singleton(deps = [config, db], builder = build_auth)]
+            #[singleton(deps = [config, db, parent(audit)], builder = build_auth)]
             auth: Arc<AuthService>,
 
             #[transient(deps = [db])]
@@ -27,111 +29,118 @@ fn test_syn_parser_adapter_parses_full_container_struct() {
         }
     };
 
-    let parser = SynParserAdapter::new();
-    let ir = parser.parse_container(&input).unwrap();
+    let container = parse_attribute(quote!(), &input).unwrap();
 
-    assert_eq!(ir.name.as_str(), "AppContainer");
-    assert!(ir.is_async);
+    assert_eq!(container.name.as_str(), "AppContainer");
+    assert_eq!(container.form, MacroForm::Attribute);
+    assert_eq!(container.mode, Some(Execution::Async));
     assert_eq!(
-        ir.parent_type.as_ref().map(|t| t.as_str()),
-        Some("RootContainer")
+        container.parent,
+        Some(TypeName::new("RootContainer").unwrap())
     );
-    assert!(ir.introspection);
-    assert_eq!(ir.dependencies.len(), 5);
+    assert_eq!(container.introspection, Introspection::On);
+    assert!(container.syntax.attrs.is_empty());
 
-    assert_eq!(ir.dependencies[0].name.as_str(), "config");
-    assert_eq!(ir.dependencies[0].lifecycle, Lifecycle::Singleton);
+    let [config, db, auth, controller, store] = container.dependencies.as_slice() else {
+        panic!("five dependencies");
+    };
+    assert_eq!(config.shape, TypeShape::Arc);
+    assert_eq!(config.construction, Construction::default());
 
-    assert_eq!(ir.dependencies[1].name.as_str(), "db");
-    assert!(ir.dependencies[1].is_async);
-    assert_eq!(ir.dependencies[1].constructor_name, "connect");
+    assert_eq!(db.execution, Execution::Async);
     assert_eq!(
-        ir.dependencies[1].prerequisites,
-        vec![DependencyName::new("config").unwrap()]
+        db.construction,
+        Construction::Constructor(Constructor::Named(FunctionName::new("connect").unwrap()))
     );
+    assert_eq!(db.prerequisites, names(&["config"]));
 
-    assert_eq!(ir.dependencies[2].name.as_str(), "auth");
     assert_eq!(
-        ir.dependencies[2].custom_builder.as_deref(),
-        Some("build_auth")
+        auth.construction,
+        Construction::Builder(FunctionName::new("build_auth").unwrap())
     );
+    assert_eq!(auth.prerequisites, names(&["config", "db"]));
+    assert_eq!(auth.parent_prerequisites, names(&["audit"]));
 
-    assert_eq!(ir.dependencies[3].name.as_str(), "controller");
-    assert_eq!(ir.dependencies[3].lifecycle, Lifecycle::Transient);
+    assert_eq!(controller.lifecycle, Lifecycle::Transient);
+    assert_eq!(controller.shape, TypeShape::Value);
 
+    assert_eq!(store.shape, TypeShape::TraitObject);
     assert_eq!(
-        ir.dependencies[4].trait_dispatch,
-        TraitDispatch::Enum {
-            trait_name: "DataStore".to_string(),
-            impls: vec!["PostgresDb".to_string(), "MockDb".to_string()],
-        }
+        store.dispatch,
+        Some(EnumDispatch::new(
+            TypeName::new("DataStore").unwrap(),
+            vec![
+                TypeName::new("PostgresDb").unwrap(),
+                TypeName::new("MockDb").unwrap()
+            ],
+        ))
     );
 }
 
 #[test]
-fn test_syn_parser_adapter_infers_async_and_supports_parse_with_args() {
+fn the_attribute_s_arguments_are_its_settings() {
     let input: syn::ItemStruct = parse_quote! {
-        pub struct AsyncInferredContainer {
-            #[singleton(async, constructor = load)]
-            config: Arc<Config>,
-        }
-    };
-
-    let parser = SynParserAdapter::new();
-    let ir = parser
-        .parse_with_args(quote!(introspection = true), &input)
-        .unwrap();
-
-    assert!(ir.is_async);
-    assert!(ir.introspection);
-}
-
-#[test]
-fn test_syn_parser_adapter_parses_derive_input() {
-    let input: syn::DeriveInput = parse_quote! {
-        #[container]
-        pub struct SimpleApp {
-            #[singleton(deps = [config], constructor = connect)]
-            db: Arc<Database>,
-        }
-    };
-
-    let ir = SynParserAdapter::new().parse_derive_input(&input).unwrap();
-    assert_eq!(ir.name.as_str(), "SimpleApp");
-    assert_eq!(ir.dependencies[0].name.as_str(), "db");
-    assert_eq!(ir.dependencies[0].constructor_name, "connect");
-}
-
-#[test]
-fn test_syn_parser_adapter_rejects_invalid_container_configurations() {
-    let parser = SynParserAdapter::new();
-
-    let invalid_mode: syn::ItemStruct = parse_quote! {
-        #[container(mode = "threaded")]
-        pub struct BadMode {
+        pub struct AppContainer {
             #[singleton]
             config: Arc<Config>,
         }
     };
-    assert!(parser.parse_container(&invalid_mode).is_err());
 
-    let sync_with_async_dep: syn::ItemStruct = parse_quote! {
-        #[container(mode = "sync")]
-        pub struct ConflictMode {
-            #[singleton(async)]
-            config: Arc<Config>,
+    let container = parse_attribute(quote!(mode = "sync"), &input).unwrap();
+
+    assert_eq!(container.mode, Some(Execution::Sync));
+}
+
+#[test]
+fn the_derive_keeps_its_form_and_reads_its_helper_attribute() {
+    let input: syn::DeriveInput = parse_quote! {
+        #[container(introspection = true)]
+        pub struct SimpleApp {
+            #[singleton(constructor = connect)]
+            db: Arc<Database>,
         }
     };
-    assert!(parser.parse_container(&sync_with_async_dep).is_err());
 
-    let tuple_struct: syn::ItemStruct = parse_quote! {
-        #[container]
-        pub struct TupleContainer(Arc<Config>);
-    };
-    assert!(parser.parse_container(&tuple_struct).is_err());
+    let container = parse_derive(&input).unwrap();
 
-    let enum_derive: syn::DeriveInput = parse_quote! {
-        pub enum NotAStruct { A }
-    };
-    assert!(parser.parse_derive_input(&enum_derive).is_err());
+    assert_eq!(container.form, MacroForm::Derive);
+    assert_eq!(container.introspection, Introspection::On);
+    assert_eq!(container.dependencies.len(), 1);
 }
+
+#[test]
+fn a_field_keeps_its_own_syntax_without_snapfit_attributes() {
+    let input: syn::ItemStruct = parse_quote! {
+        struct App {
+            /// The configuration.
+            #[singleton]
+            pub(crate) config: std::sync::Arc<Config>,
+        }
+    };
+
+    let container = parse_attribute(quote!(), &input).unwrap();
+
+    let syntax = &container.dependencies[0].syntax;
+    assert_eq!(syntax.ident, "config");
+    assert_eq!(syntax.attrs.len(), 1);
+    let (ty, inner, vis) = (&syntax.ty, &syntax.arc_inner, &syntax.vis);
+    assert_eq!(quote!(#ty).to_string(), "std :: sync :: Arc < Config >");
+    assert_eq!(quote!(#inner).to_string(), "Config");
+    assert_eq!(quote!(#vis).to_string(), "pub (crate)");
+}
+
+#[test]
+fn type_parameters_are_reported_for_the_domain_to_judge() {
+    let input: syn::ItemStruct = parse_quote! {
+        struct Repo<T> {
+            #[singleton]
+            store: T,
+        }
+    };
+
+    let container = parse_attribute(quote!(), &input).unwrap();
+
+    assert_eq!(container.type_parameters, TypeParameters::Declared);
+}
+
+mod errors;

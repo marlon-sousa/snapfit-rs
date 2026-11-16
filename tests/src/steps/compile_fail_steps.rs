@@ -40,3 +40,15 @@ fn then_error_points_at_line(world: &mut ContainerWorld, line: u32) {
         outcome.stderr
     );
 }
+
+#[then(expr = "the compiler should report {int} errors")]
+fn then_compiler_reports_errors(world: &mut ContainerWorld, count: u32) {
+    let outcome = world.compile_outcome();
+    let summary = format!("aborting due to {count} previous errors");
+    assert!(
+        outcome.stderr.contains(&summary),
+        "Expected the compiler to report {count} errors for fixture '{}'. Actual stderr:\n{}",
+        outcome.fixture_name,
+        outcome.stderr
+    );
+}

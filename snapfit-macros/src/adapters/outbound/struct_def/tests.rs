@@ -1,11 +1,12 @@
 use syn::parse_quote;
 
 use super::*;
-use crate::adapters::outbound::test_support::{compact, plan_for};
+use crate::adapters::outbound::test_support::plan_for;
+use crate::test_support::compact;
 
 #[test]
-fn test_struct_keeps_user_attributes_visibility_and_field_order() {
-    let (plan, syntax) = plan_for(parse_quote! {
+fn the_struct_keeps_the_users_attributes_visibility_and_field_order() {
+    let plan = plan_for(parse_quote! {
         /// The shop.
         #[derive(Clone, Debug)]
         pub(crate) struct Shop {
@@ -21,7 +22,7 @@ fn test_struct_keeps_user_attributes_visibility_and_field_order() {
         }
     });
 
-    let code = compact(emit_struct_definition(&plan, &syntax));
+    let code = compact(emit_struct_definition(&plan));
 
     assert_eq!(
         code,
@@ -30,8 +31,8 @@ fn test_struct_keeps_user_attributes_visibility_and_field_order() {
 }
 
 #[test]
-fn test_private_struct_stays_private() {
-    let (plan, syntax) = plan_for(parse_quote! {
+fn a_private_struct_stays_private() {
+    let plan = plan_for(parse_quote! {
         struct Hidden {
             #[singleton]
             config: Arc<Config>,
@@ -39,7 +40,7 @@ fn test_private_struct_stays_private() {
     });
 
     assert_eq!(
-        compact(emit_struct_definition(&plan, &syntax)),
+        compact(emit_struct_definition(&plan)),
         "structHidden{#[allow(dead_code)]config:Arc<Config>,}"
     );
 }

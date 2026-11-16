@@ -1,115 +1,102 @@
 use super::*;
-use crate::domain::{ContainerName, DependencyName, Lifecycle, TraitDispatch, TypeName};
+use crate::domain::{Constructor, EnumDispatch, FunctionName, Introspection, Lifecycle, TypeName};
+use crate::test_support::{container, dependency};
 
-fn container_with(deps: Vec<DependencyIR>) -> ContainerIR {
-    let mut container = ContainerIR::new(ContainerName::new("App").unwrap());
-    container.dependencies = deps;
-    container
+fn features(errors: &[DomainError]) -> Vec<String> {
+    errors.iter().map(ToString::to_string).collect()
 }
 
-fn dep(name: &str) -> DependencyIR {
-    DependencyIR::new(
-        DependencyName::new(name).unwrap(),
-        TypeName::new("Arc<Service>").unwrap(),
+fn unstable(feature: &str) -> String {
+    format!(
+        "{feature} is unstable in this version of snapfit; enable the `unstable` feature of the `snapfit` crate to use it"
     )
 }
 
-fn stable() -> FeatureGate {
-    FeatureGate::new(false)
-}
-
-fn unstable() -> FeatureGate {
-    FeatureGate::new(true)
-}
-
-fn requires_unstable(gate: FeatureGate, container: &ContainerIR) -> String {
-    match gate.check(container) {
-        Err(DomainError::RequiresUnstable { feature, .. }) => feature,
-        other => panic!("expected RequiresUnstable, got {other:?}"),
-    }
-}
-
-fn not_yet_implemented(gate: FeatureGate, container: &ContainerIR) -> String {
-    match gate.check(container) {
-        Err(DomainError::NotYetImplemented { feature, .. }) => feature,
-        other => panic!("expected NotYetImplemented, got {other:?}"),
-    }
+fn planned(feature: &str) -> String {
+    format!("{feature} is planned for a future version of snapfit and is not implemented yet")
 }
 
 #[test]
-fn test_stable_singletons_pass_both_gates() {
-    let mut db = dep("db");
+fn stable_singletons_pass_both_gates() {
+    let mut db = dependency("db", &[]);
     db.prerequisites = vec![DependencyName::new("config").unwrap()];
-    db.constructor_name = "connect".to_string();
-    let container = container_with(vec![dep("config"), db]);
+    db.construction =
+        Construction::Constructor(Constructor::Named(FunctionName::new("connect").unwrap()));
+    let container = container(vec![dependency("config", &[]), db]);
 
-    assert_eq!(stable().check(&container), Ok(()));
-    assert_eq!(unstable().check(&container), Ok(()));
+    assert!(FeatureGate::Stable.refusals(&container).is_empty());
+    assert!(FeatureGate::Unstable.refusals(&container).is_empty());
 }
 
 #[test]
-fn test_async_transient_and_builder_require_unstable() {
-    let mut async_dep = dep("db");
-    async_dep.is_async = true;
-    let mut transient = dep("cart");
-    transient.lifecycle = Lifecycle::Transient;
-    let mut built = dep("auth");
-    built.custom_builder = Some("build_auth".to_string());
+fn a_stable_build_reports_every_unstable_feature_in_declaration_order() {
+    let mut db = dependency("db", &[]);
+    db.execution = Execution::Async;
+    let mut cart = dependency("cart", &[]);
+    cart.lifecycle = Lifecycle::Transient;
+    cart.construction = Construction::Builder(FunctionName::new("build_cart").unwrap());
+    let mut async_mode = container(vec![db, cart]);
+    async_mode.mode = Some(Execution::Async);
 
-    let mut async_mode = container_with(vec![dep("config")]);
-    async_mode.is_async = true;
-
-    let cases = [
-        (container_with(vec![async_dep]), "async dependency 'db'"),
-        (
-            container_with(vec![transient]),
-            "transient dependency 'cart'",
-        ),
-        (
-            container_with(vec![built]),
-            "custom builder 'build_auth' on dependency 'auth'",
-        ),
-        (async_mode, "#[container(mode = \"async\")]"),
-    ];
-
-    cases.into_iter().for_each(|(container, expected)| {
-        assert_eq!(requires_unstable(stable(), &container), expected);
-        assert_eq!(unstable().check(&container), Ok(()));
-    });
+    assert_eq!(
+        features(&FeatureGate::Stable.refusals(&async_mode)),
+        [
+            unstable("#[container(mode = \"async\")]"),
+            unstable("async dependency 'db'"),
+            unstable("transient dependency 'cart'"),
+            unstable("custom builder 'build_cart' on dependency 'cart'"),
+        ]
+    );
+    assert!(FeatureGate::Unstable.refusals(&async_mode).is_empty());
 }
 
 #[test]
-fn test_planned_features_are_rejected_even_with_unstable() {
-    let mut with_parent = container_with(vec![dep("config")]);
-    with_parent.parent_type = Some(TypeName::new("RootContainer").unwrap());
+fn every_build_reports_every_planned_feature() {
+    let mut store = dependency("store", &[]);
+    let store_trait = TypeName::new("Store").unwrap();
+    store.dispatch = Some(EnumDispatch::new(store_trait.clone(), vec![store_trait]));
+    let mut audit = dependency("audit", &[]);
+    audit.parent_prerequisites = vec![DependencyName::new("db").unwrap()];
+    let mut planned_container = container(vec![store, audit]);
+    planned_container.parent = Some(TypeName::new("Root").unwrap());
+    planned_container.introspection = Introspection::On;
 
-    let mut with_introspection = container_with(vec![dep("config")]);
-    with_introspection.introspection = true;
-
-    let mut dispatched = dep("store");
-    dispatched.trait_dispatch = TraitDispatch::Enum {
-        trait_name: "Store".to_string(),
-        impls: vec!["Postgres".to_string()],
-    };
-
-    let mut parent_prereq = dep("audit");
-    parent_prereq.prerequisites = vec![DependencyName::new("parent(db)").unwrap()];
-
-    let cases = [
-        (with_parent, "#[container(parent = ...)]"),
-        (with_introspection, "#[container(introspection = true)]"),
-        (
-            container_with(vec![dispatched]),
-            "#[dispatch(...)] on dependency 'store'",
-        ),
-        (
-            container_with(vec![parent_prereq]),
-            "parent dependency 'parent(db)' on dependency 'audit'",
-        ),
+    let expected = [
+        planned("#[container(parent = ...)]"),
+        planned("#[container(introspection = true)]"),
+        planned("#[dispatch(...)] on dependency 'store'"),
+        planned("parent dependency 'parent(db)' on dependency 'audit'"),
     ];
+    assert_eq!(
+        features(&FeatureGate::Stable.refusals(&planned_container)),
+        expected
+    );
+    assert_eq!(
+        features(&FeatureGate::Unstable.refusals(&planned_container)),
+        expected
+    );
+}
 
-    cases.into_iter().for_each(|(container, expected)| {
-        assert_eq!(not_yet_implemented(stable(), &container), expected);
-        assert_eq!(not_yet_implemented(unstable(), &container), expected);
-    });
+#[test]
+fn a_refusal_points_at_the_field_that_uses_the_feature() {
+    let mut cart = dependency("cart", &[]);
+    cart.lifecycle = Lifecycle::Transient;
+
+    let refusals = FeatureGate::Stable.refusals(&container(vec![cart]));
+
+    assert_eq!(
+        refusals[0].subject(),
+        Some(&DependencyName::new("cart").unwrap())
+    );
+}
+
+#[test]
+fn a_generic_container_is_planned_and_named() {
+    let mut generic = container(vec![dependency("store", &[])]);
+    generic.type_parameters = crate::domain::TypeParameters::Declared;
+
+    assert_eq!(
+        features(&FeatureGate::Unstable.refusals(&generic)),
+        [planned("generic parameters on container 'App'")]
+    );
 }
