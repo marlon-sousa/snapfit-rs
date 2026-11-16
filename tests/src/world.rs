@@ -33,11 +33,11 @@ impl ContainerWorld {
             .expect("scenario blueprint must be configured in Given step")
         {
             ScenarioBlueprint::SharedSingletons => {
-                self.app_container = Some(<AppContainer as wireup::Container>::new());
+                self.app_container = Some(<AppContainer as snapfit::Container>::new());
             }
             ScenarioBlueprint::MultiDatabase => {
                 self.multi_db_container =
-                    Some(<multi_db::AppContainer as wireup::Container>::new());
+                    Some(<multi_db::AppContainer as snapfit::Container>::new());
             }
         }
     }

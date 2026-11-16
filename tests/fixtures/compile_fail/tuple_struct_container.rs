@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use wireup::container;
+use snapfit::container;
 
 pub struct Config;
 

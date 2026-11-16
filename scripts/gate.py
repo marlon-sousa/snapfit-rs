@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""QA Quality Gate & Architectural Invariant Checker for wireup-rs.
+"""QA Quality Gate & Architectural Invariant Checker for snapfit-rs.
 
 Cross-platform script running formatting, clippy, boundary verification,
 unit tests, and documentation checks.
@@ -70,8 +70,8 @@ def check_architectural_invariants() -> bool:
 
     # 1. Compiler leak check in domain and use_cases
     isolated_dirs = [
-        root / "wireup_macros" / "src" / "domain",
-        root / "wireup_macros" / "src" / "use_cases",
+        root / "snapfit-macros" / "src" / "domain",
+        root / "snapfit-macros" / "src" / "use_cases",
     ]
 
     for d in isolated_dirs:
@@ -96,7 +96,7 @@ def check_architectural_invariants() -> bool:
                         )
 
     # 2. File line length guideline check and modern module layout (no mod.rs)
-    for crate_name in ["wireup", "wireup_macros", "xtask", "tests"]:
+    for crate_name in ["snapfit", "snapfit-macros", "xtask", "tests"]:
         crate_src = root / crate_name / "src"
         if not crate_src.exists():
             continue

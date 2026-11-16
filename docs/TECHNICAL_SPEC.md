@@ -1,4 +1,4 @@
-# `wireup` — Technical Specification & Internal Architecture
+# `snapfit` — Technical Specification & Internal Architecture
 
 > **Internal Hexagonal Architecture (Ports & Adapters) Blueprint**
 
@@ -6,7 +6,7 @@
 
 ## 1. Hexagonal Architecture (Ports & Adapters)
 
-In `wireup_macros`, the compiler tools (`syn`, `darling`, `quote`, `proc_macro2`) are strictly quarantined to the outer adapter layers:
+In `snapfit-macros`, the compiler tools (`syn`, `darling`, `quote`, `proc_macro2`) are strictly quarantined to the outer adapter layers:
 * **Inbound Adapter (Parser):** Uses `darling` and `syn` to adapt raw compiler tokens into **Pure Domain Models** (using only standard Rust types: `String`, `bool`, `Vec`, custom enums).
 * **Core Domain & Use Cases:** Contains **zero compiler dependencies**. Knows nothing about `syn::Ident`, `syn::Type`, or `quote!`. Operates entirely on pure graph logic and instantiation plans.
 * **Outbound Adapter (Code Emitter):** Implements an output port trait to transform the domain's `ConstructionPlan` into `proc_macro2::TokenStream` using `quote!`.
@@ -53,18 +53,18 @@ In `wireup_macros`, the compiler tools (`syn`, `darling`, `quote`, `proc_macro2`
 ## 3. Crate Layout & Directory Structure
 
 ```text
-wireup/
+snapfit/
 ├── Cargo.toml
 ├── rust-toolchain.toml          # Pinned toolchain 1.85.0 (rustfmt, clippy, rust-src)
-├── wireup/                      # Runtime crate (Traits, Error types)
+├── snapfit/                     # Runtime crate (Traits, Error types)
 │   ├── Cargo.toml
 │   └── src/
 │       ├── lib.rs
 │       ├── container.rs         # Container & AsyncContainer traits
-│       ├── error.rs             # Runtime WireupError enum
+│       ├── error.rs             # Runtime SnapfitError enum
 │       └── introspection.rs     # GraphDescriptor, NodeDescriptor
 │
-└── wireup_macros/               # Procedural macro crate
+└── snapfit-macros/              # Procedural macro crate
     ├── Cargo.toml
     └── src/
         ├── lib.rs               # Proc-macro entry points (Handler layer)
@@ -103,7 +103,7 @@ wireup/
 ## 4. Pure Domain Entities (Zero Compiler Dependencies)
 
 ```rust
-// wireup_macros/src/domain/ir.rs
+// snapfit-macros/src/domain/ir.rs
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Lifecycle {
@@ -141,7 +141,7 @@ pub struct ContainerIR {
 ```
 
 ```rust
-// wireup_macros/src/domain/plan.rs
+// snapfit-macros/src/domain/plan.rs
 
 /// An optimized execution plan produced by the use case
 #[derive(Debug, Clone)]
@@ -167,7 +167,7 @@ pub struct InstantiationStep {
 ## 5. Port Interfaces
 
 ```rust
-// wireup_macros/src/ports/parser_port.rs
+// snapfit-macros/src/ports/parser_port.rs
 use crate::domain::{ContainerIR, DomainError};
 
 pub trait ContainerParserPort {
@@ -175,7 +175,7 @@ pub trait ContainerParserPort {
     fn parse_container(&self, input: &syn::ItemStruct) -> Result<ContainerIR, DomainError>;
 }
 
-// wireup_macros/src/ports/emitter_port.rs
+// snapfit-macros/src/ports/emitter_port.rs
 use crate::domain::ConstructionPlan;
 use proc_macro2::TokenStream;
 
@@ -192,7 +192,7 @@ pub trait CodeEmitterPort {
 In strict adherence to Hexagonal Architecture, Use Cases know nothing about compiler ASTs or tokens. They accept pure `ContainerIR` and return a pure `ConstructionPlan`.
 
 ```rust
-// wireup_macros/src/use_cases/plan_container.rs
+// snapfit-macros/src/use_cases/plan_container.rs
 
 use crate::domain::{ContainerIR, ConstructionPlan, DomainError};
 use crate::use_cases::{GraphEngine, ExecutionPlanner};
@@ -219,7 +219,7 @@ impl PlanContainerUseCase {
 }
 ```
 
-### The End-to-End Orchestration in `wireup_macros/src/lib.rs` (Outer Handler Layer):
+### The End-to-End Orchestration in `snapfit-macros/src/lib.rs` (Outer Handler Layer):
 ```rust
 #[proc_macro_attribute]
 pub fn container(args: TokenStream, input: TokenStream) -> TokenStream {
@@ -297,7 +297,7 @@ fn test_emitter_generates_getters() {
 
 ## 8. Integration Testing, BDD (Cucumber/Gherkin), & Container Introspection
 
-For integration tests verifying end-to-end container assembly, `wireup` uses **BDD** with the [`cucumber`](https://crates.io/crates/cucumber) crate.
+For integration tests verifying end-to-end container assembly, `snapfit` uses **BDD** with the [`cucumber`](https://crates.io/crates/cucumber) crate.
 
 ### 1. Macro-Generated Introspection (`introspection = true`)
 Users can explicitly request debug inspection methods directly in the derive settings:
@@ -321,17 +321,17 @@ When `introspection = true`, the code generator emits:
 ```rust
 impl AppContainer {
     /// Returns the complete compile-time DAG descriptor
-    pub fn dependency_graph() -> wireup::introspection::GraphDescriptor {
-        wireup::introspection::GraphDescriptor {
+    pub fn dependency_graph() -> snapfit::introspection::GraphDescriptor {
+        snapfit::introspection::GraphDescriptor {
             nodes: vec![
-                wireup::introspection::NodeDescriptor { name: "config".into(), lifecycle: "singleton".into() },
-                wireup::introspection::NodeDescriptor { name: "db".into(), lifecycle: "singleton".into() },
-                wireup::introspection::NodeDescriptor { name: "controller".into(), lifecycle: "transient".into() },
+                snapfit::introspection::NodeDescriptor { name: "config".into(), lifecycle: "singleton".into() },
+                snapfit::introspection::NodeDescriptor { name: "db".into(), lifecycle: "singleton".into() },
+                snapfit::introspection::NodeDescriptor { name: "controller".into(), lifecycle: "transient".into() },
             ],
             edges: vec![
-                wireup::introspection::EdgeDescriptor { from: "db".into(), to: "config".into() },
-                wireup::introspection::EdgeDescriptor { from: "controller".into(), to: "config".into() },
-                wireup::introspection::EdgeDescriptor { from: "controller".into(), to: "db".into() },
+                snapfit::introspection::EdgeDescriptor { from: "db".into(), to: "config".into() },
+                snapfit::introspection::EdgeDescriptor { from: "controller".into(), to: "config".into() },
+                snapfit::introspection::EdgeDescriptor { from: "controller".into(), to: "db".into() },
             ],
         }
     }
@@ -345,7 +345,7 @@ impl AppContainer {
 ```gherkin
 Feature: Container Dependency Resolution
 
-  As a Rust developer building services with wireup
+  As a Rust developer building services with snapfit
   I want container-managed singletons to resolve topologically
   So that dependent components receive shared instances without domain pollution
 
@@ -421,7 +421,7 @@ To guarantee that the **Hexagonal Architecture** invariants are never violated a
 
 ### Automated Invariant Checks:
 1. **Zero Compiler Leaks in Domain & Use Cases:**
-   * Scans all Rust source files in `wireup_macros/src/domain/` and `wireup_macros/src/use_cases/`.
+   * Scans all Rust source files in `snapfit-macros/src/domain/` and `snapfit-macros/src/use_cases/`.
    * Forbids any import or reference to compiler crates:
      * ❌ `syn::`
      * ❌ `quote::`

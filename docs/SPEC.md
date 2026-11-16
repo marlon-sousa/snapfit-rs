@@ -1,4 +1,4 @@
-# `wireup` — Specification & Architecture Document
+# `snapfit` — Specification & Architecture Document
 
 > **Zero-Cost, Compile-Time Verified, Pure-Rust Dependency Injection Framework**
 
@@ -10,7 +10,7 @@ Most dependency injection frameworks in Rust fall into two undesirable extremes:
 1. **Invasive Java/C# ports** (`lockjaw`, `waiter`): Pollute business logic with intrusive macros (`#[inject]`, `#[component]`), require complex DSLs, and rely heavily on dynamic runtime downcasting (`dyn Any`).
 2. **Dynamic Service Locators** (`axum::State`, `actix_web::web::Data`, `dptree`): Lack compile-time dependency graph verification, cannot detect cycles, and enforce `Arc<dyn Trait>` runtime indirection.
 
-**`wireup`** solves this by inverting the dependency declaration: **the container struct declares the wiring, leaving domain structs 100% pure Rust.**
+**`snapfit`** solves this by inverting the dependency declaration: **the container struct declares the wiring, leaving domain structs 100% pure Rust.**
 
 ### Key Design Pillars:
 * **Zero Domain Pollution:** Your services, repositories, and controllers require **zero framework macros or traits**. They are standard Rust structs with plain `pub fn new(...)` constructors.
@@ -24,11 +24,11 @@ Most dependency injection frameworks in Rust fall into two undesirable extremes:
 
 ## 2. Declarative Container Syntax & Settings
 
-A container in `wireup` is declared using the `#[container]` procedural attribute macro.
+A container in `snapfit` is declared using the `#[container]` procedural attribute macro.
 
 ```rust
 use std::sync::Arc;
-use wireup::container;
+use snapfit::container;
 
 #[container]
 pub struct AppContainer {
@@ -123,7 +123,7 @@ The `#[container]` attribute macro actively shapes the memory layout of the gene
 
 ## 5. Dependency Wiring & Companion Builders Trait
 
-`wireup` eliminates invasive domain macros entirely. Container wiring is declared centrally in the container definition, keeping all service structs 100% pure Rust.
+`snapfit` eliminates invasive domain macros entirely. Container wiring is declared centrally in the container definition, keeping all service structs 100% pure Rust.
 
 ### A. Standard Constructors (`::new`)
 For standard structs implementing `new(...)`, prerequisites are declared via `deps = [...]` and mapped in sequence:
@@ -207,7 +207,7 @@ error: Dependency cycle detected in AppContainer:
 
 ## 7. Trait Abstraction via Auto-Generated `enum_dispatch`
 
-To avoid `Arc<dyn Trait>` (heap allocation, vtable indirection, and inability to inline), `wireup` automatically generates static dispatch enums:
+To avoid `Arc<dyn Trait>` (heap allocation, vtable indirection, and inability to inline), `snapfit` automatically generates static dispatch enums:
 
 ### User Code:
 ```rust
@@ -257,7 +257,7 @@ pub struct AppContainer {
 
 ## 8. Asynchronous Containers (`mode = "async"`)
 
-For applications where databases, message brokers, and clients require asynchronous setup, `wireup` provides dedicated async support.
+For applications where databases, message brokers, and clients require asynchronous setup, `snapfit` provides dedicated async support.
 
 ### Philosophy: Eager Async Boot, Synchronous Getters
 * **`AppContainer::init().await`** handles all async setup topologically at boot.
@@ -376,16 +376,16 @@ async fn handle_request(
 ## 11. Crate Layout & Architecture Blueprint
 
 ```text
-wireup-rs/
+snapfit-rs/
 ├── Cargo.toml
-├── wireup/                  # Core runtime crate (traits, error types, introspection)
+├── snapfit/                 # Core runtime crate (traits, error types, introspection)
 │   ├── Cargo.toml
 │   └── src/
 │       ├── lib.rs           # Core exports, Container trait, Error
 │       ├── container.rs     # Container and ContainerBuilder traits
 │       ├── introspection.rs # GraphDescriptor, NodeDescriptor
-│       └── error.rs         # WireupError definitions
-├── wireup_macros/           # Procedural macros (Hexagonal Ports & Adapters)
+│       └── error.rs         # SnapfitError definitions
+├── snapfit-macros/          # Procedural macros (Hexagonal Ports & Adapters)
 │   ├── Cargo.toml
 │   └── src/
 │       ├── lib.rs           # Macro entry points (#[container])

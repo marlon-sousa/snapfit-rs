@@ -939,6 +939,41 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e8e2fb0f499abb4d162f2bedad68f5ef91a1682b5a03596ddb67efd37768d100"
 
 [[package]]
+name = "snapfit"
+version = "0.1.0"
+dependencies = [
+ "derive-new",
+ "derive_more 2.1.1",
+ "snapfit-macros",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "snapfit-macros"
+version = "0.1.0"
+dependencies = [
+ "darling",
+ "derive-new",
+ "derive_more 2.1.1",
+ "petgraph",
+ "proc-macro2",
+ "quote",
+ "strum",
+ "syn 2.0.119",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "snapfit_bdd"
+version = "0.1.0"
+dependencies = [
+ "cucumber",
+ "futures",
+ "rayon",
+ "snapfit",
+]
+
+[[package]]
 name = "strsim"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1243,41 +1278,6 @@ name = "windows_x86_64_msvc"
 version = "0.52.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
-
-[[package]]
-name = "wireup"
-version = "0.1.0"
-dependencies = [
- "derive-new",
- "derive_more 2.1.1",
- "thiserror 2.0.21",
- "wireup_macros",
-]
-
-[[package]]
-name = "wireup_bdd"
-version = "0.1.0"
-dependencies = [
- "cucumber",
- "futures",
- "rayon",
- "wireup",
-]
-
-[[package]]
-name = "wireup_macros"
-version = "0.1.0"
-dependencies = [
- "darling",
- "derive-new",
- "derive_more 2.1.1",
- "petgraph",
- "proc-macro2",
- "quote",
- "strum",
- "syn 2.0.119",
- "thiserror 2.0.21",
-]
 
 [[package]]
 name = "xtask"

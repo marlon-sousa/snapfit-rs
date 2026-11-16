@@ -19,8 +19,8 @@ pub struct CompileOutcome {
 struct CompilerContext {
     rustc: String,
     deps_dir: PathBuf,
-    wireup_rlib: PathBuf,
-    wireup_mtime: SystemTime,
+    snapfit_rlib: PathBuf,
+    snapfit_mtime: SystemTime,
     out_dir: PathBuf,
 }
 
@@ -61,7 +61,7 @@ fn read_valid_cached_stderr(
     let cache_file = stderr_cache_path(&ctx.out_dir, name);
     let cache_mtime = modified_timestamp(&cache_file);
     let fixture_mtime = modified_timestamp(fixture_path);
-    let is_fresh = cache_mtime > fixture_mtime && cache_mtime > ctx.wireup_mtime;
+    let is_fresh = cache_mtime > fixture_mtime && cache_mtime > ctx.snapfit_mtime;
 
     is_fresh
         .then(|| fs::read_to_string(cache_file).ok())
@@ -81,7 +81,7 @@ fn compile_and_cache_fixture(
         .arg(&fixture_name)
         .arg("--out-dir")
         .arg(&ctx.out_dir)
-        .arg(format!("--extern=wireup={}", ctx.wireup_rlib.display()))
+        .arg(format!("--extern=snapfit={}", ctx.snapfit_rlib.display()))
         .arg(format!("-Ldependency={}", ctx.deps_dir.display()))
         .arg(path)
         .output()
@@ -107,16 +107,16 @@ fn stderr_cache_path(out_dir: &Path, name: &str) -> PathBuf {
 impl CompilerContext {
     fn discover() -> Self {
         let deps_dir = current_deps_dir();
-        let wireup_rlib = find_latest_wireup_rlib(&deps_dir);
-        let wireup_mtime = modified_timestamp(&wireup_rlib);
+        let snapfit_rlib = find_latest_snapfit_rlib(&deps_dir);
+        let snapfit_mtime = modified_timestamp(&snapfit_rlib);
         let out_dir = prepare_out_dir(&deps_dir);
         let rustc = std::env::var("RUSTC").unwrap_or_else(|_| "rustc".to_string());
 
         Self {
             rustc,
             deps_dir,
-            wireup_rlib,
-            wireup_mtime,
+            snapfit_rlib,
+            snapfit_mtime,
             out_dir,
         }
     }
@@ -129,21 +129,21 @@ fn current_deps_dir() -> PathBuf {
         .expect("failed to locate target/debug/deps directory from test executable")
 }
 
-fn find_latest_wireup_rlib(deps_dir: &Path) -> PathBuf {
+fn find_latest_snapfit_rlib(deps_dir: &Path) -> PathBuf {
     fs::read_dir(deps_dir)
         .expect("failed to read target deps directory")
         .filter_map(Result::ok)
         .map(|entry| entry.path())
-        .filter(|path| is_wireup_rlib(path))
+        .filter(|path| is_snapfit_rlib(path))
         .max_by_key(|path| modified_timestamp(path))
-        .expect("failed to find compiled libwireup.rlib in target deps directory")
+        .expect("failed to find compiled libsnapfit.rlib in target deps directory")
 }
 
-fn is_wireup_rlib(path: &Path) -> bool {
+fn is_snapfit_rlib(path: &Path) -> bool {
     let Some(file_name) = path.file_name().and_then(|n| n.to_str()) else {
         return false;
     };
-    (file_name == "libwireup.rlib" || file_name.starts_with("libwireup-"))
+    (file_name == "libsnapfit.rlib" || file_name.starts_with("libsnapfit-"))
         && file_name.ends_with(".rlib")
 }
 

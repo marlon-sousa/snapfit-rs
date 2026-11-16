@@ -1,4 +1,4 @@
-use wireup::Container;
+use snapfit::Container;
 
 pub struct UserController;
 
