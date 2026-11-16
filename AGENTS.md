@@ -22,13 +22,13 @@
 Every agent (coder or reviewer) working in this repository **must** enforce these non-negotiable rules:
 
 ### A. Hexagonal Architecture (Ports & Adapters)
-* **The Domain & Use Cases MUST be 100% pure standard Rust.**
-* **Forbidden Imports in `domain/` and `use_cases/`:**
-  * ❌ `syn::*` (no `syn::Ident`, `syn::Type`, etc.)
-  * ❌ `quote::*` (no `quote!`, `format_ident!`)
-  * ❌ `darling::*`
-  * ❌ `proc_macro::*` or `proc_macro2::*`
-* All identifiers in the Domain Intermediate Representation (IR) must be standard library types (`String`, `bool`, `Vec`, custom enums).
+* **The Domain & Use Cases are strictly decoupled from external adapter technologies.**
+* **Forbidden in `domain/` and `use_cases/`:**
+  * ❌ Compiler infrastructure, token streams, and AST crates (`syn::*`, `quote::*`, `darling::*`, `proc_macro::*`, `proc_macro2::*`).
+  * The inbound adapter's sole job is to parse external compiler AST and adapt flow into domain types. The domain must never be coupled to how adapters parse or emit.
+* **Permitted in `domain/` and `use_cases/`:**
+  * High-quality, pure-Rust domain problem-solving crates (e.g. `petgraph` for DAG algorithms, `thiserror` for error modeling, pure data structures).
+  * Domain IR identifiers and models must represent core domain concepts, not compiler syntax trees.
 
 ### B. Outer Adapters are Strictly Isolated
 * **Inbound Adapter (`adapters::inbound`):** The ONLY place where `darling` and `syn` are permitted. Responsible for converting AST into Domain IR.
@@ -47,11 +47,12 @@ Every agent (coder or reviewer) working in this repository **must** enforce thes
 
 ## 3. Coding Standards & Engineering Principles
 
-1. **Dependency Reuse Priority:**
-   * **Tier 1:** Standard library first (`std`).
+1. **Dependency Reuse Priority & No Hand-Rolled Boilerplate:**
+   * **Rule of Thumb:** Never write custom algorithmic or boilerplate logic by hand when an established, well-maintained crate solves the problem cleanly without violating architectural boundaries.
+   * **Tier 1:** Standard library first (`std`) — for standard types, standard data structures, and traits.
    * **Tier 2:** Crates already present in our workspace dependencies.
-   * **Tier 3:** Well-known, actively maintained, and compatible external crates (e.g. `darling`, `quote`, `syn`, `tokio`, `thiserror`).
-   * **Tier 4:** Only if none exist, write custom logic by hand.
+   * **Tier 3:** Well-known, actively maintained, and compatible external crates (e.g. `petgraph` for DAGs, `thiserror` for error derives, `tokio` for async).
+   * **Tier 4:** Only if none exist, write custom logic by hand. Hand-rolling graph traversal, cycle backtracking, or manual `Display`/`Error` formatting when `petgraph` and `thiserror` exist is a Tier 4 failure.
    * **Error Handling & Formatting:** All domain and runtime error enums **MUST derive `thiserror::Error`**. Never write manual `impl fmt::Display` or `impl std::error::Error` by hand.
 2. **File Size Guideline (~200 Lines):**
    * Keep files under ~200 lines as a soft limit. If a file exceeds this threshold, treat it as a signal to refactor into cohesive private submodules.
