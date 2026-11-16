@@ -80,9 +80,12 @@ Every agent (coder or reviewer) working in this repository **must** enforce thes
 9. **Modern Rust Module Layout (No `mod.rs`):**
    * Modules declare `<module_name>.rs` at the parent directory level, and private submodules reside in a `<module_name>/` folder.
    * `mod.rs` is strictly forbidden across the repository (enforced automatically by `cargo xtask arch-check`).
-10. **Semantic Types & Newtype Judgment (Avoid Primitive Obsession):**
-    * Use types that carry domain semantics and invariants where they prevent bugs or clarify intent (e.g. `NonZeroU32` for non-zero IDs, or dedicated newtypes via `derive_more` like `DependencyName` to prevent accidentally swapping field names and type identifiers).
-    * **Judgment over Dogma:** If a value is genuinely just a string or primitive without distinct domain rules, keep it simple. Do not introduce newtypes blindly for the sake of ceremony; apply them where they provide real compiler-enforced safety and clarity.
+10. **Types Enforce Invariants (Make Illegal States Unrepresentable):**
+    * **Types Must Be the Invariant:** Whenever a domain concept has invariants or constraints, encode them into the type system at construction time so that downstream code is guaranteed to receive valid data without defensive checks.
+    * **Non-Zero & Numeric Invariants:** If a number cannot be zero, use standard library types like `NonZeroU32`, `NonZeroUsize`, etc.
+    * **Non-Blank & Distinct Strings:** If an identifier cannot be empty or blank (e.g. `DependencyName`, `ContainerName`, `TypeName`), enforce that invariant on construction (via `TryFrom` or validated constructors) so blank values are unrepresentable.
+    * **Distinct Concepts over Raw Primitives:** Keep distinct concepts as distinct types (e.g. `DependencyName` vs `TypeName`) to prevent accidental argument swapping at compile time.
+    * **Judgment over Dogma:** If a value is genuinely unconstrained or arbitrary data without domain rules, keep it simple. Apply invariants where they provide real compiler-enforced safety and prevent illegal states.
 
 ---
 
