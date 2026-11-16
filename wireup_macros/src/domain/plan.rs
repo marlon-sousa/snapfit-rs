@@ -1,6 +1,9 @@
 use crate::domain::ir::{ContainerName, DependencyName, Lifecycle, TypeName};
 use derive_new::new;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(new, Debug, Clone, PartialEq, Eq)]
 pub struct InstantiationStep {
     #[new(into)]
