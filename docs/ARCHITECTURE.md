@@ -18,6 +18,7 @@ A procedural macro does no input or output: it is a pure function from tokens to
 - **`xtask/`** and **`scripts/gate.py`**, the quality gate, `cargo xtask ci`, which CI runs on Linux, macOS and Windows.
 - **`clippy.toml`**, what clippy allows in tests.
 - **`docs/`**: [SPEC.md](SPEC.md), what the macros do; this document; [WORKFLOW.md](WORKFLOW.md), the stacked pull requests and the definition of done.
+- **`.claude/skills/`**, the procedures an agent follows, such as having a change reviewed. They add no rule of their own: each points at the rules it follows.
 
 ## How an expansion runs
 

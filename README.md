@@ -119,7 +119,7 @@ The exact toolchain and required components (`clippy`, `rustfmt`, `rust-src`) ar
 * [Specification & API Guide](docs/SPEC.md) — Comprehensive functional specification, attribute syntax, and lifecycles.
 * [Architecture](docs/ARCHITECTURE.md) — how the code is organised and written: module roles, the typed model, errors and tests.
 * [Development Workflow](docs/WORKFLOW.md) — Stacked PR roadmap, Double-Loop BDD, and agentic review loops.
-* [Agent Guidelines](AGENTS.md) — Authoritative rules, reuse guidelines, and architectural invariants for AI agents working in this repository.
+* [Contributing rules](AGENTS.md) — the rules every change follows, for people and agents alike, and the checklist every pull request is reviewed against.
 
 ---
 
