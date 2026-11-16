@@ -22,17 +22,22 @@
 Every agent (coder or reviewer) working in this repository **must** enforce these non-negotiable rules:
 
 ### A. Hexagonal Architecture (Ports & Adapters)
-* **The Domain & Use Cases are strictly decoupled from external adapter technologies.**
-* **Forbidden in `domain/` and `use_cases/`:**
-  * ❌ Compiler infrastructure, token streams, and AST crates (`syn::*`, `quote::*`, `darling::*`, `proc_macro::*`, `proc_macro2::*`).
+* **The Domain & Use Cases represent pure, deterministic computation and business/graph logic.**
+* **Decoupling from Side-Effects & Infrastructure:**
+  * Even if a facility exists in the standard library (`std`), **side-effecting and infrastructural operations are strictly forbidden in `domain/` and `use_cases/`**:
+    * ❌ No I/O or filesystem operations (`std::fs`, file writes/reads).
+    * ❌ No channels or concurrency pipes (`std::sync::mpsc`, `crossbeam`) mediating external communication.
+    * ❌ No compiler infrastructure, token streams, or AST crates (`syn::*`, `quote::*`, `darling::*`, `proc_macro::*`, `proc_macro2::*`).
   * The inbound adapter's sole job is to parse external compiler AST and adapt flow into domain types. The domain must never be coupled to how adapters parse or emit.
-* **Permitted in `domain/` and `use_cases/`:**
-  * High-quality, pure-Rust domain problem-solving crates (e.g. `petgraph` for DAG algorithms, `thiserror` for error modeling, pure data structures).
+* **Permitted & Encouraged in `domain/` and `use_cases/`:**
+  * High-quality, pure-Rust domain problem-solving crates (e.g. `petgraph` for DAG algorithms, `thiserror` for error modeling, pure in-memory data structures).
   * Domain IR identifiers and models must represent core domain concepts, not compiler syntax trees.
 
-### B. Outer Adapters are Strictly Isolated
-* **Inbound Adapter (`adapters::inbound`):** The ONLY place where `darling` and `syn` are permitted. Responsible for converting AST into Domain IR.
-* **Outbound Adapter (`adapters::outbound`):** The ONLY place where `quote!` is permitted. Responsible for rendering a `ConstructionPlan` into tokens.
+### B. Outer Adapters are Purpose-Built Integrations
+* Adapters leverage specialized external crates suited for their integration responsibilities:
+  * **Inbound Adapter (`adapters::inbound`):** Leverages `darling` and `syn` to parse external compiler syntax trees and adapt them into pure domain IR.
+  * **Outbound Adapter (`adapters::outbound`):** Leverages `quote!` and `proc_macro2` to render a domain `ConstructionPlan` into compiler tokens.
+* The architectural invariant is strictly directional: Outer adapters depend on Domain Ports; the Domain NEVER depends on Adapters or adapter technologies.
 
 ### C. Container Subclassing & Overrides
 * Use **Option 1: The Fork & Re-wire Pattern** (`parent.fork_with().with_*(mock).build()`).
@@ -47,12 +52,12 @@ Every agent (coder or reviewer) working in this repository **must** enforce thes
 
 ## 3. Coding Standards & Engineering Principles
 
-1. **Dependency Reuse Priority & No Hand-Rolled Boilerplate:**
-   * **Rule of Thumb:** Never write custom algorithmic or boilerplate logic by hand when an established, well-maintained crate solves the problem cleanly without violating architectural boundaries.
-   * **Tier 1:** Standard library first (`std`) — for standard types, standard data structures, and traits.
+1. **Dependency Reuse is an Engineering Judgment (No Hand-Rolled Boilerplate):**
+   * **Engineering Judgment over Dogmatic Rules:** Preferring standard library types does NOT mean writing 300 lines of complex, error-prone algorithms or boilerplate by hand. Between writing a pure `std` implementation of 300 lines vs. using a battle-tested, focused, well-maintained crate, **use the crate**. Both the coder and the reviewer must actively apply this judgment.
+   * **Tier 1:** Standard library first (`std`) — for standard in-memory types, data structures, and traits (strictly excluding I/O, channels, and side effects in the domain).
    * **Tier 2:** Crates already present in our workspace dependencies.
    * **Tier 3:** Well-known, actively maintained, and compatible external crates (e.g. `petgraph` for DAGs, `thiserror` for error derives, `tokio` for async).
-   * **Tier 4:** Only if none exist, write custom logic by hand. Hand-rolling graph traversal, cycle backtracking, or manual `Display`/`Error` formatting when `petgraph` and `thiserror` exist is a Tier 4 failure.
+   * **Tier 4:** Only if no suitable crate exists, write custom logic by hand. Hand-rolling graph traversal, cycle backtracking, or manual `Display`/`Error` formatting when `petgraph` and `thiserror` exist is a failure of judgment.
    * **Error Handling & Formatting:** All domain and runtime error enums **MUST derive `thiserror::Error`**. Never write manual `impl fmt::Display` or `impl std::error::Error` by hand.
 2. **File Size Guideline (~200 Lines):**
    * Keep files under ~200 lines as a soft limit. If a file exceeds this threshold, treat it as a signal to refactor into cohesive private submodules.
@@ -75,18 +80,17 @@ Every agent (coder or reviewer) working in this repository **must** enforce thes
 
 ### `wireup-coder` (Lead Implementer):
 * Follows the 7 engineering principles above.
+* **Exercises Engineering Judgment:** Never writes 300 lines of complex algorithmic or boilerplate logic by hand when an established, focused crate solves the problem cleanly without side effects or adapter coupling.
 * Runs `cargo fmt`, `cargo clippy -- -D warnings`, and in-memory unit tests before submitting.
 * Keeps tests fast (< 5ms) without `trybuild`.
 
 ### `wireup-reviewer` (Independent Reviewer):
 * Audits diffs against Section 2 (Architectural Invariants) and Section 3 (Coding Standards).
-* Checks for:
-  * Any compiler types leaking into `domain` or `use_cases`.
-  * Violation of Dependency Reuse Priority (e.g. hand-rolled `Display`/`Error` formatting instead of `thiserror`, or custom logic where established crates exist like `petgraph`).
-  * Anonymous tuples or loose primitives where a named struct should be used.
-  * Files approaching/exceeding ~200 lines without justification.
-  * Over-commented trivial code or missing error handling.
-  * Excessive public exports (`pub` instead of `pub(crate)`).
+* **Applies Critical Engineering Judgment (Not Just Checklists):**
+  * Actively challenges hand-rolled logic: asks whether custom code should be replaced by an established, battle-tested crate (e.g. `petgraph`, `thiserror`).
+  * Checks for side-effect leakage: verifies that NO I/O (`std::fs`), channels/pipes (`std::sync::mpsc`, `crossbeam`), or compiler infrastructure (`syn`, `quote`, `darling`) leak into `domain` or `use_cases`.
+  * Verifies strongly-typed modeling: flags anonymous tuples or loose primitives where a named struct should be used.
+  * Enforces the ~200 LOC file length soft limit and minimal visibility (`pub(crate)` over `pub`).
 * Returns a structured report:
   * **Result:** `PASS` or `CHANGES REQUESTED`
   * **Findings:** Specific file and line references if any invariants are violated.
