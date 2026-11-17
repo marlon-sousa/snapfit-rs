@@ -4,6 +4,7 @@ mod codegen_containers;
 mod containers;
 mod fixture_outcomes;
 mod services;
+mod stale_library;
 mod steps;
 #[cfg(feature = "unstable")]
 mod unstable_containers;

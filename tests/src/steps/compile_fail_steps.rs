@@ -8,6 +8,11 @@ fn given_invalid_container_fixture(world: &mut ContainerWorld, fixture_name: Str
     world.select_invalid_fixture(fixture_name);
 }
 
+#[given("a newer snapfit library from another build sits beside the one the suite links to")]
+fn given_stale_snapfit_library(world: &mut ContainerWorld) {
+    world.plant_stale_library();
+}
+
 #[when("the fixture is compiled")]
 fn when_fixture_is_compiled(world: &mut ContainerWorld) {
     world.compile_selected_fixture();

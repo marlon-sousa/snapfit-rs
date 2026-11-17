@@ -7,6 +7,7 @@ use crate::codegen_containers::{
 };
 use crate::containers::{AppContainer, checkout, multi_db, ordered};
 use crate::fixture_outcomes::fixture_outcome;
+use crate::stale_library::StaleLibrary;
 #[cfg(feature = "unstable")]
 use crate::unstable_world::UnstableContainers;
 
@@ -38,6 +39,7 @@ pub struct ContainerWorld {
     unit_struct_named_field: Option<UnitStructNamedFieldContainer>,
     selected_fixture: Option<String>,
     compile_outcome: Option<&'static Outcome>,
+    stale_library: Option<StaleLibrary>,
     construction_order: Vec<&'static str>,
     checkout_container: Option<checkout::CheckoutContainer>,
     #[cfg(feature = "unstable")]
@@ -168,6 +170,10 @@ impl ContainerWorld {
             .compile_outcome
             .expect("fixture must be compiled before Then assertions");
         (name, outcome)
+    }
+
+    pub fn plant_stale_library(&mut self) {
+        self.stale_library = Some(StaleLibrary::plant());
     }
 }
 
