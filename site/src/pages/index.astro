@@ -1,0 +1,15 @@
+---
+import Base from '../layouts/Base.astro';
+import { extractFrontPageMarkdown } from '../lib/readme.ts';
+import { renderMarkdown } from '../lib/render.ts';
+
+const markdownSource = extractFrontPageMarkdown(false);
+const html = await renderMarkdown(markdownSource, 'README.md');
+---
+
+<Base
+	description="snapfit is a zero-cost, compile-time verified, pure-Rust dependency injection framework."
+	currentNav="home"
+>
+	<article class="prose" set:html={html} />
+</Base>

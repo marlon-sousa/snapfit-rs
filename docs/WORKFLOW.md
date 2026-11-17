@@ -132,16 +132,17 @@ To eliminate environmental drift between local development and CI, all quality c
 
 Every action a workflow uses is pinned to a commit, with its version in a comment beside it.
 
-* **`.github/workflows/ci.yml`**, on every pull request and every push to `main` or a `stack/*` branch: each mode of `cargo xtask ci` in a job of its own on Linux, the `test` mode on Linux, macOS and Windows, and the `test` mode again with the minimum supported Rust.
+* **`.github/workflows/ci.yml`**, on every pull request and every push to `main` or a `stack/*` branch: each mode of `cargo xtask ci` in a job of its own on Linux, the `test` mode on Linux, macOS and Windows, the `test` mode again with the minimum supported Rust, and `npm run verify` in `site/`, which builds the site and checks its pages, links, accessibility and layout.
 * **`.github/workflows/pull-request.yml`**, on every pull request, whatever its base: every commit message keeps the convention of section 3, and the description has no unticked checkbox. Ticking a checkbox runs only this workflow again.
 * **`.github/workflows/weekly.yml`**, each Monday: the `test` mode on Rust beta, so that a change in the next Rust that breaks snapfit, such as a compiler message a compile-fail fixture checks, is known before it is released.
 * **`.github/workflows/release.yml`**, on a tag `v<version>`: section 9.
+* **`.github/workflows/site.yml`**, run by hand with a release's version: publishes that release's README front page and book edition onto the `site` branch, as section 8 says.
 
 ---
 
 ## 8. The Snapfit Book & Documentation Site (`site` branch)
 
-**The Snapfit Book** lives in `book/`: [book/BOOK.md](../book/BOOK.md) says what it contains and how it is written, and [book/FORMAT.md](../book/FORMAT.md) defines the directives its chapters use. Each edition teaches only the stable API of its release.
+**The Snapfit Book** lives in `book/`: [book/BOOK.md](../book/BOOK.md) says what it contains and how it is written, and [book/FORMAT.md](../book/FORMAT.md) defines the directives its chapters use. Each edition teaches only the stable API of its release. The site in `site/` renders the book and the README, and the site workflow publishes them onto the `site` branch.
 
 ---
 
