@@ -47,6 +47,12 @@ name: ch10_choosing_an_implementation
 5. **A test container.** `TestShopContainer` declares the same fields with `FakeGateway`. A test builds it with `TestShopContainer::new()` and gets the real services around the fake. For a test of one service, building that service directly with a fake is often simpler still ([Chapter 6](06-pure-domain-types.md)).
 6. **Why the field itself is concrete.** The container builds each field by calling a constructor of the field's type. A trait object has no constructor, so a field typed `Arc<dyn PaymentGateway>` is refused. The concrete field, passed to services that take the trait, gives the same freedom.
 
+Declaring the field itself as a trait object stops the build, at the field, and the message says what to write instead:
+
+```compile-error
+name: ch10_trait_object_field
+```
+
 ### The rule: any type that fits works
 
 Everything above follows from one rule. The generated `new()` is ordinary Rust: for each field, it calls the constructor its attribute names, on the field's type, or on `T` for an `Arc<T>` field, which it then wraps in an `Arc`. It passes that constructor clones of the fields in its `deps`, and it passes clones of the field on to the constructors of the fields that list it. So you can change a field's type to any other type that fits those calls, recompile, and the application works with it:

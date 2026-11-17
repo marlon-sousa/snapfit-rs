@@ -31,7 +31,7 @@ No multi-line Rust program in this book is pasted by hand into the prose:
 
 - Code blocks pull marked regions directly from `book/examples/<name>.rs`.
 - Output blocks pull the recorded standard output from `book/expected/<name>.txt`.
-- Compiler error blocks in [Chapter 11](11-mistakes-caught-by-the-compiler.md) pull invalid programs from `book/compile-errors/<name>.rs` and the recorded compiler diagnostics from `book/compile-errors/<name>.txt`.
+- Compiler error blocks, as in [Chapter 10](10-choosing-an-implementation.md) and [Chapter 11](11-mistakes-caught-by-the-compiler.md), pull invalid programs from `book/compile-errors/<name>.rs` and the recorded compiler diagnostics from `book/compile-errors/<name>.txt`.
 
 `cargo xtask book-check` compiles and runs every example and verifies every recorded output and compiler message, and the quality gate every pull request passes runs the same tests.
 

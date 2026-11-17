@@ -93,7 +93,7 @@ Covers every stable feature of `v0.1.0`, one per chapter:
 7. **Wiring dependencies and custom constructors** (`07-wiring-dependencies-and-constructors.md`): Declaring prerequisites with `deps = [...]`, calling named constructors with `constructor = <fn>` (a bare function name) that receive their prerequisites, and storing `T: Clone` types directly without forced `Arc<T>` wrapping (`ch07_wiring_and_constructors.rs`).
 8. **Read the container, know the graph** (`08-read-the-container-know-the-graph.md`): Shows how `#[container]` serves as an executable architecture manifest, and how fields declared in any order are each built after the fields they need (`ch08_container_graph.rs`).
 9. **Multiple instances of the same type** (`09-multiple-instances-of-the-same-type.md`): Wiring `read_db` and `write_db` of the exact same `Arc<Database>` type by field name without wrapper newtypes (`ch09_multiple_instances.rs`).
-10. **Choosing an implementation** (`10-choosing-an-implementation.md`): Naming the implementation once, in a field's concrete type, for services that take a trait object or a type parameter, and a second container for tests (`ch10_choosing_an_implementation.rs`).
+10. **Choosing an implementation** (`10-choosing-an-implementation.md`): Naming the implementation once, in a field's concrete type, for services that take a trait object or a type parameter, and a second container for tests (`ch10_choosing_an_implementation.rs`), with the error for a field typed as a trait object (`ch10_trait_object_field`).
 
 ### Part 4: Compile-time guarantees and agents
 
