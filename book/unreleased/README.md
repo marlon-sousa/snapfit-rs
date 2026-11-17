@@ -11,4 +11,5 @@ When transients and async containers are stabilised (see [What ships in 0.1.0](.
 2. move the example and expected output back into `book/examples/` and `book/expected/`;
 3. link the chapters from `book/chapters/README.md` and `book/BOOK.md`;
 4. update the cheat sheet and "What this version supports", and restore the Quick start's transient `checkout` if it still reads best that way;
-5. run `cargo xtask book-check` and re-record any changed output.
+5. rewrite each chapter in the book's teaching voice, as `book/BOOK.md` describes, closing with "Which problem this solves" and "Remember";
+6. run `cargo xtask book-check` and re-record any changed output.

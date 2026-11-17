@@ -19,7 +19,7 @@ A coding agent reading the book gains a structural advantage: in a `snapfit` cod
 
 ### Voice and accessibility
 
-1. Plain, direct, and welcoming prose aimed at a developer who knows Rust and wants clean dependency management without boilerplate or runtime overhead.
+1. Close, conversational, and welcoming prose, written for a developer who knows Rust and wants to understand what dependency injection is about, not as a report. The book walks beside the reader: "we" build the shop step by step, run it, and notice what goes wrong as it grows. A problem is shown before it is named, and is explained in plain words, often with an analogy from everyday life (a lamp wired into the wall, a ride requested in an app, a cloakroom that files coats by colour), choosing whichever analogy fits the idea best.
 2. Every page is written for screen readers as a first-class requirement: a single `#` heading per page, logical heading hierarchy (`##` then `###`), numbered lists, and simple tables.
 3. Diagrams are Mermaid flowcharts in fenced `mermaid` blocks that always declare `accTitle` and `accDescr`, and every diagram is immediately followed by a numbered list in prose stating everything the diagram shows. ASCII-art boxes and character-drawn trees are never used.
 4. Every code listing is a directive (`example`, `output`, or `compile-error`) verified by `cargo xtask book-check`, as defined in [FORMAT.md](FORMAT.md).
@@ -36,22 +36,16 @@ Every chapter teaches only the stable API of `0.1.0`: nothing behind the `unstab
 
 ### The shape of a chapter
 
-Every numbered chapter, and the quick start, has its level 2 sections in exact order. A chapter of Part 1 shows a problem; every other chapter teaches a feature.
+Every numbered chapter, and the quick start, tells its own story under its own level 2 headings, and ends with the same closing sections, so that a reader, or an agent, always knows where to find them. A chapter of Part 1 shows a problem; every other chapter teaches a feature.
 
-A problem chapter (Part 1):
+A problem chapter (Part 1) writes the shop's code without `snapfit`, runs it, and follows what goes wrong as the shop grows. It closes with:
 
-1. **What you want to do:** one or two sentences stating the goal in the shop's terms.
-2. **The code:** the program that reaches the goal without `snapfit`, and what it prints.
-3. **What goes wrong:** the problems of that program, each with a short name in bold. Later chapters refer to the problems by these names.
-4. **Remember:** a concise list of what to take away.
+1. **What we found:** the problems the chapter met, each opening with its short name in bold, the recognised name where one exists, such as tight coupling. Later chapters refer to the problems by these names.
 
-A feature chapter (every other chapter, and the quick start):
+A feature chapter (every other chapter, and the quick start) shows the code of the feature in the shop's terms, runs it, and explains what happened. It closes with:
 
-1. **What you want to do:** one or two sentences stating the goal in the shop's terms.
-2. **The code:** directives showing the relevant regions of the runnable program and what it prints (or the compiler diagnostic for compile-error chapters).
-3. **How it works:** numbered points explaining the mechanics in plain language.
-4. **Which problem this solves:** the problems of Part 1, by their bold names and with a link to the chapter that names them, that this feature answers, and how.
-5. **Remember:** a concise list of rules and invariants for readers and coding agents.
+1. **Which problem this solves:** the problems of Part 1, by their bold names and with a link to the chapter that names them, that this feature answers, and how.
+2. **Remember:** a short list of what to keep in mind, for readers and coding agents.
 
 ### The problem first
 

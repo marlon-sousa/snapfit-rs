@@ -1,26 +1,24 @@
 # Multiple instances of the same type
 
-## What you want to do
+Our shop is getting busy, so we split the database in two: reads go to a replica, and writes go to the primary. Both are a `Database`. Let's see how a container keeps two components of the same type apart, without inventing a new type for each.
 
-The shop separates read queries from write commands using two `Arc<Database>` instances: a read-only replica (`read_db`) and a read-write primary (`write_db`). You want `CqrsOrderStore` to receive both databases without inventing `ReadDb` and `WriteDb` wrapper structs.
+## Two databases, one type
 
-## The code
-
-`Database` and `CqrsOrderStore` are plain domain structs where both database handles have the exact same type, `Arc<Database>`:
+`Database` has a constructor for each role, and `CqrsOrderStore` takes two of them: one to read from, one to write to. Both arguments have the same type, `Arc<Database>`:
 
 ```example
 name: ch09_multiple_instances
 region: domain
 ```
 
-In `ShopContainer`, `read_db` and `write_db` are two fields of type `Arc<Database>`, and `order_store` wires them by field name:
+In the container they are simply two fields with two names, `read_db` and `write_db`, and `order_store` asks for both, by name:
 
 ```example
 name: ch09_multiple_instances
 region: container
 ```
 
-Running the container verifies that `read_db` and `write_db` are distinct instances routed to the right roles:
+Let's check that reads and writes go where they should, and that we really have two databases:
 
 ```example
 name: ch09_multiple_instances
@@ -33,11 +31,13 @@ It prints:
 name: ch09_multiple_instances
 ```
 
-## How it works
+Remember the service locator of [Chapter 3](03-who-builds-everything.md), which lost the replica because it filed everything by type? Here nothing gets lost. It's like the keys on your key ring: two of them may be the same make, but one is labelled "front door" and the other "garage", and you never mix them up.
 
-1. **Named-edge graph:** In `snapfit`, nodes in the dependency graph are identified by their **container field name** (`read_db`, `write_db`), never by `TypeId`.
-2. **Positional mapping from `deps`:** Because `order_store` declares `deps = [read_db, write_db]`, `ShopContainer::new()` calls `CqrsOrderStore::new(read_db.clone(), write_db.clone())`.
-3. **Distinct getters:** `ShopContainer` generates `get_read_db(&self) -> Arc<Database>` and `get_write_db(&self) -> Arc<Database>`, returning the two separate allocations.
+## How the container tells them apart
+
+1. **Components have names.** In `snapfit`, a component is known by its field's name, `read_db` or `write_db`, never by its type.
+2. **`deps` passes them in order.** Because `order_store` lists `deps = [read_db, write_db]`, `ShopContainer::new()` calls `CqrsOrderStore::new` with a clone of `read_db` first and a clone of `write_db` second.
+3. **Each one has its own getter.** The container generates `get_read_db()` and `get_write_db()`, both returning an `Arc<Database>`, each pointing to its own database.
 
 ## Which problem this solves
 
@@ -45,5 +45,5 @@ name: ch09_multiple_instances
 
 ## Remember
 
-1. You can declare as many fields of the same Rust type in a `#[container]` as your architecture requires.
-2. Always verify the order of field names in `deps = [read_db, write_db]` when a constructor takes multiple arguments of the same type.
+1. A container can hold as many fields of the same type as your application needs.
+2. When a constructor takes several arguments of the same type, check the order of the names in `deps`: the compiler can't tell a swapped pair apart.

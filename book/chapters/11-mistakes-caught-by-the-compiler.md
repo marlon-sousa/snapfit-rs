@@ -1,71 +1,69 @@
 # Mistakes caught by the compiler
 
-## What you want to do
+Everybody mistypes a name now and then, and sooner or later someone wires two services that need each other. The question is when you find out. With the service locator of [Chapter 3](03-who-builds-everything.md), you found out only when the program asked for the component. Let's make some mistakes on purpose and see when `snapfit` tells us.
 
-When someone mistypes a dependency name, introduces a circular dependency between two services, or writes an attribute `snapfit` cannot read, you want `cargo build` to stop immediately with a clear error message naming the problem — rather than failing at runtime when a customer places an order.
+Think of a building inspector who checks the plans before anyone moves in, rather than waiting for a wall to fall down.
 
-## The code
+## A name that doesn't exist
 
-### 1. Referencing a dependency name that does not exist
-
-If `db` lists `deps = [confog]` instead of `config`, `snapfit` rejects the container and lists the valid dependency names the container can wire:
+Say `db` lists `deps = [confog]` instead of `config`. The build stops, and the message lists the names the container does know:
 
 ```compile-error
 name: ch11_unknown_dependency
 ```
 
-### 2. Circular dependency between two components
+## Two components that need each other
 
-If `orders` depends on `inventory` and `inventory` depends on `orders`, `snapfit` refuses the container. The message names the cycle as a sentence and points at the first field of the cycle:
+Now `orders` needs `inventory`, and `inventory` needs `orders`. Neither can be built first. This circle is what the compiler calls a dependency cycle. The message describes it in a sentence, and points at the first field in it:
 
 ```compile-error
 name: ch11_dependency_cycle
 ```
 
-### 3. A component that depends on itself
+## A component that needs itself
 
-If `ledger` lists itself in `deps = [ledger]`, `snapfit` catches the self-dependency cycle:
+The smallest circle there is: `ledger` lists itself in `deps = [ledger]`:
 
 ```compile-error
 name: ch11_self_dependency_cycle
 ```
 
-### 4. A constructor name written in quotes
+## A constructor name in quotes
 
-`constructor = <fn>` takes the function's bare name, written as Rust rather than as a string. Writing it in quotes is refused, and the message shows what to write instead:
+`constructor = <fn>` takes the function's name as Rust, not as text. If you write it in quotes, the message shows you what to write instead:
 
 ```compile-error
 name: ch11_quoted_constructor
 ```
 
-### 5. Several mistakes at once
+## Several mistakes at once
 
-`snapfit` does not stop at the first problem in the graph. Every unknown dependency and every cycle is its own error, at its own field, in the same `cargo build`. Here `db` names a field that does not exist, and `orders` and `stock` need each other:
+`snapfit` doesn't stop at the first problem. Every unknown name and every circle is its own error, at its own field, in the same `cargo build`, so you can fix them all in one go. Here `db` names a field that doesn't exist, and `orders` and `stock` need each other:
 
 ```compile-error
 name: ch11_several_mistakes
 ```
 
-### 6. Applying `#[container]` to a tuple struct
+## A tuple struct
 
-Because `snapfit` uses field names to identify nodes in the dependency graph and generate `get_<name>()` methods, tuple structs are refused:
+`snapfit` knows components by their field names, and uses those names for the getters. A tuple struct has no field names, so it is refused:
 
 ```compile-error
 name: ch11_tuple_struct_container
 ```
 
-## How it works
+## How the checks run
 
-1. **Reading the struct:** When `rustc` expands `#[container]`, `snapfit` reads every field and its attributes. A field it cannot read, such as one whose constructor name is quoted, is reported at that field.
-2. **Checking the graph:** `snapfit` then visits the fields in the order they are declared and orders each one after the fields it needs. On the way, it reports every name in `deps` that is not a field of the container, and every cycle, told from the cycle's first declared field.
-3. **Reporting:** Each problem becomes its own compiler error, a sentence that points at the attribute of the field it is about, or at the container's name when no single field is at fault. The fields that cannot be read are reported together, and the graph is checked only once every field reads; then every problem in the graph is reported together. `new()` and the getters are generated only once every problem is fixed.
+1. **First, `snapfit` reads the struct.** When the compiler expands `#[container]`, `snapfit` reads every field and its attribute. A field it can't read, such as one whose constructor name is in quotes, is reported at that field.
+2. **Then it checks the graph.** It visits the fields in the order you declared them, and orders each one after the fields it needs. On the way, it reports every name in `deps` that isn't a field, and every circle, told from the first field of that circle you declared.
+3. **Then it reports.** Each problem becomes its own error: a sentence that points at the attribute of the field it is about, or at the container's name when no single field is to blame. All the fields it can't read are reported together, and the graph is checked once every field can be read; then all the problems in the graph are reported together. `new()` and the getters are generated only once every problem is fixed.
 
 ## Which problem this solves
 
-1. **Mistakes appear at run time** ([Chapter 3](03-who-builds-everything.md)): a dependency that does not exist, a cycle, or a constructor name that cannot be read stops `cargo build`, with an error at the field. The program never starts with a broken graph.
+1. **Run-time failures** ([Chapter 3](03-who-builds-everything.md)): a dependency that doesn't exist, a circle, or a constructor name that can't be read stops `cargo build`, with an error at the field. The program never starts with a broken graph.
 
 ## Remember
 
-1. When `snapfit` reports `unknown dependency`, check the list of available field names at the end of the compiler message.
-2. Break a dependency cycle by extracting the shared logic into a third pure domain struct that both services depend on.
-3. Fix the errors in any order: each one is about its own field, or about the container. Once you fix a field `snapfit` could not read, the next `cargo build` may report problems in the graph that it could not check before.
+1. When `snapfit` reports an unknown dependency, look at the list of field names at the end of the message.
+2. To break a circle, move the logic both services share into a third plain struct, and let both depend on it.
+3. Fix the errors in any order: each one is about its own field, or about the container. After you fix a field `snapfit` couldn't read, the next build may report problems in the graph that it couldn't check before.

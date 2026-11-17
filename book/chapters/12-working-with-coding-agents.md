@@ -1,26 +1,24 @@
 # Working with coding agents
 
-## What you want to do
+More and more code is written together with AI coding agents. An agent works best when it can find what it needs without reading the whole codebase, just like a new colleague on their first week. Let's see how the shape `snapfit` gives your code helps with that, by adding a feature the way an agent would.
 
-Your team works with AI coding agents to add features to the shop — such as inserting a `FraudGuard` check before checkout — and you want each change to stay localized so an agent never has to read or edit unrelated services to wire a new dependency.
+## A new feature: a fraud check
 
-## The code
-
-Adding `FraudGuard` between `ShopConfig` and `CheckoutService` keeps all three structs pure Rust:
+The shop wants to hold large orders for review before checkout. That's a new component, `FraudGuard`, which reads the limit from the configuration, and a change to `CheckoutService`, which asks the guard before approving an order. All three stay plain Rust:
 
 ```example
 name: ch12_agent_workflow
 region: domain_step
 ```
 
-And in `ShopContainer`, wiring `FraudGuard` into the graph is a single field declaration and an updated `deps = [guard]` on `checkout`:
+Wiring the guard into the application is one new field in the container, and `guard` in the `deps` of `checkout`:
 
 ```example
 name: ch12_agent_workflow
 region: container
 ```
 
-Running the updated container verifies both an approved order and a held order:
+Let's try a small order and a large one:
 
 ```example
 name: ch12_agent_workflow
@@ -33,16 +31,18 @@ It prints:
 name: ch12_agent_workflow
 ```
 
-## How it works
+## Two kinds of change, two places
 
-1. **Separated responsibilities for agents:**
-   - **To change a business rule** (for example, changing how `FraudGuard::allows` evaluates an order): the agent opens only `FraudGuard`. It does not need to read `ShopContainer` or any other service.
-   - **To change how components are wired** (for example, routing `CheckoutService` through `FraudGuard`): the agent opens `ShopContainer` and updates `deps = [...]`. The compiler immediately verifies that all prerequisites exist and that no cycle was introduced.
-2. **One reviewer rule:** During code review (by a human or an independent reviewer agent), one invariant catches architectural drift immediately: *no domain module may import `snapfit` or construct its own service dependencies internally*.
+Think of a map on the wall of a big building. You don't have to walk every corridor to find the meeting room. The container is that map for your application.
 
-### Copy-ready rules for your repository's `AGENTS.md`
+1. **To change a business rule**, such as how `FraudGuard::allows` judges an order, the agent opens `FraudGuard`, and nothing else. It doesn't need the container or any other service.
+2. **To change how components are wired**, such as sending checkout through the guard, the agent opens the container and edits a `deps` list. The compiler checks right away that every name exists and that no circle appeared.
 
-You can copy the following section directly into your project's `AGENTS.md`:
+Code review gets simpler too. Whether the reviewer is a person or another agent, one rule catches most drift: no domain module imports `snapfit`, and no domain module builds its own dependencies.
+
+## Rules to copy into your `AGENTS.md`
+
+You can copy this section into your project's `AGENTS.md`:
 
 ```markdown
 ## Dependency Injection (`snapfit`) Rules
@@ -54,11 +54,11 @@ You can copy the following section directly into your project's `AGENTS.md`:
 
 ## Which problem this solves
 
-1. **Two jobs in one place** ([Chapter 1](01-a-service-that-builds-its-own-dependencies.md)): a business rule lives in its service and the wiring lives in the container, so an agent changing one does not read or edit the other.
-2. **The graph is nowhere** ([Chapter 3](03-who-builds-everything.md)): an agent learns how the whole application is wired by reading one struct.
-3. **Services drift back to choosing** ([Chapter 3](03-who-builds-everything.md)): the reviewer rule above, that no domain module imports `snapfit` or builds its own dependencies, keeps it from happening.
+1. **Mixed responsibilities** ([Chapter 1](01-a-service-that-builds-its-own-dependencies.md)): a business rule lives in its service and the wiring lives in the container, so an agent changing one doesn't read or edit the other.
+2. **An invisible graph** ([Chapter 3](03-who-builds-everything.md)): an agent learns how the whole application fits together by reading one struct.
+3. **Hidden dependencies** ([Chapter 3](03-who-builds-everything.md)): the review rule above, that no domain module imports `snapfit` or builds its own dependencies, keeps every service's needs in its constructor, where anyone can see them.
 
 ## Remember
 
-1. Keep domain modules and the `#[container]` manifest in distinct modules or crates so agents have clear boundaries.
-2. Let `cargo check` and `#[container]` verify every wiring change — if a prerequisite name is wrong or a cycle is created, the compiler stops the agent immediately.
+1. Keep domain modules and the `#[container]` in separate modules or crates, so an agent has clear boundaries.
+2. Let `cargo check` verify every wiring change: if a name is wrong or a circle appears, the compiler stops the agent right away.

@@ -1,19 +1,17 @@
 # Read the container, know the graph
 
-## What you want to do
+When you open a new codebase, one of the first things you want to know is how it fits together: what talks to what, and what needs what. In a `snapfit` application, that answer is written in one struct. Let's see how much one container tells you, and why you can write its fields in whatever order reads best.
 
-The shop has five components across three layers (`ShopConfig`, `Database`, `PaymentClient`, `OrderRepository`, and `CheckoutHandler`). You want to declare them in whatever order is most natural to read, such as top-down from the HTTP handler to the leaf configuration, and let `snapfit` build each one after the components it needs.
+## Five components, written top-down
 
-## The code
-
-In `ShopContainer`, the fields are written top-down, starting with `checkout` (the entry point) and ending with `config` (the leaf singleton):
+Our checkout now has five components across four layers: a configuration, a database and a payment client, an order repository, and the checkout handler at the top. We write the container the way you would explain it to a colleague, starting from the entry point and ending with the configuration:
 
 ```example
 name: ch08_container_graph
 region: container
 ```
 
-Instantiating `ShopContainer` and running a checkout works without manual ordering:
+That's the opposite of the order they have to be built in. Let's run it anyway:
 
 ```example
 name: ch08_container_graph
@@ -26,7 +24,11 @@ It prints:
 name: ch08_container_graph
 ```
 
-## How it works
+It just works. Think of a recipe whose steps each say what they need. You can write the steps in any order: the baking step says it needs the batter, so the batter is mixed first.
+
+## The graph, read from the struct
+
+Here is everything the container says, drawn as a picture:
 
 ```mermaid
 flowchart TD
@@ -41,29 +43,31 @@ flowchart TD
 
 What the diagram shows:
 
-1. `config` (`Arc<ShopConfig>`) is the only leaf: it needs nothing.
+1. `config` (`Arc<ShopConfig>`) needs nothing.
 2. `db` (`Arc<Database>`) and `payments` (`Arc<PaymentClient>`) both need only `config`.
 3. `repo` (`Arc<OrderRepository>`) needs `db`.
-4. `checkout` (`Arc<CheckoutHandler>`) needs `repo` and `payments`, and receives clones of them in the exact order listed in `deps`.
+4. `checkout` (`Arc<CheckoutHandler>`) needs `repo` and `payments`, and receives them in the order its `deps` lists them.
 
-### The order `ShopContainer::new()` builds them in
+You didn't have to open a single service to draw that. Everything came from `ShopContainer`.
 
-`snapfit` visits the fields in the order they are declared. Before it builds a field, it builds the fields that field needs, in the order its `deps` lists them, and the fields those need in turn:
+## How the container finds the order
 
-1. `checkout` is declared first, but it needs `repo` and `payments`, so it waits.
-2. `repo` needs `db`, and `db` needs `config`, so `config` is built first, then `db`, then `repo`.
-3. `payments` needs only `config`, which is already built, so it is built next.
+`snapfit` visits the fields in the order you declared them. Before it builds a field, it builds the fields that one needs, in the order its `deps` lists them, and the fields those need in turn. Let's follow it:
+
+1. `checkout` comes first, but it needs `repo` and `payments`, so it waits.
+2. `repo` needs `db`, and `db` needs `config`. So `config` is built first, then `db`, then `repo`.
+3. `payments` needs only `config`, which is already there, so it is built next.
 4. With `repo` and `payments` ready, `checkout` is built last.
 
-The order is worked out at compile time, so it costs nothing when the program runs, and it is the same every time.
+All of this is worked out when the program compiles, so it costs nothing when it runs, and it is the same every time.
 
 ## Which problem this solves
 
-1. **The order is kept by hand** ([Chapter 3](03-who-builds-everything.md)): the fields are declared top-down, the opposite of the order they must be built in, and `new()` still builds each one after the fields it needs.
-2. **The graph is nowhere** ([Chapter 3](03-who-builds-everything.md)): every component and every edge of the diagram above is written in `ShopContainer`, and nowhere else.
+1. **Ordering by hand** ([Chapter 3](03-who-builds-everything.md)): the fields are written top-down, the opposite of the order they must be built in, and `new()` still builds each one after the fields it needs.
+2. **An invisible graph** ([Chapter 3](03-who-builds-everything.md)): every component and every arrow of the diagram above is written in `ShopContainer`, and nowhere else.
 
 ## Remember
 
-1. You can declare the fields of a `#[container]` in any order: `snapfit` visits them in the order they are declared, and builds the fields each one needs before it.
-2. Argument order inside `deps = [repo, payments]` **does** matter: it must match the parameter order of `CheckoutHandler::new(repo, payments)`.
-3. Reading the `#[container]` struct alone tells you every component and its exact dependencies without opening a single implementation file.
+1. Declare the fields of a `#[container]` in whatever order reads best: each one is built after the fields it needs.
+2. The order of names inside `deps = [repo, payments]` does matter: it must match the order of the constructor's parameters, `CheckoutHandler::new(repo, payments)`.
+3. The `#[container]` struct alone tells you every component and what it needs, without opening any other file.

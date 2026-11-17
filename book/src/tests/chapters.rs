@@ -4,20 +4,11 @@ use std::path::Path;
 
 use super::{section_lines, sorted_files};
 
-const FEATURE_SECTIONS: &[&str] = &[
-    "## What you want to do",
-    "## The code",
-    "## How it works",
-    "## Which problem this solves",
-    "## Remember",
-];
+/// The level 2 sections every feature chapter ends with, in this order.
+const FEATURE_CLOSING_SECTIONS: &[&str] = &["## Which problem this solves", "## Remember"];
 
-const PROBLEM_SECTIONS: &[&str] = &[
-    "## What you want to do",
-    "## The code",
-    "## What goes wrong",
-    "## Remember",
-];
+/// The level 2 section every problem chapter of Part 1 ends with.
+const PROBLEM_CLOSING_SECTIONS: &[&str] = &["## What we found"];
 
 const PROBLEM_PART_HEADING: &str = "## Part 1:";
 
@@ -44,12 +35,12 @@ fn chapters_table_of_contents_and_structure_are_valid() {
         let content = fs::read_to_string(chapters_dir.join(file_name)).unwrap();
         verify_single_h1(file_name, &content);
         if is_structured_chapter(file_name) {
-            let sections = if problem_files.contains(file_name) {
-                PROBLEM_SECTIONS
+            let closing = if problem_files.contains(file_name) {
+                PROBLEM_CLOSING_SECTIONS
             } else {
-                FEATURE_SECTIONS
+                FEATURE_CLOSING_SECTIONS
             };
-            verify_sections(file_name, &content, sections);
+            verify_closing_sections(file_name, &content, closing);
         }
         verify_mermaid_accessibility(file_name, &content);
     }
@@ -94,14 +85,21 @@ fn verify_single_h1(file_name: &str, content: &str) {
     );
 }
 
-fn verify_sections(file_name: &str, content: &str, sections: &[&str]) {
+/// The chapter's own sections come first, then the closing ones, each once and in order.
+fn verify_closing_sections(file_name: &str, content: &str, closing: &[&str]) {
     let h2_headings: Vec<&str> = non_fenced_lines(content)
         .into_iter()
         .filter(|line| line.starts_with("## "))
         .collect();
+    let own_count = h2_headings.len().saturating_sub(closing.len());
+    let (own, last) = h2_headings.split_at(own_count);
     assert_eq!(
-        h2_headings, sections,
-        "{file_name} must have the required ## sections in exact order"
+        last, closing,
+        "{file_name} must end with the ## sections {closing:?}, in this order"
+    );
+    assert!(
+        !own.is_empty() && !own.iter().any(|heading| closing.contains(heading)),
+        "{file_name} must have its own ## sections before {closing:?}, and use those only at the end"
     );
 }
 

@@ -1,46 +1,36 @@
 # How to read this book
 
-Every page in this book follows a small set of conventions so that both human readers (including screen-reader users) and coding agents can navigate straight to what they need.
+A few words on how the book works, so you know what to expect on every page, whether you read it with your eyes, with a screen reader, or as a coding agent.
 
 ## One story: the online shop
 
-Instead of inventing unrelated `Foo` and `Bar` types on every page, every example belongs to one small online shop that reserves stock, charges payments, and reports its sales. Each chapter's example is a complete, standalone Rust program in `book/examples/` that you can run on its own with `cargo run -p snapfit_book --example <name>`.
+We don't invent unrelated `Foo` and `Bar` types on every page. Every example belongs to one small online shop that reserves stock, charges payments and reports its sales, and that grows from chapter to chapter. Each chapter's example is a complete Rust program in `book/examples/` that you can run on its own with `cargo run -p snapfit_book --example <name>`.
 
-## The shape of a chapter
+## How a chapter goes
 
-Every numbered chapter, and the [Quick start](quick-start.md), has its level 2 sections in the same order.
+The chapters of Part 1 tell a story. We write some code, run it, and look at what goes wrong. Each time we find a problem, we explain it, often with an example from everyday life, and give it a short name. Every chapter of Part 1 ends with **What we found**, a list of the problems it named, in bold, so you can find them again.
 
-The chapters of Part 1 show a problem, so their sections are:
+Every other chapter teaches one feature of `snapfit`. It shows the code, runs it, and explains what happened. It ends with two short sections:
 
-1. **What you want to do:** the goal, in the shop's terms.
-2. **The code:** the program that reaches it, and what it prints.
-3. **What goes wrong:** the problems that code has, each with a short name in bold that later chapters refer to.
-4. **Remember:** a short list of what to take away.
+1. **Which problem this solves:** the problems of Part 1 this feature answers, by their bold names, and how.
+2. **Remember:** the few things worth keeping in mind, for you and for any agent working with you.
 
-Every other chapter teaches a feature, so its sections are:
+## Every listing is compiled and checked
 
-1. **What you want to do:** one or two sentences stating the goal in the shop's terms.
-2. **The code:** the relevant slices of the chapter's compiled program, followed by the exact output it prints.
-3. **How it works:** a numbered walkthrough explaining each mechanism in plain language.
-4. **Which problem this solves:** the problems of Part 1 this feature answers, by their bold names, and how.
-5. **Remember:** a short checklist of invariants to keep in mind.
+No multi-line Rust program in this book is pasted into the text by hand:
 
-## Every listing is compiled and verified
+- Code blocks come straight from `book/examples/<name>.rs`.
+- Output blocks come from the recorded output in `book/expected/<name>.txt`.
+- Compiler error blocks, as in [Chapter 10](10-choosing-an-implementation.md) and [Chapter 11](11-mistakes-caught-by-the-compiler.md), come from programs in `book/compile-errors/<name>.rs`, followed by the recorded compiler message in `book/compile-errors/<name>.txt`.
 
-No multi-line Rust program in this book is pasted by hand into the prose:
+`cargo xtask book-check` compiles and runs every example and compares every recorded output and compiler message, and every pull request has to pass the same check. If a page shows it, it works.
 
-- Code blocks pull marked regions directly from `book/examples/<name>.rs`.
-- Output blocks pull the recorded standard output from `book/expected/<name>.txt`.
-- Compiler error blocks, as in [Chapter 10](10-choosing-an-implementation.md) and [Chapter 11](11-mistakes-caught-by-the-compiler.md), pull invalid programs from `book/compile-errors/<name>.rs` and the recorded compiler diagnostics from `book/compile-errors/<name>.txt`.
+## Diagrams and screen readers
 
-`cargo xtask book-check` compiles and runs every example and verifies every recorded output and compiler message, and the quality gate every pull request passes runs the same tests.
-
-## Diagrams and screen-reader accessibility
-
-Every diagram is drawn with Mermaid, includes an accessible title and description (`accTitle` and `accDescr`), and is immediately followed by a numbered list in the text that states everything the diagram shows. You never need to see a visual box or arrow to follow the explanation.
+Every diagram is drawn with Mermaid, has an accessible title and description, and is followed by a numbered list that says in words everything the diagram shows. You never need to see a box or an arrow to follow along.
 
 ## Where to go further
 
-- [Quick start](quick-start.md) runs a complete container of singletons on one page.
-- [Specification (`docs/SPEC.md`)](https://github.com/marlon-sousa/snapfit-rs/blob/main/docs/SPEC.md) defines the formal syntax and semantics of `snapfit`.
-- [Architecture (`docs/ARCHITECTURE.md`)](https://github.com/marlon-sousa/snapfit-rs/blob/main/docs/ARCHITECTURE.md) explains how the code of `snapfit-macros` is organised.
+- The [Quick start](quick-start.md) runs a complete container on one page.
+- The [specification (`docs/SPEC.md`)](https://github.com/marlon-sousa/snapfit-rs/blob/main/docs/SPEC.md) defines exactly what `snapfit` accepts, generates and refuses.
+- The [architecture (`docs/ARCHITECTURE.md`)](https://github.com/marlon-sousa/snapfit-rs/blob/main/docs/ARCHITECTURE.md) explains how the code of `snapfit-macros` is organised.
