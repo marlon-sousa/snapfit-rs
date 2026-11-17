@@ -1,3 +1,4 @@
+mod chapters;
 mod compile_errors;
 mod directives;
 
