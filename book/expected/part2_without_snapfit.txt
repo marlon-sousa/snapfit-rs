@@ -1,2 +1,0 @@
-typemap kept 1 entry: primary-rw
-snapfit kept both: read=replica-ro, write=primary-rw

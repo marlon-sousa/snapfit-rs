@@ -4,12 +4,21 @@ use std::path::Path;
 
 use super::sorted_files;
 
-const REQUIRED_SECTIONS: &[&str] = &[
+const FEATURE_SECTIONS: &[&str] = &[
     "## What you want to do",
     "## The code",
     "## How it works",
     "## Remember",
 ];
+
+const PROBLEM_SECTIONS: &[&str] = &[
+    "## What you want to do",
+    "## The code",
+    "## What goes wrong",
+    "## Remember",
+];
+
+const PROBLEM_PART_HEADING: &str = "## Part 1:";
 
 #[test]
 fn chapters_table_of_contents_and_structure_are_valid() {
@@ -18,7 +27,12 @@ fn chapters_table_of_contents_and_structure_are_valid() {
     let readme = fs::read_to_string(chapters_dir.join("README.md"))
         .expect("missing book/chapters/README.md");
 
-    let linked_files = extract_linked_chapter_files(&readme);
+    let linked_files = extract_linked_chapter_files(readme.lines());
+    let problem_files = extract_linked_chapter_files(part_lines(&readme, PROBLEM_PART_HEADING));
+    assert!(
+        !problem_files.is_empty(),
+        "book/chapters/README.md must list the problem chapters under a heading starting with \"{PROBLEM_PART_HEADING}\""
+    );
     let actual_files = actual_chapter_filenames(&chapters_dir);
     assert_eq!(
         linked_files, actual_files,
@@ -29,7 +43,12 @@ fn chapters_table_of_contents_and_structure_are_valid() {
         let content = fs::read_to_string(chapters_dir.join(file_name)).unwrap();
         verify_single_h1(file_name, &content);
         if is_structured_chapter(file_name) {
-            verify_four_sections(file_name, &content);
+            let sections = if problem_files.contains(file_name) {
+                PROBLEM_SECTIONS
+            } else {
+                FEATURE_SECTIONS
+            };
+            verify_four_sections(file_name, &content, sections);
         }
         verify_mermaid_accessibility(file_name, &content);
     }
@@ -37,9 +56,16 @@ fn chapters_table_of_contents_and_structure_are_valid() {
     verify_all_examples_and_compile_errors_are_used(book_dir, &chapters_dir);
 }
 
-fn extract_linked_chapter_files(readme: &str) -> HashSet<String> {
+fn part_lines<'a>(readme: &'a str, heading: &'a str) -> impl Iterator<Item = &'a str> {
     readme
         .lines()
+        .skip_while(move |line| !line.starts_with(heading))
+        .skip(1)
+        .take_while(|line| !line.starts_with("## "))
+}
+
+fn extract_linked_chapter_files<'a>(lines: impl Iterator<Item = &'a str>) -> HashSet<String> {
+    lines
         .filter_map(|line| {
             let (_, rest) = line.split_once("](")?;
             let (target, _) = rest.split_once(')')?;
@@ -75,13 +101,13 @@ fn verify_single_h1(file_name: &str, content: &str) {
     );
 }
 
-fn verify_four_sections(file_name: &str, content: &str) {
+fn verify_four_sections(file_name: &str, content: &str, sections: &[&str]) {
     let h2_headings: Vec<&str> = non_fenced_lines(content)
         .into_iter()
         .filter(|line| line.starts_with("## "))
         .collect();
     assert_eq!(
-        h2_headings, REQUIRED_SECTIONS,
+        h2_headings, sections,
         "{file_name} must have the four required ## sections in exact order"
     );
 }

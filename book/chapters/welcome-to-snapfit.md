@@ -2,21 +2,18 @@
 
 Hello, and welcome to **The Snapfit Book**.
 
-`snapfit` is a zero-cost, compile-time verified dependency injection framework for Rust. It is built around one architectural inversion: **the container struct declares the dependency graph, leaving your domain structs 100% pure Rust.**
+`snapfit` is a compile-time dependency injection library for Rust. You declare your application's components in one struct, and `snapfit` generates the code that builds them, in the right order, each once, and refuses a missing dependency or a cycle when the program compiles. Your services stay plain Rust: they never mention `snapfit`.
 
-## What we are solving
+## Why start with the problem
 
-As a Rust application grows beyond a few structs, wiring components together usually pushes teams toward one of three compromises:
+A library that solves a problem you have not met yet is hard to judge. So the book does not start with `snapfit`. It starts with an ordinary shop whose services build their own dependencies, and follows it as it grows: each step fixes one problem and uncovers the next, until the remaining problems are the ones `snapfit` was built for. Every problem gets a short name, and the chapters that follow say which of them they answer.
 
-1. **Invasive component macros** (`#[inject]`, `#[component]`, framework traits) scattered across every business service and repository.
-2. **Dynamic service locators** (`TypeMap` or `Arc<dyn Any + Send + Sync>`) that defer missing-dependency checks to runtime, pay dynamic downcasting overhead, and collide whenever two instances share the same Rust type.
-3. **Hand-rolled `main.rs` initialization chains** where dozens of `Arc::clone` calls hide which services are shared and what depends on what.
-
-Keeping domain logic clean and making the dependency graph explicit in one place was good engineering when only humans maintained the code. When AI coding agents work alongside your team, it becomes a matter of safety: an agent starting a session with zero memory can read one `#[container]` struct to understand the entire system's wiring, and can change a business rule inside a pure Rust struct without touching any framework macro.
+If you already know dependency injection and want to see the code, the [Quick start](quick-start.md) shows a complete container on one page.
 
 ## How the book is laid out
 
-- **[Part 1: Introduction](01-why-snapfit.md)** makes the case for container-driven dependency injection, shows why domain types need zero annotations, and demonstrates how reading one container struct tells you the full dependency graph.
-- **[Part 2: Wiring a Container](04-installing-and-first-singleton.md)** walks through every stable wiring feature in `v0.1.0`: singletons, custom constructors, and multiple instances of the same type (`read_db` and `write_db`).
-- **[Part 3: Compile-Time Guarantees & Agents](07-mistakes-caught-by-the-compiler.md)** shows every mistake `snapfit` catches at compile time with the exact `rustc` error messages, and how to structure `AGENTS.md` so coding agents take full advantage of `snapfit`.
-- **[Appendices](appendix-1-cheat-sheet.md)** provide a one-page attribute cheat sheet and the capability summary for `v0.1.0`.
+- **[Part 1: Why dependency injection](01-a-service-that-builds-its-own-dependencies.md)** starts from services that build their own dependencies, shows the ways to let them work with more than one implementation, and ends with the one place that builds everything, which is what dependency injection means.
+- **[Part 2: Snapfit](04-why-we-built-snapfit.md)** shows the same shop built by a `snapfit` container, how it answers each problem of Part 1, and what version `0.1.0` supports and does not.
+- **[Part 3: Wiring a container](05-installing-and-first-singleton.md)** teaches the features of `0.1.0` one at a time: shared components, dependencies and constructors, construction order, several components of one type, and choosing an implementation.
+- **[Part 4: Compile-time guarantees and agents](11-mistakes-caught-by-the-compiler.md)** shows every mistake `snapfit` refuses when compiling, with the compiler's exact message, and how the design helps when coding agents work on your code.
+- **[Appendix](appendix-1-cheat-sheet.md)**: every attribute on one page.

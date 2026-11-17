@@ -5,7 +5,7 @@ import { unified } from 'unified';
 import { chapters, root } from '../../book.config.mjs';
 import { readText } from './text.ts';
 
-export type PageKind = 'welcome' | 'chapter' | 'without-snapfit' | 'appendix';
+export type PageKind = 'welcome' | 'chapter' | 'appendix';
 
 export interface Page {
 	slug: string;
@@ -41,7 +41,6 @@ function text(nodes: PhrasingContent[]): string {
 }
 
 function kindOf(slug: string, numbered: boolean): PageKind {
-	if (/^part-\d+-without-snapfit$/.test(slug)) return 'without-snapfit';
 	if (/^appendix-\d+-/.test(slug)) return 'appendix';
 	return numbered ? 'chapter' : 'welcome';
 }

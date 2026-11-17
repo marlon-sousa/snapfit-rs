@@ -7,8 +7,8 @@ These chapters were written for `v0.1.0` but cover APIs that ship only behind sn
 
 When transients and async containers are stabilised (see [What ships in 0.1.0](../../docs/SPEC.md#0-what-ships-in-010)):
 
-1. move the chapter back into `book/chapters/` as Part 2 chapters and renumber the chapters after it;
+1. move the chapter back into `book/chapters/` as Part 3 chapters and renumber the chapters after it;
 2. move the example and expected output back into `book/examples/` and `book/expected/`;
 3. link the chapters from `book/chapters/README.md` and `book/BOOK.md`;
-4. update the cheat sheet and Appendix 2, and restore the Quick start's transient `checkout` if it still reads best that way;
+4. update the cheat sheet and "What this version supports", and restore the Quick start's transient `checkout` if it still reads best that way;
 5. run `cargo xtask book-check` and re-record any changed output.

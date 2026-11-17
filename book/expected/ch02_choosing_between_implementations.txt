@@ -1,0 +1,5 @@
+closed list, production: Stripe charged 1000 cents
+closed list, test: fake gateway pretended to charge 1000 cents
+generic, production: checkout: Stripe charged 2000 cents
+generic, test: checkout: fake gateway pretended to charge 2000 cents
+trait object: Stripe charged 3000 cents

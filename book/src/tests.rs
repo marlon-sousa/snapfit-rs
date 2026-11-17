@@ -2,6 +2,7 @@ mod chapters;
 mod compile_errors;
 mod directives;
 mod readme;
+mod stable_only;
 
 use std::env;
 use std::fs;

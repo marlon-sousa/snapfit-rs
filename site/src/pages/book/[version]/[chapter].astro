@@ -19,15 +19,14 @@ interface Props {
 }
 
 const { page, previous, next } = Astro.props;
-const { title, html } = await renderPage(page);
+const { html } = await renderPage(page);
 const labels = {
 	welcome: undefined,
 	chapter: `Chapter ${page.number}`,
 	appendix: 'Appendix',
-	'without-snapfit': 'Closing the part',
 };
 const label = labels[page.kind];
-const pageTitle = page.kind === 'without-snapfit' ? `${title}, ${page.part.title}` : pageName(page);
+const pageTitle = pageName(page);
 ---
 
 <Base
