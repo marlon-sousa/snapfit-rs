@@ -1,11 +1,12 @@
+use compile_outcomes::Outcome;
 use cucumber::World;
 
 use crate::codegen_containers::unit_struct_named_field::UnitStructNamedFieldContainer;
 use crate::codegen_containers::{
     DerivedAfterContainer, DerivedBeforeContainer, DerivedContainer, TypedFieldsContainer,
 };
-use crate::compile_harness::{CompileOutcome, compile_fixture};
 use crate::containers::{AppContainer, checkout, multi_db, ordered};
+use crate::fixture_outcomes::fixture_outcome;
 #[cfg(feature = "unstable")]
 use crate::unstable_world::UnstableContainers;
 
@@ -36,7 +37,7 @@ pub struct ContainerWorld {
     derived_container: Option<Box<dyn DerivedContainer>>,
     unit_struct_named_field: Option<UnitStructNamedFieldContainer>,
     selected_fixture: Option<String>,
-    compile_outcome: Option<CompileOutcome>,
+    compile_outcome: Option<&'static Outcome>,
     construction_order: Vec<&'static str>,
     checkout_container: Option<checkout::CheckoutContainer>,
     #[cfg(feature = "unstable")]
@@ -155,13 +156,18 @@ impl ContainerWorld {
             .selected_fixture
             .as_deref()
             .expect("invalid fixture name must be selected in Given step");
-        self.compile_outcome = Some(compile_fixture(name));
+        self.compile_outcome = Some(fixture_outcome(name));
     }
 
-    pub fn compile_outcome(&self) -> &CompileOutcome {
-        self.compile_outcome
-            .as_ref()
-            .expect("fixture must be compiled before Then assertions")
+    pub fn compiled_fixture(&self) -> (&str, &'static Outcome) {
+        let name = self
+            .selected_fixture
+            .as_deref()
+            .expect("invalid fixture name must be selected in Given step");
+        let outcome = self
+            .compile_outcome
+            .expect("fixture must be compiled before Then assertions");
+        (name, outcome)
     }
 }
 

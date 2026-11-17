@@ -34,3 +34,6 @@ multiple-versions = "warn"
 unknown-registry = "deny"
 unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+# compile-outcomes, a pre-release taken by git tag until it is on crates.io,
+# used only by the unpublished Gherkin suite, snapfit_bdd.
+allow-git = ["https://github.com/marlon-sousa/compile-outcomes-rs"]

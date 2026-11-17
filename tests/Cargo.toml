@@ -10,12 +10,14 @@ publish = false
 [dependencies]
 cucumber = { workspace = true }
 futures = { workspace = true }
-rayon = { workspace = true }
 snapfit = { workspace = true }
+
+[dev-dependencies]
+compile-outcomes = { workspace = true }
 
 [features]
 # Runs the `features/unstable` suite against snapfit's unstable APIs instead of
-# the stable suite. Use a separate target dir (see `cargo xtask test`).
+# the stable suite, and compiles the fixtures with that feature too.
 unstable = ["snapfit/unstable"]
 
 [[test]]
