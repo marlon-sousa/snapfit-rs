@@ -21,9 +21,12 @@ pub(super) fn call_for<F>(
         (_, true) | (TypeShape::Value, false) => Wrapping::None,
         (TypeShape::Arc, false) => Wrapping::Arc,
         (TypeShape::TraitObject, false) => {
-            return Err(DomainError::TraitObjectWithoutBuilder {
-                dependency: dependency.name.clone(),
-                remedy,
+            let dependency = dependency.name.clone();
+            return Err(match remedy {
+                TraitObjectRemedy::ConcreteType => {
+                    DomainError::TraitObjectNeedsConcreteType { dependency }
+                }
+                TraitObjectRemedy::Builder => DomainError::TraitObjectWithoutBuilder { dependency },
             });
         }
     };

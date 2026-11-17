@@ -30,8 +30,7 @@ impl FeatureGate {
             .collect()
     }
 
-    /// What a trait-object field without a builder is told to do: a build
-    /// that refuses builders cannot suggest one.
+    /// What a trait-object field without a builder is told to do.
     pub(crate) fn trait_object_remedy(self) -> TraitObjectRemedy {
         match self {
             Self::Stable => TraitObjectRemedy::ConcreteType,

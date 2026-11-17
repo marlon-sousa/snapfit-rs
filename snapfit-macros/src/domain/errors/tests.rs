@@ -48,26 +48,23 @@ fn an_error_about_the_whole_container_has_no_subject() {
     assert_eq!(error.subject(), None);
 }
 
-fn trait_object(remedy: TraitObjectRemedy) -> String {
-    DomainError::TraitObjectWithoutBuilder {
-        dependency: name("cache"),
-        remedy,
-    }
-    .to_string()
-}
-
 #[test]
 fn a_trait_object_on_the_unstable_build_is_told_a_builder_named_after_its_field() {
-    assert!(trait_object(TraitObjectRemedy::Builder).contains("builder = build_cache"));
+    let error = DomainError::TraitObjectWithoutBuilder {
+        dependency: name("cache"),
+    };
+
+    assert!(error.to_string().contains("builder = build_cache"));
 }
 
 #[test]
-fn a_trait_object_on_the_stable_build_is_told_to_hold_the_concrete_type_not_a_builder() {
-    let message = trait_object(TraitObjectRemedy::ConcreteType);
+fn a_trait_object_on_the_stable_build_is_told_to_hold_the_concrete_type_in_its_arc() {
+    let error = DomainError::TraitObjectNeedsConcreteType {
+        dependency: name("cache"),
+    };
 
     assert_eq!(
-        message,
-        "field 'cache' has a trait-object type, which has no constructor; give the field the concrete type that implements the trait, and a constructor that takes the trait object will still accept it, because Rust converts it where it is passed"
+        error.to_string(),
+        "field 'cache' has a trait-object type, which has no constructor; in the field's type, replace dyn and the trait with the concrete type that implements the trait, keeping the Arc around it; a constructor that takes the trait object still accepts the field, because Rust converts the Arc where it is passed"
     );
-    assert!(!message.contains("builder"));
 }

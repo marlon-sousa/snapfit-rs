@@ -121,7 +121,6 @@ pub mod checkout {
         fn charge(&self, cents: u32) -> String;
     }
 
-    #[derive(Default)]
     pub struct StripeGateway;
 
     impl StripeGateway {

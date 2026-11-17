@@ -1,5 +1,5 @@
 use super::*;
-use crate::domain::{DomainError, Execution, Lifecycle};
+use crate::domain::{DomainError, Execution, Lifecycle, TypeShape};
 use crate::test_support::{container, dependency};
 
 #[test]
@@ -59,4 +59,25 @@ fn refusals_mode_errors_and_graph_errors_are_reported_together() {
     ));
     assert!(matches!(errors[4], DomainError::DependencyCycle { .. }));
     assert_eq!(errors.len(), 5);
+}
+
+#[test]
+fn each_build_refuses_a_trait_object_with_the_advice_it_can_follow() {
+    let mut store = dependency("store", &[]);
+    store.shape = TypeShape::TraitObject;
+    let refusal = |gate| {
+        plan_container(container(vec![store.clone()]), gate)
+            .unwrap_err()
+            .into_iter()
+            .collect::<Vec<_>>()
+    };
+
+    assert!(matches!(
+        refusal(FeatureGate::Stable)[..],
+        [DomainError::TraitObjectNeedsConcreteType { .. }]
+    ));
+    assert!(matches!(
+        refusal(FeatureGate::Unstable)[..],
+        [DomainError::TraitObjectWithoutBuilder { .. }]
+    ));
 }

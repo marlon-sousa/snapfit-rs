@@ -104,13 +104,14 @@ pub(crate) enum DomainError {
     AsyncTransient { dependency: DependencyName },
 
     #[error(
-        "field '{dependency}' has a trait-object type, which has no constructor; {}",
-        .remedy.advice(.dependency)
+        "field '{dependency}' has a trait-object type, which has no constructor; in the field's type, replace dyn and the trait with the concrete type that implements the trait, keeping the Arc around it; a constructor that takes the trait object still accepts the field, because Rust converts the Arc where it is passed"
     )]
-    TraitObjectWithoutBuilder {
-        dependency: DependencyName,
-        remedy: TraitObjectRemedy,
-    },
+    TraitObjectNeedsConcreteType { dependency: DependencyName },
+
+    #[error(
+        "field '{dependency}' has a trait-object type, which has no constructor; build it with a builder such as builder = build_{dependency} (unstable feature)"
+    )]
+    TraitObjectWithoutBuilder { dependency: DependencyName },
 
     #[error(
         "#[derive(Container)] does not support #[transient] or #[dispatch] fields; use #[container] instead, which can leave field '{dependency}' out of the struct"
@@ -143,7 +144,8 @@ impl DomainError {
             | Self::NotAFunctionName { dependency, .. }
             | Self::AsyncDependencyInSyncContainer { dependency }
             | Self::AsyncTransient { dependency }
-            | Self::TraitObjectWithoutBuilder { dependency, .. }
+            | Self::TraitObjectNeedsConcreteType { dependency }
+            | Self::TraitObjectWithoutBuilder { dependency }
             | Self::NeedsStructRewrite { dependency } => Some(dependency),
             Self::RequiresUnstable { feature } | Self::NotYetImplemented { feature } => {
                 feature.dependency()

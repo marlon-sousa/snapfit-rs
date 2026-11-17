@@ -34,8 +34,7 @@ fn then_compiler_output_does_not_mention(world: &mut ContainerWorld, unwanted: S
     let outcome = world.compile_outcome();
     assert!(
         !outcome.stderr.contains(&unwanted),
-        "Expected stderr for fixture '{}' not to mention '{unwanted}'. Actual stderr:
-{}",
+        "Expected stderr for fixture '{}' not to mention '{unwanted}'. Actual stderr:\n{}",
         outcome.fixture_name,
         outcome.stderr
     );

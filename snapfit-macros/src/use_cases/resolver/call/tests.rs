@@ -49,7 +49,7 @@ fn a_builder_builds_any_shape_as_it_is() {
 }
 
 #[test]
-fn a_trait_object_without_a_builder_is_refused_naming_its_field_and_the_remedy() {
+fn a_trait_object_without_a_builder_is_refused_naming_its_field() {
     let call = call_for(
         &dependency(TypeShape::TraitObject, Construction::default()),
         REMEDY,
@@ -57,9 +57,8 @@ fn a_trait_object_without_a_builder_is_refused_naming_its_field_and_the_remedy()
 
     assert_eq!(
         call,
-        Err(DomainError::TraitObjectWithoutBuilder {
+        Err(DomainError::TraitObjectNeedsConcreteType {
             dependency: DependencyName::new("store").unwrap(),
-            remedy: REMEDY,
         })
     );
 }
@@ -73,5 +72,20 @@ fn a_dispatched_trait_object_is_left_to_the_feature_gate() {
     assert_eq!(
         call_for(&dispatched, REMEDY),
         Ok(constructor(Wrapping::None))
+    );
+}
+
+#[test]
+fn a_trait_object_on_a_build_with_builders_is_told_to_use_one() {
+    let call = call_for(
+        &dependency(TypeShape::TraitObject, Construction::default()),
+        TraitObjectRemedy::Builder,
+    );
+
+    assert_eq!(
+        call,
+        Err(DomainError::TraitObjectWithoutBuilder {
+            dependency: DependencyName::new("store").unwrap(),
+        })
     );
 }

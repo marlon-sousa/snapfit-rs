@@ -110,7 +110,7 @@ fn a_trait_object_without_a_builder_is_reported_beside_graph_errors() {
 
     assert!(matches!(
         errors[0],
-        DomainError::TraitObjectWithoutBuilder { .. }
+        DomainError::TraitObjectNeedsConcreteType { .. }
     ));
     assert!(matches!(errors[1], DomainError::DependencyCycle { .. }));
 }
