@@ -1,8 +1,6 @@
 name: Weekly
 
-# The tests on Rust beta, so that a change in the next stable Rust that breaks
-# snapfit, such as a compiler message a compile-fail fixture checks, is known
-# before it is released.
+# The tests on Rust beta, as docs/WORKFLOW.md, section 7, says.
 
 on:
   schedule:

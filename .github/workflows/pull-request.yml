@@ -1,8 +1,6 @@
 name: Pull request
 
-# The checks of the process: every commit message keeps the convention of
-# docs/WORKFLOW.md, and the description has no unticked checkbox. They run on
-# every pull request, whatever its base, so each layer of a stack is checked.
+# The checks of the process on every pull request, as docs/WORKFLOW.md, section 7, says.
 
 on:
   pull_request:
@@ -24,10 +22,6 @@ jobs:
       - uses: itinera-dev/actions/commit-messages@d49d88f6b15f4d4c344503e9e3304a449ee3ebe8 # v1.11.0
 
   checkboxes:
-    # A manual check, such as one with a screen reader, is a list of checkboxes
-    # in the description, so the pull request cannot merge while one is
-    # unticked. "edited" runs it again when a box is ticked; ci.yml leaves
-    # "edited" out, so that a tick runs again only this workflow.
     name: no unticked checkbox in the description
     runs-on: ubuntu-latest
     steps:

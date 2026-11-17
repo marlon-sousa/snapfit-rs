@@ -1,11 +1,6 @@
 name: CI
 
-# The checks of `cargo xtask ci`, each in a job of its own so that a failure
-# names what failed: formatting, lints, the architecture check, the docs, the
-# dependencies and the packages once on Linux, and the tests on Linux, macOS
-# and Windows. They run with the toolchain pinned in rust-toolchain.toml, and
-# the tests run again with the minimum supported Rust version, rust-version in
-# Cargo.toml. Every action is pinned to a commit, with its version beside it.
+# Each mode of `cargo xtask ci` in a job of its own, as docs/WORKFLOW.md, section 7, lists them.
 
 on:
   push:
@@ -82,9 +77,9 @@ jobs:
           msrv=$(sed -n 's/^rust-version = "\(.*\)"$/\1/p' Cargo.toml)
           test -n "$msrv"
           rustup toolchain install "$msrv" --profile minimal
-          echo "MSRV=$msrv" >> "$GITHUB_ENV"
+          echo "RUSTUP_TOOLCHAIN=$msrv" >> "$GITHUB_ENV"
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-      - run: cargo "+$MSRV" xtask test
+      - run: cargo xtask test
 
   doc:
     name: cargo xtask doc
@@ -107,8 +102,6 @@ jobs:
       - run: cargo xtask deny
 
   package:
-    # The crates built from their packages alone, as crates.io receives them,
-    # so that a file a package leaves out or a dependency it cannot resolve fails.
     name: cargo xtask package
     runs-on: ubuntu-latest
     steps:

@@ -1,16 +1,6 @@
 name: Release
 
-# docs/WORKFLOW.md, "Releases". Pushing a tag v<version> releases that
-# version. The release gate refuses a tag that may not become a release, the
-# checks of ci.yml run again on the tagged commit, the crates are packed, and
-# the GitHub release waits for all of them. On a pull request that changes how
-# releases are made, the release tools run against their fixtures, and nothing
-# is released.
-#
-# Until crates.io's trusted publishing is set up for snapfit and
-# snapfit-macros, which needs both crates to exist there, the crates.io job
-# only runs `cargo publish --dry-run`: the first version is published by hand,
-# and a later pull request makes the job publish.
+# Releases a version on a tag v<version>, as docs/WORKFLOW.md, section 9, says.
 
 on:
   push:
@@ -35,7 +25,7 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
-  TAG: ${{ github.ref_name }}
+  TAG: ${{ github.event_name == 'push' && github.ref_name || '' }}
 
 jobs:
   gate:
@@ -71,7 +61,6 @@ jobs:
       - run: .github/release/test-crates-io.sh
 
   package:
-    # The .crate files crates.io would receive, attached to the GitHub release.
     name: the crates' packages
     needs: release-tools
     runs-on: ubuntu-latest
@@ -86,8 +75,7 @@ jobs:
           if-no-files-found: error
 
   publish:
-    # Only a version without a pre-release part, or a release candidate, goes
-    # to crates.io. For now a dry run, as the comment at the top says.
+    # A dry run until trusted publishing is set up, as docs/WORKFLOW.md, section 9, says.
     name: crates.io (dry run)
     if: github.event_name == 'push' && needs.gate.outputs.crates-io == 'true'
     needs: [gate, ci, package]
@@ -101,10 +89,8 @@ jobs:
 
   release:
     name: GitHub release
-    # Runs once crates.io's job passed, or was skipped because the gate said
-    # the version does not go there, and every check and package passed: a job
-    # whose needs failed is skipped too, so the crates.io job's being skipped
-    # alone does not say the rest passed.
+    # A job whose needs failed is skipped too, so a skipped crates.io job alone
+    # does not say the rest passed.
     if: >-
       github.event_name == 'push' && !cancelled()
       && needs.ci.result == 'success' && needs.package.result == 'success'
