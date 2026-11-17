@@ -1,7 +1,8 @@
 //! Policy: which call builds a dependency's value.
 
-use crate::domain::FeatureGate;
-use crate::domain::{Call, Construction, DependencyDeclaration, DomainError, TypeShape, Wrapping};
+use crate::domain::{
+    Call, Construction, DependencyDeclaration, DomainError, FeatureGate, TypeShape, Wrapping,
+};
 
 /// A constructor belongs to the type the field holds, or to `T` when the field
 /// holds `Arc<T>`, whose value is then wrapped. A trait object has no

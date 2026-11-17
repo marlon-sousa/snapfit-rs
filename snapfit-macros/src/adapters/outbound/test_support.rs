@@ -2,8 +2,7 @@
 
 use crate::adapters::inbound::parse_attribute;
 use crate::adapters::syntax::{FieldSyntax, Plan};
-use crate::domain::FeatureGate;
-use crate::domain::Step;
+use crate::domain::{FeatureGate, Step};
 use crate::use_cases::plan_container;
 
 pub(super) fn plan_for(item: syn::ItemStruct) -> Plan {
