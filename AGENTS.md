@@ -17,7 +17,7 @@ The manual for anyone, human or agent, changing snapfit. [docs/WORKFLOW.md](docs
 4. **Unstable is opt-in, planned is refused.** An API whose shape is not settled ships only behind the `unstable` Cargo feature, with a stable fixture proving the stable build refuses it. A planned feature is a compile error that names it. Anything removed for a release is listed in SPEC.md, §0, so that its stack restores it.
 5. **Diagnostics are for people.** Every error the macros report is a sentence that reads well spoken by a screen reader, points at the field it is about, and is reported together with every other problem found, as docs/ARCHITECTURE.md, "Errors", says.
 6. **Generated names are promises.** Never change how a generated item is named or typed, such as `new()`, `init()` or `get_<field>()`, without the maintainer's agreement.
-7. **Small pull requests.** One thing each, stacked as docs/WORKFLOW.md describes, with Conventional Commits messages.
+7. **Small pull requests.** One thing each, stacked as docs/WORKFLOW.md describes, with Conventional Commits messages carrying the changelog trailers docs/WORKFLOW.md asks for.
 8. **Write for a screen reader.** Pull requests, comments and documents use headings, lists, prose and simple tables, never ASCII art. A diagram is Mermaid with `accTitle` and `accDescr`.
 9. **Mark agent comments.** A comment an agent writes on GitHub says it is an agent's.
 10. **Check a library before ruling it in or out.** Before saying that a crate can or cannot do something, read its source or its documentation at the version we use, including its extension points. The pull request says what was checked: the file and line, or the documentation page.
@@ -49,5 +49,5 @@ The report lists findings, each marked blocking or not, with its `file:line` and
 
 The toolchain is pinned in `rust-toolchain.toml`. Before pushing, run from the repository's root:
 
-- `cargo xtask ci`, the quality gate CI runs: formatting, clippy with every warning an error on the default and the `unstable` builds, the architecture check (no compiler type in `domain/` or `use_cases/`, no `mod.rs`, files under about 200 lines), every unit test and Gherkin scenario on both builds, and the documentation;
+- `cargo xtask ci`, the quality gate CI runs: formatting, clippy with every warning an error on the default and the `unstable` builds, the architecture check (no compiler type in `domain/` or `use_cases/`, no `mod.rs`, files under about 200 lines), every unit test and Gherkin scenario on both builds, the documentation of both builds, the dependencies with cargo-deny, and a publish dry run of the crates. docs/WORKFLOW.md, section 7, lists each check and how to install cargo-deny;
 - `cargo xtask book-check`, on a branch that has the site, when the change alters a diagnostic or generated code the book shows.
