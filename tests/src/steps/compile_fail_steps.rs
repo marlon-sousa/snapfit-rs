@@ -29,6 +29,17 @@ fn then_compilation_fails_with(world: &mut ContainerWorld, expected_error: Strin
     );
 }
 
+#[then(expr = "the compiler output should not mention {string}")]
+fn then_compiler_output_does_not_mention(world: &mut ContainerWorld, unwanted: String) {
+    let outcome = world.compile_outcome();
+    assert!(
+        !outcome.stderr.contains(&unwanted),
+        "Expected stderr for fixture '{}' not to mention '{unwanted}'. Actual stderr:\n{}",
+        outcome.fixture_name,
+        outcome.stderr
+    );
+}
+
 #[then(expr = "the error should point at line {int} of the fixture")]
 fn then_error_points_at_line(world: &mut ContainerWorld, line: u32) {
     let outcome = world.compile_outcome();

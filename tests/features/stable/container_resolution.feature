@@ -27,6 +27,11 @@ Feature: Container Dependency Resolution
     Then its values should be built in the order "config, db, service, clock"
 
   @v0_1_0
+  Scenario: A field holds the concrete type a constructor takes as a trait object
+    When the container whose payments field holds the concrete StripeGateway is instantiated
+    Then the checkout service, whose constructor takes the PaymentGateway trait object, should charge through that same gateway
+
+  @v0_1_0
   Scenario Outline: Invalid container declarations are refused at compile time with actionable diagnostics
     Given an invalid container fixture "<fixture>"
     When the fixture is compiled

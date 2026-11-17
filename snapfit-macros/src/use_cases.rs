@@ -8,4 +8,3 @@ mod feature_gate;
 mod resolver;
 
 pub(crate) use derive_container::plan_container;
-pub(crate) use feature_gate::FeatureGate;

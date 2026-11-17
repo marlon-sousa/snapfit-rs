@@ -2,23 +2,17 @@
 
 use crate::domain::{
     Construction, ContainerDeclaration, DependencyDeclaration, DependencyName, DomainError,
-    Execution, Feature,
+    Execution, Feature, FeatureGate,
 };
 
 #[cfg(test)]
 mod tests;
 
-/// Planned features, with no code generation yet, are refused by every build.
-/// Features whose API is not settled for 0.1.0 are accepted only by a build
-/// with the `unstable` Cargo feature.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum FeatureGate {
-    Stable,
-    Unstable,
-}
-
 impl FeatureGate {
     /// Every use of a feature this build refuses, in declaration order.
+    /// Planned features, with no code generation yet, are refused by every
+    /// build. Features whose API is not settled for 0.1.0 are accepted only by
+    /// a build with the `unstable` Cargo feature.
     pub(crate) fn refusals<C, F>(self, container: &ContainerDeclaration<C, F>) -> Vec<DomainError> {
         let planned = planned_features(container).map(not_yet_implemented);
         let unstable = match self {

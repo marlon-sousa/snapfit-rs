@@ -32,7 +32,7 @@ A procedural macro does no input or output: it is a pure function from tokens to
 
 Every module plays one role, and says which on the first line of its `//!` doc comment, such as `//! Policy: whether the container is built at once by new() or awaited through init().`
 
-1. **Entity**: data and the invariants it keeps, in `domain/`: the names, the declaration, the plan.
+1. **Entity**: data and the invariants it keeps, in `domain/`: the names, the declaration, the plan, the build.
 2. **Error**: what makes snapfit refuse a container, in `domain/errors.rs`, as "Errors" below describes.
 3. **Policy**: a pure decision about a container, in `use_cases/`: the feature gate, the declaration rules, the execution, the resolver and the call that builds each value.
 4. **Service**: `use_cases/derive_container.rs`, which runs the policies over one declaration and gathers their problems.

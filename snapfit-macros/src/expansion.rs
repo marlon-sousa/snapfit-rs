@@ -7,7 +7,8 @@ use quote::quote;
 use crate::adapters::{
     Origins, emit_container, emit_derive_impls, fallback_struct, parse_attribute, parse_derive,
 };
-use crate::use_cases::{FeatureGate, plan_container};
+use crate::domain::FeatureGate;
+use crate::use_cases::plan_container;
 
 #[cfg(test)]
 mod tests;

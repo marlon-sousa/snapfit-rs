@@ -108,3 +108,53 @@ pub mod ordered {
         clock: Clock,
     }
 }
+
+/// The `payments` field holds the concrete gateway, while the service's
+/// constructor takes the trait object: Rust converts the `Arc` where the
+/// generated code passes it.
+pub mod checkout {
+    use std::sync::Arc;
+
+    use snapfit::container;
+
+    pub trait PaymentGateway: Send + Sync {
+        fn charge(&self, cents: u32) -> String;
+    }
+
+    pub struct StripeGateway;
+
+    impl StripeGateway {
+        pub fn new() -> Self {
+            Self
+        }
+    }
+
+    impl PaymentGateway for StripeGateway {
+        fn charge(&self, cents: u32) -> String {
+            format!("stripe charged {cents} cents")
+        }
+    }
+
+    pub struct CheckoutService {
+        gateway: Arc<dyn PaymentGateway>,
+    }
+
+    impl CheckoutService {
+        pub fn new(gateway: Arc<dyn PaymentGateway>) -> Self {
+            Self { gateway }
+        }
+
+        pub fn gateway(&self) -> &Arc<dyn PaymentGateway> {
+            &self.gateway
+        }
+    }
+
+    #[container]
+    pub struct CheckoutContainer {
+        #[singleton]
+        payments: Arc<StripeGateway>,
+
+        #[singleton(deps = [payments])]
+        checkout: Arc<CheckoutService>,
+    }
+}

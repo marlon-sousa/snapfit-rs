@@ -128,3 +128,24 @@ fn when_ordered_container_instantiated(world: &mut ContainerWorld) {
 fn then_values_built_in_order(world: &mut ContainerWorld, order: String) {
     assert_eq!(world.construction_order().join(", "), order);
 }
+
+#[when("the container whose payments field holds the concrete StripeGateway is instantiated")]
+fn when_checkout_container_instantiated(world: &mut ContainerWorld) {
+    world.instantiate_checkout();
+}
+
+#[then(
+    "the checkout service, whose constructor takes the PaymentGateway trait object, should charge through that same gateway"
+)]
+fn then_checkout_charges_through_the_concrete_gateway(world: &mut ContainerWorld) {
+    let container = world.checkout_container();
+    let payments = container.get_payments();
+    let checkout = container.get_checkout();
+
+    assert_eq!(checkout.gateway().charge(250), "stripe charged 250 cents");
+    assert_eq!(
+        Arc::as_ptr(checkout.gateway()).cast::<()>(),
+        Arc::as_ptr(&payments).cast::<()>(),
+        "Expected the service to hold the container's own StripeGateway"
+    );
+}

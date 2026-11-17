@@ -2,8 +2,8 @@
 
 use crate::adapters::inbound::parse_attribute;
 use crate::adapters::syntax::{FieldSyntax, Plan};
-use crate::domain::Step;
-use crate::use_cases::{FeatureGate, plan_container};
+use crate::domain::{FeatureGate, Step};
+use crate::use_cases::plan_container;
 
 pub(super) fn plan_for(item: syn::ItemStruct) -> Plan {
     let declaration = parse_attribute(proc_macro2::TokenStream::new(), &item).unwrap();

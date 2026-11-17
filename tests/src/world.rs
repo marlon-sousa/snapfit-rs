@@ -5,7 +5,7 @@ use crate::codegen_containers::{
     DerivedAfterContainer, DerivedBeforeContainer, DerivedContainer, TypedFieldsContainer,
 };
 use crate::compile_harness::{CompileOutcome, compile_fixture};
-use crate::containers::{AppContainer, multi_db, ordered};
+use crate::containers::{AppContainer, checkout, multi_db, ordered};
 #[cfg(feature = "unstable")]
 use crate::unstable_world::UnstableContainers;
 
@@ -38,6 +38,7 @@ pub struct ContainerWorld {
     selected_fixture: Option<String>,
     compile_outcome: Option<CompileOutcome>,
     construction_order: Vec<&'static str>,
+    checkout_container: Option<checkout::CheckoutContainer>,
     #[cfg(feature = "unstable")]
     unstable: UnstableContainers,
 }
@@ -133,6 +134,16 @@ impl ContainerWorld {
 
     pub fn construction_order(&self) -> &[&'static str] {
         &self.construction_order
+    }
+
+    pub fn instantiate_checkout(&mut self) {
+        self.checkout_container = Some(<checkout::CheckoutContainer as snapfit::Container>::new());
+    }
+
+    pub fn checkout_container(&self) -> &checkout::CheckoutContainer {
+        self.checkout_container
+            .as_ref()
+            .expect("CheckoutContainer must be instantiated before Then assertions")
     }
 
     pub fn select_invalid_fixture(&mut self, fixture_name: String) {
