@@ -15,10 +15,10 @@ use walk::{Declared, OnPath, Outcome, Placed, is_unknown, name_of_outcome};
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
+use crate::domain::FeatureGate;
 use crate::domain::{
     ContainerDeclaration, DependencyDeclaration, DependencyName, DomainError, DomainErrors, Step,
 };
-use crate::use_cases::FeatureGate;
 
 /// Orders and links the steps, or reports every problem the graph of
 /// dependencies has.

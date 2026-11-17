@@ -1,7 +1,7 @@
 use super::*;
+use crate::domain::FeatureGate;
 use crate::domain::{ConstructionPlan, Execution, Lifecycle, TypeShape};
 use crate::test_support::{container, dependency_with, name, names};
-use crate::use_cases::FeatureGate;
 
 mod errors;
 

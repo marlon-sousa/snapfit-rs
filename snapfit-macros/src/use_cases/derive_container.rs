@@ -1,9 +1,9 @@
 //! Service: plans a container, reporting every problem its declaration has at once.
 
+use crate::domain::FeatureGate;
 use crate::domain::{ConstructionPlan, ContainerDeclaration, DomainErrors};
 use crate::use_cases::declaration_rules::rule_violations;
 use crate::use_cases::execution::container_execution;
-use crate::use_cases::feature_gate::FeatureGate;
 use crate::use_cases::resolver::resolve;
 
 #[cfg(test)]

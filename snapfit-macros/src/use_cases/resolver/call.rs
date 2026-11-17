@@ -1,14 +1,13 @@
 //! Policy: which call builds a dependency's value.
 
+use crate::domain::FeatureGate;
 use crate::domain::{Call, Construction, DependencyDeclaration, DomainError, TypeShape, Wrapping};
-use crate::use_cases::FeatureGate;
 
 /// A constructor belongs to the type the field holds, or to `T` when the field
 /// holds `Arc<T>`, whose value is then wrapped. A trait object has no
-/// constructor, so it needs a builder, and is otherwise refused
-/// with the advice `gate` lets it follow.
-/// A dispatched field is refused by the feature gate, so its shape decides
-/// nothing yet.
+/// constructor, so it needs a builder, and is otherwise refused with the
+/// advice `gate` lets it follow. A dispatched field is refused by the feature
+/// gate, so its shape decides nothing yet.
 pub(super) fn call_for<F>(
     dependency: &DependencyDeclaration<F>,
     gate: FeatureGate,
