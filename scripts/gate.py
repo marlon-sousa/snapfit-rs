@@ -45,7 +45,6 @@ UNSTABLE_ENV = {"CARGO_TARGET_DIR": str(Path("target") / "unstable")}
 PACKAGE_ENV = {"CARGO_TARGET_DIR": str(Path("target") / "package-check")}
 
 
-
 def get_repo_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
@@ -168,8 +167,8 @@ def checks() -> dict[str, list[Step]]:
 
 ALIASES = {"fmt-check": "fmt", "arch-check": "arch"}
 
-# The order `cargo xtask ci` runs the modes in.
-CI_MODES = ["fmt", "clippy", "arch", "test", "doc", "deny", "package"]
+# `cargo xtask ci` runs every mode, in the order checks() lists them.
+CI_MODES = list(checks())
 
 VALID_MODES = {"all", "ci", *CI_MODES, *ALIASES}
 
