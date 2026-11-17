@@ -38,4 +38,4 @@ derive-new = "0.7"
 derive_more = { version = "2.1", features = ["display"] }
 cucumber = "0.21"
 futures = "0.3"
-compile-outcomes = { git = "https://github.com/marlon-sousa/compile-outcomes-rs", tag = "v0.1.0-alpha.1" }
+compile-outcomes = "0.1"
