@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  issues: read
   pull-requests: read
 
 concurrency:
@@ -15,6 +16,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  has-issue:
+    name: names an open issue
+    runs-on: ubuntu-latest
+    steps:
+      - uses: itinera-dev/actions/pr-has-issue@d49d88f6b15f4d4c344503e9e3304a449ee3ebe8 # v1.11.0
+
+  no-cross-repo-closing:
+    name: closes no issue of another repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: itinera-dev/actions/no-cross-repo-closing@d49d88f6b15f4d4c344503e9e3304a449ee3ebe8 # v1.11.0
+
   commit-messages:
     name: commit messages keep the convention
     runs-on: ubuntu-latest
