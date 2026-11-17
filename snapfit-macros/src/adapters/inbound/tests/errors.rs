@@ -26,7 +26,7 @@ fn every_bad_field_is_reported_at_once() {
         errors,
         [
             "constructor \"connect\" on field 'db' must be written without quotes: constructor = connect",
-            "field 'config' must be annotated with #[singleton], #[transient], or #[dispatch]",
+            "field 'config' has no snapfit attribute; add #[singleton] to have the container build it",
             "field 'metrics' cannot use #[cfg] or #[cfg_attr]; conditional dependencies are not supported",
         ]
     );
@@ -39,7 +39,7 @@ fn shapes_that_cannot_be_a_container_are_refused() {
 
     assert_eq!(
         messages(parse_attribute(quote!(mode = "threaded"), &invalid_mode).unwrap_err())[0],
-        "invalid container mode 'threaded': expected 'sync' or 'async'"
+        "invalid container mode 'threaded': write mode = \"sync\", or leave mode out"
     );
     assert_eq!(
         messages(parse_attribute(quote!(), &tuple_struct).unwrap_err()),

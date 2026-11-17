@@ -68,7 +68,7 @@ pub(crate) enum AttributeProblem {
     BlankName,
     #[display("snapfit's attributes take their settings in parentheses, not after '='")]
     Assigned,
-    #[display("invalid container mode '{_0}': expected 'sync' or 'async'")]
+    #[display("invalid container mode '{_0}': write mode = \"sync\", or leave mode out")]
     InvalidMode(String),
     #[display("#[dispatch(...)] requires a parenthesized list of implementation types")]
     DispatchWithoutList,

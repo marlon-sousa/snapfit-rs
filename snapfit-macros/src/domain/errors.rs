@@ -56,7 +56,7 @@ pub(crate) enum DomainError {
     },
 
     #[error(
-        "field '{dependency}' must be annotated with #[singleton], #[transient], or #[dispatch]"
+        "field '{dependency}' has no snapfit attribute; add #[singleton] to have the container build it"
     )]
     Unannotated { dependency: DependencyName },
 
