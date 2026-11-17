@@ -11,7 +11,7 @@ use super::{file_stem, sorted_files, target_deps_dir};
 static OUTCOMES: LazyLock<Outcomes> = LazyLock::new(|| {
     let work_dir = target_deps_dir()
         .parent()
-        .expect("missing debug dir")
+        .expect("the test binary's folder sits in a profile folder")
         .join("book_compile_errors");
     let compilation = Compilation::new(Edition::E2024, work_dir)
         .snippets_in(compile_errors_dir())
