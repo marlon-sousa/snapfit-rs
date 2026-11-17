@@ -135,7 +135,7 @@ These work today but their API may still change, so they need the `unstable` fea
 
 ### Planned
 
-Trait dispatch (`#[dispatch(...)]`), test overrides (`fork_with()`), request-scoped child containers (`#[container(parent = ...)]`) and graph introspection (`introspection = true`) are designed in [the specification](https://github.com/marlon-sousa/snapfit-rs/blob/main/docs/SPEC.md) but not implemented; using them is a compile error. See [What ships in 0.1.0](https://github.com/marlon-sousa/snapfit-rs/blob/main/docs/SPEC.md#0-what-ships-in-010).
+Trait dispatch (`#[dispatch(...)]`), test overrides (`fork_with()`), request-scoped child containers (`#[container(parent = ...)]`) and graph introspection (`introspection = true`) are designed in [the specification](https://github.com/marlon-sousa/snapfit-rs/blob/main/docs/SPEC.md) but not implemented; using them is a compile error. Each is planned in an [open issue labelled `feature`](https://github.com/marlon-sousa/snapfit-rs/issues?q=is%3Aissue%20is%3Aopen%20label%3Afeature). See [What ships in 0.1.0](https://github.com/marlon-sousa/snapfit-rs/blob/main/docs/SPEC.md#0-what-ships-in-010).
 <!-- end github-only -->
 
 ---
