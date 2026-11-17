@@ -1,0 +1,2 @@
+registered 2 databases; entries kept: 1; resolved: primary
+registered StripeGateway, asked for Arc<StripeGateway>; found: false

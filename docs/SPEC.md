@@ -44,7 +44,7 @@ These items existed before 0.1.0 but nothing generated or used them, so they wer
 
 ### Held back from The Snapfit Book (to restore later)
 
-The book's `v0.1.0` edition teaches only the stable API. Its chapters on the unstable APIs are kept, with their examples and expected output, in `book/unreleased/`, and return to Part 2 when those APIs are stabilised:
+The book's `v0.1.0` edition teaches only the stable API. Its chapters on the unstable APIs are kept, with their examples and expected output, in `book/unreleased/`, and return to Part 3 when those APIs are stabilised:
 
 * **Transient dependencies**: `book/unreleased/chapters/07-transient-dependencies.md`, example `ch07_transients`.
 * **Asynchronous containers**: `book/unreleased/chapters/08-asynchronous-containers.md`, example `ch08_async_container`.

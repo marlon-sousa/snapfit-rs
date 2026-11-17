@@ -8,9 +8,10 @@ The book is for Rust developers building services and applications with `snapfit
 
 A reader finishes the book able to:
 
-1. explain why `snapfit` keeps domain structs 100% free of framework macros and traits, and why declaring the dependency graph in a central container struct is safer than invasive annotations or runtime `TypeMap` service locators;
-2. wire singletons, named constructors, and multiple instances of the same type in a `#[container]`;
-3. read and fix the compile-time errors `snapfit` emits when a dependency graph has a cycle or a missing prerequisite.
+1. explain the problems of services that build their own dependencies, and what dependency injection is;
+2. explain why `snapfit` keeps domain structs 100% free of framework macros and traits, and why declaring the dependency graph in a central container struct is safer than wiring by hand or runtime `TypeMap` service locators;
+3. wire singletons, named constructors, multiple instances of the same type, and a chosen implementation of a trait in a `#[container]`;
+4. read and fix the compile-time errors `snapfit` emits when a dependency graph has a cycle or a missing prerequisite.
 
 A coding agent reading the book gains a structural advantage: in a `snapfit` codebase, changing a business rule touches only its pure-Rust struct, and changing how components are wired touches only one `#[container]` struct. Context is never scattered across dozens of files.
 
@@ -27,24 +28,38 @@ A coding agent reading the book gains a structural advantage: in a `snapfit` cod
 
 Every example in the book belongs to one small online shop processing customer orders, which grows naturally from chapter to chapter:
 
-1. it loads shop configuration (`ShopConfig`) and tax rates (`TaxRateTable`);
-2. it connects to catalog and order databases (`Database`), including separate read and write replicas (`read_db` and `write_db`);
-3. it processes payments (`PaymentGateway`), reserves inventory (`StockService`), and checks out orders (`OrderService` and `CheckoutController`).
+1. it reserves stock (`StockService`), charges payments through a `PaymentGateway` such as Stripe or a fake, and places orders (`OrderService`);
+2. it loads shop configuration (`ShopConfig`) and tax rates (`TaxRateTable`);
+3. it connects to catalog and order databases (`Database`), including separate read and write replicas (`read_db` and `write_db`).
 
 Every chapter teaches only the stable API of `0.1.0`: nothing behind the `unstable` feature, and nothing planned for a later release. Every chapter's example is a complete, self-contained Rust program in `book/examples/` that compiles, runs, and prints deterministic output.
 
 ### The shape of a chapter
 
-Every numbered chapter, and the quick start, has the same four level 2 sections in exact order:
+Every numbered chapter, and the quick start, has its level 2 sections in exact order. A chapter of Part 1 shows a problem; every other chapter teaches a feature.
+
+A problem chapter (Part 1):
+
+1. **What you want to do:** one or two sentences stating the goal in the shop's terms.
+2. **The code:** the program that reaches the goal without `snapfit`, and what it prints.
+3. **What goes wrong:** the problems of that program, each with a short name in bold. Later chapters refer to the problems by these names.
+4. **Remember:** a concise list of what to take away.
+
+A feature chapter (every other chapter, and the quick start):
 
 1. **What you want to do:** one or two sentences stating the goal in the shop's terms.
 2. **The code:** directives showing the relevant regions of the runnable program and what it prints (or the compiler diagnostic for compile-error chapters).
 3. **How it works:** numbered points explaining the mechanics in plain language.
-4. **Remember:** a concise list of rules and invariants for readers and coding agents.
+4. **Which problem this solves:** the problems of Part 1, by their bold names and with a link to the chapter that names them, that this feature answers, and how.
+5. **Remember:** a concise list of rules and invariants for readers and coding agents.
 
-### Without Snapfit: the section that closes Parts 1 and 2
+### The problem first
 
-Parts 1 and 2 close with a section headed **Without Snapfit**. It shows the same shop written the way Rust services are often wired without `snapfit` — manual constructor threading or a dynamic `HashMap<TypeId, Box<dyn Any>>` service locator — followed by the `snapfit` version beside it. Both programs are compiled and run in `book/examples/` so every comparison is proven by code that runs.
+The book does not open with `snapfit`. Part 1 follows the shop without it: services that build their own dependencies, then services that receive them, then the one place that has to build everything. Each step fixes a problem and names the next. Part 2 then shows the same shop with `snapfit` and maps every named problem to the chapter that answers it, and every feature chapter after it says which of those problems it solves. Every comparison is a program in `book/examples/` that compiles and runs.
+
+### Limits, honestly
+
+Each edition teaches only what its release does. Where an experienced reader would ask for something the release does not do, the book says so in one sentence, and may say that it could come in a later version, without promising what or when.
 
 ## Contents (`v0.1.0`)
 
@@ -52,38 +67,43 @@ Parts 1 and 2 close with a section headed **Without Snapfit**. It shows the same
 
 Unnumbered pages introducing `snapfit`, the book's conventions, and a working container on one page:
 
-1. **Welcome to Snapfit** (`welcome-to-snapfit.md`): What `snapfit` is, why inverting dependency declarations keeps Rust domains pure, and how the book is organized.
-2. **How to read this book** (`how-to-read-this-book.md`): Conventions, the online shop story, the four-part chapter structure, verified code directives, and screen-reader accessibility.
-3. **Quick start** (`quick-start.md`): A complete shop container with pure domain types, `#[singleton]` dependencies, and zero-cost getters on one page (`quick_start.rs`).
+1. **Welcome to Snapfit** (`welcome-to-snapfit.md`): What `snapfit` is, why the book starts with the problem, and how it is organized.
+2. **How to read this book** (`how-to-read-this-book.md`): Conventions, the online shop story, the two shapes of a chapter, verified code directives, and screen-reader accessibility.
+3. **Quick start** (`quick-start.md`): A complete shop container with pure domain types, `#[singleton]` dependencies, and getters on one page (`quick_start.rs`).
 
-### Part 1: Introduction
+### Part 1: Why dependency injection
 
-Makes one central argument: your domain types should remain 100% pure Rust, and you should be able to understand how an entire application is wired by reading one container struct.
+Problem chapters. The shop without `snapfit`, one step at a time, until what is left is what `snapfit` solves.
 
-1. **Why Snapfit?** (`01-why-snapfit.md`): Contrasts the three usual approaches in Rust (manual `main.rs` wiring chains, invasive `#[inject]` component annotations, and dynamic `TypeMap`/`dyn Any` service locators) against `snapfit`'s unique five-pillar design (`ch01_manual_wiring.rs` and `ch01_why_snapfit.rs`).
-2. **Pure domain types, one container** (`02-pure-domain-types.md`): Shows that domain structs need zero macros or traits — the exact same structs can be constructed directly in a unit test or wired by a `#[container]` (`ch02_pure_domain.rs`).
-3. **Read the container, know the graph** (`03-read-the-container-know-the-graph.md`): Shows how `#[container]` serves as an executable architecture manifest, and how fields declared in any order are each built after the fields they need (`ch03_container_graph.rs`).
-* **Without Snapfit** (`part-1-without-snapfit.md`): Side-by-side comparison of answering architectural questions in `ch01_manual_wiring.rs` versus `ch03_container_graph.rs`.
+1. **A service that builds its own dependencies** (`01-a-service-that-builds-its-own-dependencies.md`): Services that open their own database and connect to Stripe in `new()`, and the four problems that follow (`ch01_builds_its_own.rs`).
+2. **Choosing between implementations** (`02-choosing-between-implementations.md`): A closed list, a type parameter and a trait object as ways to work with Stripe or a fake, and what each costs (`ch02_choosing_between_implementations.rs`).
+3. **Who builds everything?** (`03-who-builds-everything.md`): The composition root built by hand and as a `TypeMap` service locator, the problems of each, and what dependency injection means (`ch03_manual_wiring.rs` and `ch03_service_locator.rs`).
 
-### Part 2: Wiring a Container
+### Part 2: Snapfit
 
-Covers every stable singleton and construction pattern in `v0.1.0`:
+4. **Why we built Snapfit** (`04-why-we-built-snapfit.md`): The shop of Chapter 3 built by a `#[container]`, what the macro does, every problem of Part 1 mapped to the chapter that answers it, and a comparison with the shapes of Chapter 3 (`ch04_why_snapfit.rs`).
+* **What this version supports** (`what-this-version-supports.md`): Who `0.1.0` is for, what it does, what it does not do, and the plan for small, frequent releases.
 
-4. **Installing Snapfit and your first singleton** (`04-installing-and-first-singleton.md`): Adding `snapfit` to `Cargo.toml`, declaring a leaf `#[singleton]`, instantiating the container with `new()`, and verifying pointer identity across `get_<name>()` calls (`ch04_first_singleton.rs`).
-5. **Wiring dependencies and custom constructors** (`05-wiring-dependencies-and-constructors.md`): Declaring prerequisites with `deps = [...]`, calling named constructors with `constructor = <fn>` (a bare function name) that receive their prerequisites, and storing `T: Clone` types directly without forced `Arc<T>` wrapping (`ch05_wiring_and_constructors.rs`).
-6. **Multiple instances of the same type** (`06-multiple-instances-of-the-same-type.md`): Wiring `read_db` and `write_db` of the exact same `Arc<Database>` type by field name without wrapper newtypes (`ch06_multiple_instances.rs`).
-* **Without Snapfit** (`part-2-without-snapfit.md`): Demonstrates the `TypeMap` overwrite bug when registering two databases of the same type (`part2_without_snapfit.rs`) and contrasts it with `snapfit`'s named-edge graph.
+### Part 3: Wiring a container
 
-### Part 3: Compile-Time Guarantees & Agents
+Covers every stable feature of `v0.1.0`, one per chapter:
 
-7. **Mistakes caught by the compiler** (`07-mistakes-caught-by-the-compiler.md`): Every graph and configuration mistake `snapfit` turns into a compile-time error, with the real program and recorded `rustc` diagnostic (`ch07_unknown_dependency`, `ch07_dependency_cycle`, `ch07_self_dependency_cycle`, `ch07_quoted_constructor`, `ch07_several_mistakes`, `ch07_tuple_struct_container`).
-8. **Working with coding agents** (`08-working-with-coding-agents.md`): Why separating pure domain modules from the central `#[container]` manifest prevents context bloat and wiring drift when working with AI coding agents, complete with a runnable example (`ch08_agent_workflow.rs`) and a copy-ready `AGENTS.md` rule block.
+5. **Installing Snapfit and your first singleton** (`05-installing-and-first-singleton.md`): Adding `snapfit` to `Cargo.toml`, declaring a leaf `#[singleton]`, instantiating the container with `new()`, and verifying pointer identity across `get_<name>()` calls (`ch05_first_singleton.rs`).
+6. **Pure domain types, one container** (`06-pure-domain-types.md`): Shows that domain structs need zero macros or traits — the exact same structs can be constructed directly in a unit test or wired by a `#[container]` (`ch06_pure_domain.rs`).
+7. **Wiring dependencies and custom constructors** (`07-wiring-dependencies-and-constructors.md`): Declaring prerequisites with `deps = [...]`, calling named constructors with `constructor = <fn>` (a bare function name) that receive their prerequisites, and storing `T: Clone` types directly without forced `Arc<T>` wrapping (`ch07_wiring_and_constructors.rs`).
+8. **Read the container, know the graph** (`08-read-the-container-know-the-graph.md`): Shows how `#[container]` serves as an executable architecture manifest, and how fields declared in any order are each built after the fields they need (`ch08_container_graph.rs`).
+9. **Multiple instances of the same type** (`09-multiple-instances-of-the-same-type.md`): Wiring `read_db` and `write_db` of the exact same `Arc<Database>` type by field name without wrapper newtypes (`ch09_multiple_instances.rs`).
+10. **Choosing an implementation** (`10-choosing-an-implementation.md`): Naming the implementation once, in a field's concrete type, for services that take a trait object or a type parameter, and a second container for tests (`ch10_choosing_an_implementation.rs`), with the error for a field typed as a trait object (`ch10_trait_object_field`).
+
+### Part 4: Compile-time guarantees and agents
+
+11. **Mistakes caught by the compiler** (`11-mistakes-caught-by-the-compiler.md`): Every graph and configuration mistake `snapfit` turns into a compile-time error, with the real program and recorded `rustc` diagnostic (`ch11_unknown_dependency`, `ch11_dependency_cycle`, `ch11_self_dependency_cycle`, `ch11_quoted_constructor`, `ch11_several_mistakes`, `ch11_tuple_struct_container`).
+12. **Working with coding agents** (`12-working-with-coding-agents.md`): Why separating pure domain modules from the central `#[container]` manifest prevents context bloat and wiring drift when working with AI coding agents, complete with a runnable example (`ch12_agent_workflow.rs`) and a copy-ready `AGENTS.md` rule block.
 
 ### Appendices
 
 * **Appendix 1: Cheat sheet** (`appendix-1-cheat-sheet.md`): Every container setting and field attribute in one quick-reference table, linking to the chapter that teaches it.
-* **Appendix 2: What this version supports** (`appendix-2-what-this-version-supports.md`): Summary of the capabilities `snapfit` `0.1.0` ships.
 
 ### Held back for a later edition
 
-Transient dependencies and asynchronous containers work in `0.1.0` but only behind the `unstable` feature, so their chapters are not part of the `v0.1.0` edition. Their drafts, examples and expected output are kept in [`unreleased/`](unreleased/README.md) and return as Part 2 chapters when those APIs are stabilised.
+Transient dependencies and asynchronous containers work in `0.1.0` but only behind the `unstable` feature, so their chapters are not part of the `v0.1.0` edition. Their drafts, examples and expected output are kept in [`unreleased/`](unreleased/README.md) and return as Part 3 chapters when those APIs are stabilised.

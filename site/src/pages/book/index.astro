@@ -1,0 +1,38 @@
+---
+import { base, pageHref, releases } from '../../../book.config.mjs';
+import Base from '../../layouts/Base.astro';
+---
+
+<Base
+	title="The Snapfit Book"
+	description="A complete guide to snapfit, with every example compiled and verified in CI."
+	currentNav="book"
+>
+	<h1>The Snapfit Book</h1>
+	<p class="lede">
+		<code>snapfit</code> is a compile-time verified dependency injection framework for Rust that keeps your domain types
+		100% free of framework macros and traits. This book shows you how to build with it, one small online shop at a time.
+	</p>
+	<p>
+		Every code listing in the book is extracted from a complete Rust program in the repository that compiles and runs
+		as a release gate, with its recorded output shown directly underneath.
+	</p>
+	<h2>Pick a release edition</h2>
+	<ul class="edition-list" role="list">
+		{
+			releases.map((rel) => (
+				<li>
+					<a href={pageHref(undefined, rel.version)}>
+						<span class="edition-list__name">The Snapfit Book ({rel.version})</span>
+						<span class="edition-list__detail">
+							Published {rel.date} — {rel.summary}
+						</span>
+					</a>
+				</li>
+			))
+		}
+	</ul>
+	<p>
+		See the <a href={`${base}/releases/`}>Releases page</a> for release notes and version history.
+	</p>
+</Base>
