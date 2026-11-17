@@ -35,15 +35,6 @@ FORBIDDEN_COMPILER_TOKENS = [
 
 SOFT_LINE_LIMIT = 200
 
-# The `unstable` feature is built in its own target dir. Cargo unifies features
-# across a build, so sharing one target dir would let the unstable build leak
-# into the stable compile-fail fixtures that prove the gate.
-UNSTABLE_ENV = {"CARGO_TARGET_DIR": str(Path("target") / "unstable")}
-
-# The publish dry run builds the packaged crates in a target dir of its own, so
-# that their rlibs never sit beside the ones the compile-fail fixtures link to.
-PACKAGE_ENV = {"CARGO_TARGET_DIR": str(Path("target") / "package-check")}
-
 
 def get_repo_root() -> Path:
     return Path(__file__).resolve().parent.parent
@@ -140,27 +131,21 @@ def checks() -> dict[str, list[Step]]:
         "fmt": [command(["cargo", "fmt", "--all", "--", "--check"])],
         "clippy": [
             command(clippy + ["--", "-D", "warnings"]),
-            command(clippy + ["--all-features", "--", "-D", "warnings"], UNSTABLE_ENV),
+            command(clippy + ["--all-features", "--", "-D", "warnings"]),
         ],
         "arch": [check_architectural_invariants],
         "test": [
             command(["cargo", "test", "--workspace", "--all-targets", "--locked"]),
-            command(
-                ["cargo", "test", "-p", "snapfit_bdd", "--features", "unstable", "--locked"],
-                UNSTABLE_ENV,
-            ),
+            command(["cargo", "test", "-p", "snapfit_bdd", "--features", "unstable", "--locked"]),
         ],
         # docs.rs documents snapfit with the `unstable` feature.
         "doc": [
             command(doc, doc_env),
-            command(doc + ["--all-features"], {**doc_env, **UNSTABLE_ENV}),
+            command(doc + ["--all-features"], doc_env),
         ],
         "deny": [command(["cargo", "deny", "check"])],
         "package": [
-            command(
-                ["cargo", "publish", "--workspace", "--dry-run", "--locked", "--allow-dirty"],
-                PACKAGE_ENV,
-            )
+            command(["cargo", "publish", "--workspace", "--dry-run", "--locked", "--allow-dirty"])
         ],
     }
 
