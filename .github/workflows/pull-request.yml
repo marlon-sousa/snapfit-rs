@@ -1,0 +1,43 @@
+name: Pull request
+
+# The checks of the process: every commit message keeps the convention of
+# docs/WORKFLOW.md, and the description has no unticked checkbox. They run on
+# every pull request, whatever its base, so each layer of a stack is checked.
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: pull-request-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  commit-messages:
+    name: commit messages keep the convention
+    runs-on: ubuntu-latest
+    steps:
+      - uses: itinera-dev/actions/commit-messages@d49d88f6b15f4d4c344503e9e3304a449ee3ebe8 # v1.11.0
+
+  checkboxes:
+    # A manual check, such as one with a screen reader, is a list of checkboxes
+    # in the description, so the pull request cannot merge while one is
+    # unticked. "edited" runs it again when a box is ticked; ci.yml leaves
+    # "edited" out, so that a tick runs again only this workflow.
+    name: no unticked checkbox in the description
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail on an unticked checkbox
+        env:
+          # Passed in the environment, never written into the script, so that
+          # the description cannot run as shell.
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if printf '%s\n' "$BODY" | grep -En '^[[:space:]]*[-*+] \[ \]'; then
+            echo "Tick every checkbox of the description before merging."
+            exit 1
+          fi
