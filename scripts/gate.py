@@ -2,7 +2,7 @@
 """QA Quality Gate & Architectural Invariant Checker for snapfit-rs.
 
 Cross-platform script running formatting, clippy, boundary verification,
-unit tests, and documentation checks.
+unit tests, documentation, dependency (cargo-deny) and packaging checks.
 """
 
 import os
@@ -49,6 +49,8 @@ VALID_MODES = {
     "arch-check",
     "test",
     "doc",
+    "deny",
+    "package",
 }
 
 
@@ -130,6 +132,45 @@ def check_architectural_invariants() -> bool:
     return True
 
 
+def checks() -> dict[str, list[tuple[list[str], dict[str, str] | None]]]:
+    """The commands of each mode, each with the environment it adds, in the order they run."""
+    clippy = ["cargo", "clippy", "--workspace", "--all-targets", "--locked"]
+    doc = ["cargo", "doc", "--workspace", "--no-deps", "--locked"]
+    doc_env = {"RUSTDOCFLAGS": "-D warnings"}
+    return {
+        "fmt": [(["cargo", "fmt", "--all", "--", "--check"], None)],
+        "clippy": [
+            (clippy + ["--", "-D", "warnings"], None),
+            (clippy + ["--all-features", "--", "-D", "warnings"], UNSTABLE_ENV),
+        ],
+        "test": [
+            (["cargo", "test", "--workspace", "--all-targets", "--locked"], None),
+            (
+                ["cargo", "test", "-p", "snapfit_bdd", "--features", "unstable", "--locked"],
+                UNSTABLE_ENV,
+            ),
+        ],
+        # docs.rs documents snapfit with the `unstable` feature, as
+        # [package.metadata.docs.rs] says, so both builds' docs must build.
+        "doc": [
+            (doc, doc_env),
+            (doc + ["--all-features"], {**doc_env, **UNSTABLE_ENV}),
+        ],
+        # Licences, advisories and sources of the dependencies, as deny.toml allows them.
+        "deny": [(["cargo", "deny", "check"], None)],
+        # Every published crate built from its package alone, as crates.io receives it.
+        "package": [
+            (["cargo", "publish", "--workspace", "--dry-run", "--locked", "--allow-dirty"], None)
+        ],
+    }
+
+
+ALIASES = {"fmt-check": "fmt", "arch-check": "arch"}
+
+# The order `cargo xtask ci` runs the modes in.
+CI_MODES = ["fmt", "clippy", "arch", "test", "doc", "deny", "package"]
+
+
 def main() -> int:
     args = sys.argv[1:]
     mode = args[0] if args else "all"
@@ -140,67 +181,15 @@ def main() -> int:
         )
         return 1
 
-    run_all = mode in ("all", "ci")
+    modes = CI_MODES if mode in ("all", "ci") else [ALIASES.get(mode, mode)]
+    commands = checks()
     success = True
-
-    if run_all or mode in ("fmt", "fmt-check"):
-        success = run_command(["cargo", "fmt", "--all", "--", "--check"]) and success
-
-    if run_all or mode == "clippy":
-        success = (
-            run_command(
-                [
-                    "cargo",
-                    "clippy",
-                    "--workspace",
-                    "--all-targets",
-                    "--",
-                    "-D",
-                    "warnings",
-                ]
-            )
-            and success
-        )
-        success = (
-            run_command(
-                [
-                    "cargo",
-                    "clippy",
-                    "--workspace",
-                    "--all-targets",
-                    "--all-features",
-                    "--",
-                    "-D",
-                    "warnings",
-                ],
-                env=UNSTABLE_ENV,
-            )
-            and success
-        )
-
-    if run_all or mode in ("arch", "arch-check"):
-        success = check_architectural_invariants() and success
-
-    if run_all or mode == "test":
-        success = (
-            run_command(["cargo", "test", "--workspace", "--all-targets"]) and success
-        )
-        success = (
-            run_command(
-                ["cargo", "test", "-p", "snapfit_bdd", "--features", "unstable"],
-                env=UNSTABLE_ENV,
-            )
-            and success
-        )
-
-    if run_all or mode == "doc":
-        success = (
-            run_command(
-                ["cargo", "doc", "--workspace", "--no-deps"],
-                env={"RUSTDOCFLAGS": "-D warnings"},
-            )
-            and success
-        )
+    for name in modes:
+        if name == "arch":
+            success = check_architectural_invariants() and success
+            continue
+        for cmd, env in commands[name]:
+            success = run_command(cmd, env=env) and success
 
     if success:
         print("\n🎉 Quality Gate PASSED: All checks clean with zero errors!")
