@@ -1,19 +1,23 @@
 # Choosing between implementations
 
-## What you want to do
+At the end of the last chapter, our services were deciding everything themselves. Let's start with the case that hurts the most: payments. In production, `OrderService` must charge cards through Stripe. In a test, it must never do that.
 
-Production charges customers through Stripe, and tests must never do that: they need a fake gateway that only pretends. You want `OrderService` to work with either, without editing it each time.
+## Asking for what you need
 
-## The code
+When you order a ride in a transport app, you ask for a car and a driver to take you from home to the airport. You don't choose the engine, and you don't hire the driver. What you care about is getting there.
 
-First, the two gateways share a trait, so that the service can talk to either one:
+Some details can matter, though. If you are travelling with three suitcases, you ask for a car with a big boot. You still don't build the car: you say what you need, and any car that fits will do.
+
+In Rust, saying what you need is what a trait is for. `OrderService` doesn't need Stripe. It needs something that can charge a card. So let's write that down, and give it two implementations: the real one, and a fake that only pretends:
 
 ```example
 name: ch02_choosing_between_implementations
 region: gateways
 ```
 
-### A closed list
+Now, how does `OrderService` get one? There are three common ways, and each one teaches us something.
+
+## First try: a list of options
 
 The first idea is to keep the choice inside the service, and let the caller pick from a list:
 
@@ -22,25 +26,37 @@ name: ch02_choosing_between_implementations
 region: closed_list
 ```
 
-### A type parameter
+This works, and a test can now pass `Provider::Fake`. But look at what the service still knows: every provider, by name, and how to build each one. When the shop adds PayPal, we edit `OrderServiceWithList` again, even though placing an order hasn't changed at all.
 
-The second idea moves the choice out of the service. `OrderService<P>` works with any gateway, and whoever builds it decides which. Anything that holds an `OrderService` must name `P` too, as `CheckoutController` does:
+It's like a coffee machine that only takes its own brand's capsules. It's fine until you want a different coffee, and then you need a different machine. We'll call this a closed list: you can't add an option without opening up the code that uses the options.
+
+## Second try: a type parameter
+
+The second idea moves the choice out of the service. `OrderService<P>` works with any gateway, and whoever builds it decides which one:
 
 ```example
 name: ch02_choosing_between_implementations
 region: generic
 ```
 
-### A trait object
+This is nice. The service no longer chooses, and because the compiler knows the exact type, calls to the gateway cost nothing extra when the program runs. But look at `CheckoutController`. It holds an `OrderService`, so it has to become `CheckoutController<P>` too, even though it doesn't care how payments are made. Whatever holds the controller needs `P` as well, and so on, all the way up. Give the service a database and a stock service the same way, and every type above it carries three parameters it doesn't care about.
 
-The third idea also moves the choice out, but erases the type: the service holds an `Arc<dyn PaymentGateway>`, and does not know which gateway is behind it:
+It's like a parcel inside a parcel inside a parcel, where every box has to repeat the label of the box inside it. The type parameters spread.
+
+## Third try: a trait object
+
+The third idea also moves the choice out, but hides the type. The service holds an `Arc<dyn PaymentGateway>`: a pointer to some gateway whose name it doesn't know:
 
 ```example
 name: ch02_choosing_between_implementations
 region: trait_object
 ```
 
-### All three in use
+`SharedOrderService` keeps the same type whatever gateway it receives, so nothing that holds it has to change. This is the ride from the start of the chapter: the service asks for something that charges cards, and takes whatever comes.
+
+There is a small price. Calling through a trait object means following one more pointer on each call, and the compiler usually can't inline the call. For a service that talks to a database or a payment provider, that cost is tiny next to the call itself. A good rule of thumb: use a type parameter where every nanosecond counts, and a trait object where it keeps the code simpler.
+
+## All three, side by side
 
 ```example
 name: ch02_choosing_between_implementations
@@ -53,16 +69,14 @@ It prints:
 name: ch02_choosing_between_implementations
 ```
 
-## What goes wrong
+## The choice didn't go away
 
-1. **A closed list.** `OrderServiceWithList` can be tested now, but it still picks its own dependencies: it knows every provider by name and builds each one. Adding PayPal means editing the service again.
-2. **Type parameters spread.** `OrderService<P>` no longer chooses, and calls to the gateway add no run-time cost. But `CheckoutController` has to become `CheckoutController<P>`, and so does everything that holds a controller. Give the service a database and a stock service the same way, and every type above it carries three parameters it does not care about.
-3. **The choice still has to be made.** With a type parameter or a trait object, the service receives its gateway instead of building it. That fixes the first two problems of [Chapter 1](01-a-service-that-builds-its-own-dependencies.md): the service no longer picks its own dependencies, and a test can hand it a fake. But someone now has to choose Stripe, build it, and pass it in. That someone is the subject of the next chapter.
+With the type parameter and with the trait object, the service receives its gateway instead of building it. That already fixes two problems from the last chapter: the service is no longer coupled to Stripe, and a test can hand it the fake.
 
-A trait object costs a little at run time: one pointer to follow on each call, and the compiler usually cannot inline the call. For a service that talks to a database or a payment provider, that cost is far below the cost of the call itself. Use a type parameter where it matters, and a trait object where it keeps the code simpler.
+But look at `main`. Somebody still writes `StripeGateway`, builds it, and passes it in. We moved the decision out of the service; we didn't make it disappear. And as the shop grows, whoever makes these decisions has more and more to build. The next chapter looks at who that is.
 
-## Remember
+## What we found
 
-1. A service that receives its dependencies, as a type parameter or as a trait object, no longer decides which implementation it uses.
-2. Type parameters add no run-time cost, but they spread to every type that holds the service.
-3. Receiving dependencies moves the decision to whoever builds the service. Something still has to make it.
+1. **A closed list.** A service that picks from a list of implementations can be tested, but it still knows every implementation, and adding one means editing it.
+2. **Spreading type parameters.** A type parameter costs nothing when the program runs, but it spreads to every type that holds the service.
+3. **Someone still has to choose.** A service that receives its dependencies no longer decides which ones it gets, so something else has to build them and pass them in.

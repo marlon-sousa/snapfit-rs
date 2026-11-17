@@ -1,26 +1,40 @@
 # A service that builds its own dependencies
 
-## What you want to do
+Let's build a small online shop together. It doesn't need much to start: customers place orders, each order reserves an item in stock and charges the customer's card, and at the end of the day someone wants a sales report.
 
-The shop takes orders. Placing an order reserves the item in stock and charges the customer through Stripe, and a separate report reads the day's sales from the same database. You want to write these services the way most Rust code starts: each one creates what it needs in its own `new()`.
+## Two pieces of infrastructure
 
-## The code
-
-Two pieces of infrastructure, a database connection and a Stripe client. Each prints a line when it is created, so the output shows when that happens:
+A shop like this talks to the outside world. Ours talks to a database, where the stock and the sales live, and to Stripe, which charges cards. Here they are. Each one prints a line when it is created, so that later we can see exactly when that happens:
 
 ```example
 name: ch01_builds_its_own
 region: infrastructure
 ```
 
-The services build their own dependencies. `StockService` opens the database, `OrderService` builds a `StockService` and connects to Stripe, and `ReportService` opens the database too:
+## Assembling the services
+
+Now we need the services themselves. The stock service reserves items, so it needs the database. The simplest thing we can do is open the database right there, in its `new()`:
 
 ```example
 name: ch01_builds_its_own
-region: services
+region: stock
 ```
 
-The program creates an order service and a report service, and uses both:
+The order service needs to reserve stock and to charge the card. Following the same idea, it creates its own stock service and connects to Stripe:
+
+```example
+name: ch01_builds_its_own
+region: orders
+```
+
+The report service reads the day's sales, so it opens the database too:
+
+```example
+name: ch01_builds_its_own
+region: reports
+```
+
+Perfect. Let's put them to work:
 
 ```example
 name: ch01_builds_its_own
@@ -33,17 +47,35 @@ It prints:
 name: ch01_builds_its_own
 ```
 
-## What goes wrong
+It works, and for a small tool this would be fine. Most Rust programs start exactly like this. But let's see what happens as the shop grows.
 
-The program works, and for a small tool this is fine. The problems appear as the shop grows, and each one has a name that the rest of the book uses.
+## What if we want to test?
 
-1. **The service picks its own dependencies.** `OrderService` decides that payments go through Stripe, with which key, and that stock lives in `postgres://shop`. To use another payment provider, or another database in staging, you edit `OrderService`, even though how an order is placed has not changed.
-2. **It cannot be tested alone.** A unit test of `place_order` runs `OrderService::new()`, so it opens a database connection and connects to Stripe with the live key, as the output shows. There is no way to hand the service a fake.
-3. **Nothing is shared.** `StockService` and `ReportService` each open their own connection to the same database: the output shows two of them. With ten services, that is ten connections, and nothing in the code says so.
-4. **Two jobs in one place.** `OrderService` should know how to place an order. Here it also knows how to build a `StockService`, which means knowing that a stock service needs a database, and which one. Each service carries knowledge of everything below it.
+Say we want a test for `place_order`. The test has to create an `OrderService`, and the only way to do that is `OrderService::new()`. Look at the output again: creating one opens a connection to the real database and connects to Stripe with the live key. Every run of our test would reserve real stock and charge real money.
 
-## Remember
+We can't hand the service a fake payment gateway, because the service never asks for one. It goes and gets the real thing itself. `OrderService` is welded to Stripe and to `postgres://shop`, not because placing an order needs Stripe, but because the service decided, on its own, that payments go through Stripe. This is called tight coupling.
 
-1. A service that calls the constructors of its own dependencies decides which implementation it uses, and every caller inherits that decision.
-2. Building dependencies inside `new()` hides how many instances exist and makes the service impossible to test without the real infrastructure.
-3. The next chapter takes the first step: the service stops choosing.
+Think of a lamp. You can wire a lamp straight into the wall. It works, and it keeps working until you want to move it to another room, or check it on a test bench. Then you need an electrician. A lamp with a plug works in any socket: it only cares that electricity comes out of the wall, and where that electricity comes from is not its business.
+
+Our services are wired into the wall, and that is also why they are hard to test: a test can't run one without the real database and the real Stripe behind it.
+
+## Two connections where one would do
+
+Count the lines that say "opening a connection". There are two. `StockService` opened one, and `ReportService` opened another, to the same database. Nobody decided that the shop should have two connections. It just happened, because each service built its own. With ten services there would be ten, and nothing in the code would tell you so.
+
+It's like two flatmates each signing their own internet contract for the same flat. Each one solved their own problem, and together they pay twice.
+
+## A chef who also has to farm
+
+Finally, look at what `OrderService` knows. It should know how to place an order. But it also knows how to build a `StockService`, which means it knows that a stock service needs a database, and which one. If the stock service one day needs a cache, the order service has to learn about the cache too. Every service carries the knowledge of everything below it.
+
+That's like a chef who, to cook dinner, must also know how the vegetables were grown. A good chef cares that the tomatoes are ripe, not which farm they came from. Using your ingredients and producing them are two different jobs.
+
+## What we found
+
+1. **Tight coupling.** A service that calls the constructors of its dependencies decides which implementations it uses, and everyone who uses the service inherits that decision.
+2. **Hard to test.** A service that builds its own infrastructure can't be tested without that infrastructure.
+3. **Duplicated resources.** When every service builds what it needs, nothing is shared, and nobody can see how many instances exist.
+4. **Mixed responsibilities.** A service that builds its dependencies has two jobs: its own work, and knowing how everything below it is made.
+
+All four come from the same place: the service builds what it needs instead of receiving it. In the next chapter, our services stop choosing.

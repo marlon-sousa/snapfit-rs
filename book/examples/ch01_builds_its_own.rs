@@ -31,7 +31,7 @@ impl StripeGateway {
 }
 // ANCHOR_END: infrastructure
 
-// ANCHOR: services
+// ANCHOR: stock
 struct StockService {
     db: Database,
 }
@@ -47,7 +47,9 @@ impl StockService {
         format!("reserved {sku} in {}", self.db.url())
     }
 }
+// ANCHOR_END: stock
 
+// ANCHOR: orders
 struct OrderService {
     stock: StockService,
     payments: StripeGateway,
@@ -69,7 +71,9 @@ impl OrderService {
         )
     }
 }
+// ANCHOR_END: orders
 
+// ANCHOR: reports
 struct ReportService {
     db: Database,
 }
@@ -85,7 +89,7 @@ impl ReportService {
         format!("sales report read from {}", self.db.url())
     }
 }
-// ANCHOR_END: services
+// ANCHOR_END: reports
 
 // ANCHOR: run
 fn main() {

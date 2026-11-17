@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use super::{section_lines, sorted_files};
 
-const PROBLEMS_HEADING: &str = "## What goes wrong";
+const PROBLEMS_HEADING: &str = "## What we found";
 const ANSWERS_HEADING: &str = "## Which problem this solves";
 
 #[test]
