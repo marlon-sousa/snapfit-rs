@@ -41,7 +41,7 @@ name: ch06_pure_domain
 
 ## Which problem this solves
 
-1. **It cannot be tested alone** ([Chapter 1](01-a-service-that-builds-its-own-dependencies.md)): `InvoiceCalculator` is built in a test with its own `PricingConfig`, without a container and without any real infrastructure.
+1. **It cannot be tested alone** ([Chapter 1](01-a-service-that-builds-its-own-dependencies.md)): `InvoiceCalculator` is built directly, as a unit test would build it, with its own `PricingConfig`, without a container and without any real infrastructure.
 2. **The service picks its own dependencies** ([Chapter 1](01-a-service-that-builds-its-own-dependencies.md)): `InvoiceCalculator::new` receives its configuration. Whether that is the production configuration or a test's is decided by its caller.
 3. **Services drift back to choosing** ([Chapter 3](03-who-builds-everything.md)): nothing in `InvoiceCalculator` refers to the container, so it cannot ask the container for anything.
 

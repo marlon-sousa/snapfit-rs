@@ -49,12 +49,13 @@ name: ch10_choosing_an_implementation
 
 ### The rule: any type that fits works
 
-Everything above follows from one rule. The generated `new()` is ordinary Rust: for each field, it calls the constructor its attribute names on the field's type, passing clones of the fields in its `deps`, and it passes the field on to the constructors of the fields that list it. So you can change a field's type to any other type that fits those two calls, recompile, and the application works with it:
+Everything above follows from one rule. The generated `new()` is ordinary Rust: for each field, it calls the constructor its attribute names, on the field's type, or on `T` for an `Arc<T>` field, which it then wraps in an `Arc`. It passes that constructor clones of the fields in its `deps`, and it passes clones of the field on to the constructors of the fields that list it. So you can change a field's type to any other type that fits those calls, recompile, and the application works with it:
 
-1. **The new type has the constructor.** It has the constructor the attribute calls, `new` or the one `constructor =` names, taking the fields in `deps`, in that order.
-2. **The fields that need it accept it.** Each constructor that receives the field takes the new type: because it asks for exactly that type, because it is generic over a trait the new type implements (the type of that field then names the new type too, as `Arc<RefundService<FakeGateway>>` does), or because it takes an `Arc<dyn Trait>` of a trait the new type implements.
+1. **The new type has the constructor.** It, or `T` for an `Arc<T>` field, has the constructor the attribute calls, `new` or the one `constructor =` names, taking the fields in `deps`, in that order.
+2. **It can be cloned.** An `Arc<T>` field always can. A field of any other type must implement `Clone`, because its getter and the fields that need it receive clones.
+3. **The fields that need it accept it.** Each constructor that receives the field takes the new type: because it asks for exactly that type, because it is generic over a trait the new type implements (the type of that field then names the new type too, as `Arc<RefundService<FakeGateway>>` does), or because it takes an `Arc<dyn Trait>` of a trait the new type implements.
 
-No service changes, and no attribute does. If the new type does not fit, the program does not compile.
+No service changes, and no attribute does. The only other line that changes is the type of a field that is generic over the new type, such as `refunds`. If the new type does not fit, the program does not compile.
 
 ## Which problem this solves
 
@@ -67,6 +68,6 @@ No service changes, and no attribute does. If the new type does not fit, the pro
 ## Remember
 
 1. Name the implementation once, in the type of a container field; let services take a trait object or a type parameter.
-2. Changing a field to any other type that has the same constructor and that the fields needing it accept, through a trait object, a type parameter or the exact type, works with no other change.
+2. A field can change to any other type that has the same constructor, can be cloned, and is accepted by the fields that need it, through a trait object, a type parameter or the exact type. No service or attribute changes; a field whose type is generic over it, such as `Arc<RefundService<StripeGateway>>`, names the new type too.
 3. A trait object keeps the service's type the same whatever the gateway; a type parameter avoids the indirect call, and its concrete type is named in the container.
 4. To build the application around different implementations, such as fakes for tests, declare a second container with the same fields.

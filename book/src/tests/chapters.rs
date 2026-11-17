@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 
-use super::sorted_files;
+use super::{section_lines, sorted_files};
 
 const FEATURE_SECTIONS: &[&str] = &[
     "## What you want to do",
@@ -29,7 +29,7 @@ fn chapters_table_of_contents_and_structure_are_valid() {
         .expect("missing book/chapters/README.md");
 
     let linked_files = extract_linked_chapter_files(readme.lines());
-    let problem_files = extract_linked_chapter_files(part_lines(&readme, PROBLEM_PART_HEADING));
+    let problem_files = extract_linked_chapter_files(section_lines(&readme, PROBLEM_PART_HEADING));
     assert!(
         !problem_files.is_empty(),
         "book/chapters/README.md must list the problem chapters under a heading starting with \"{PROBLEM_PART_HEADING}\""
@@ -55,17 +55,6 @@ fn chapters_table_of_contents_and_structure_are_valid() {
     }
 
     verify_all_examples_and_compile_errors_are_used(book_dir, &chapters_dir);
-}
-
-/// The lines of the contents between `heading` and the next level 2 heading.
-fn part_lines<'a>(readme: &'a str, heading: &'a str) -> impl Iterator<Item = &'a str> {
-    let mut lines = readme.lines();
-    lines.find(|line| line.starts_with(heading));
-    lines.take_while(is_not_a_level_2_heading)
-}
-
-fn is_not_a_level_2_heading(line: &&str) -> bool {
-    !line.starts_with("## ")
 }
 
 fn extract_linked_chapter_files<'a>(lines: impl Iterator<Item = &'a str>) -> HashSet<String> {

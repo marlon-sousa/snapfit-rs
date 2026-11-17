@@ -95,6 +95,17 @@ pub(super) fn sorted_files(dir: &Path, ext: &str) -> Vec<PathBuf> {
     files
 }
 
+/// The lines after the first line that starts with `heading`, up to the next level 2 heading.
+pub(super) fn section_lines<'a>(text: &'a str, heading: &str) -> impl Iterator<Item = &'a str> {
+    let mut lines = text.lines();
+    lines.find(|line| line.starts_with(heading));
+    lines.take_while(is_not_a_level_2_heading)
+}
+
+fn is_not_a_level_2_heading(line: &&str) -> bool {
+    !line.starts_with("## ")
+}
+
 pub(super) fn file_stem(path: &Path) -> String {
     path.file_stem()
         .and_then(|s| s.to_str())
