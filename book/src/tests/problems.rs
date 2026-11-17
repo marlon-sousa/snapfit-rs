@@ -75,7 +75,7 @@ fn opening_bold_name(line: &str) -> Option<String> {
         .then_some(name.trim_end_matches('.').to_string())
 }
 
-/// The body rows of the tables in the section with this heading, after each separator row.
+/// The body rows of the first table in the section with this heading.
 fn table_rows<'a>(page: &'a str, heading: &str) -> impl Iterator<Item = &'a str> {
     let mut lines = section_lines(page, heading);
     lines.find(|line| line.starts_with("| :---"));

@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -78,6 +79,10 @@ fn unstable_words_in(book_dir: &Path, path: &Path) -> Vec<String> {
     UNSTABLE_OR_PLANNED
         .iter()
         .filter(|word| content.contains(*word))
-        .map(|word| format!("book/{shown} contains \"{word}\""))
+        .map(|word| found_in(&shown, word))
         .collect()
+}
+
+fn found_in(path: impl Display, word: &str) -> String {
+    format!("book/{path} contains \"{word}\"")
 }
