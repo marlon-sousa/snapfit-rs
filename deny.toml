@@ -21,8 +21,7 @@ allow = [
 ]
 unused-allowed-license = "allow"
 exceptions = [
-    # cucumber's code generation, used only by the unpublished Gherkin suite.
-    { crate = "cucumber-codegen", allow = ["BlueOak-1.0.0"] },
+    # synthez, used by cucumber's code generation, only in the unpublished Gherkin suite.
     { crate = "synthez", allow = ["BlueOak-1.0.0"] },
     { crate = "synthez-codegen", allow = ["BlueOak-1.0.0"] },
     { crate = "synthez-core", allow = ["BlueOak-1.0.0"] },

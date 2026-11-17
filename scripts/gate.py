@@ -8,6 +8,7 @@ unit tests, documentation, dependency (cargo-deny) and packaging checks.
 import os
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 # Ensure UTF-8 output on all platforms (avoids Windows cp1252 charmap errors)
@@ -39,19 +40,10 @@ SOFT_LINE_LIMIT = 200
 # into the stable compile-fail fixtures that prove the gate.
 UNSTABLE_ENV = {"CARGO_TARGET_DIR": str(Path("target") / "unstable")}
 
-VALID_MODES = {
-    "all",
-    "ci",
-    "fmt",
-    "fmt-check",
-    "clippy",
-    "arch",
-    "arch-check",
-    "test",
-    "doc",
-    "deny",
-    "package",
-}
+# The publish dry run builds the packaged crates in a target dir of its own, so
+# that their rlibs never sit beside the ones the compile-fail fixtures link to.
+PACKAGE_ENV = {"CARGO_TARGET_DIR": str(Path("target") / "package-check")}
+
 
 
 def get_repo_root() -> Path:
@@ -132,35 +124,44 @@ def check_architectural_invariants() -> bool:
     return True
 
 
-def checks() -> dict[str, list[tuple[list[str], dict[str, str] | None]]]:
-    """The commands of each mode, each with the environment it adds, in the order they run."""
+Step = Callable[[], bool]
+
+
+def command(cmd: list[str], env: dict[str, str] | None = None) -> Step:
+    """A step running `cmd` with `env` added to the environment."""
+    return lambda: run_command(cmd, env=env)
+
+
+def checks() -> dict[str, list[Step]]:
+    """The steps of each mode, in the order they run."""
     clippy = ["cargo", "clippy", "--workspace", "--all-targets", "--locked"]
     doc = ["cargo", "doc", "--workspace", "--no-deps", "--locked"]
     doc_env = {"RUSTDOCFLAGS": "-D warnings"}
     return {
-        "fmt": [(["cargo", "fmt", "--all", "--", "--check"], None)],
+        "fmt": [command(["cargo", "fmt", "--all", "--", "--check"])],
         "clippy": [
-            (clippy + ["--", "-D", "warnings"], None),
-            (clippy + ["--all-features", "--", "-D", "warnings"], UNSTABLE_ENV),
+            command(clippy + ["--", "-D", "warnings"]),
+            command(clippy + ["--all-features", "--", "-D", "warnings"], UNSTABLE_ENV),
         ],
+        "arch": [check_architectural_invariants],
         "test": [
-            (["cargo", "test", "--workspace", "--all-targets", "--locked"], None),
-            (
+            command(["cargo", "test", "--workspace", "--all-targets", "--locked"]),
+            command(
                 ["cargo", "test", "-p", "snapfit_bdd", "--features", "unstable", "--locked"],
                 UNSTABLE_ENV,
             ),
         ],
-        # docs.rs documents snapfit with the `unstable` feature, as
-        # [package.metadata.docs.rs] says, so both builds' docs must build.
+        # docs.rs documents snapfit with the `unstable` feature.
         "doc": [
-            (doc, doc_env),
-            (doc + ["--all-features"], {**doc_env, **UNSTABLE_ENV}),
+            command(doc, doc_env),
+            command(doc + ["--all-features"], {**doc_env, **UNSTABLE_ENV}),
         ],
-        # Licences, advisories and sources of the dependencies, as deny.toml allows them.
-        "deny": [(["cargo", "deny", "check"], None)],
-        # Every published crate built from its package alone, as crates.io receives it.
+        "deny": [command(["cargo", "deny", "check"])],
         "package": [
-            (["cargo", "publish", "--workspace", "--dry-run", "--locked", "--allow-dirty"], None)
+            command(
+                ["cargo", "publish", "--workspace", "--dry-run", "--locked", "--allow-dirty"],
+                PACKAGE_ENV,
+            )
         ],
     }
 
@@ -169,6 +170,8 @@ ALIASES = {"fmt-check": "fmt", "arch-check": "arch"}
 
 # The order `cargo xtask ci` runs the modes in.
 CI_MODES = ["fmt", "clippy", "arch", "test", "doc", "deny", "package"]
+
+VALID_MODES = {"all", "ci", *CI_MODES, *ALIASES}
 
 
 def main() -> int:
@@ -182,14 +185,11 @@ def main() -> int:
         return 1
 
     modes = CI_MODES if mode in ("all", "ci") else [ALIASES.get(mode, mode)]
-    commands = checks()
+    steps = checks()
     success = True
     for name in modes:
-        if name == "arch":
-            success = check_architectural_invariants() and success
-            continue
-        for cmd, env in commands[name]:
-            success = run_command(cmd, env=env) and success
+        for step in steps[name]:
+            success = step() and success
 
     if success:
         print("\n🎉 Quality Gate PASSED: All checks clean with zero errors!")
