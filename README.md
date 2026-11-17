@@ -109,8 +109,8 @@ Trait dispatch (`#[dispatch(...)]`), test overrides (`fork_with()`), request-sco
 
 ## Minimum Supported Rust Version (MSRV)
 
-This crate requires **Rust 1.85.0** or higher (Rust 2024 edition).
-The exact toolchain and required components (`clippy`, `rustfmt`, `rust-src`) are pinned in [`rust-toolchain.toml`](rust-toolchain.toml).
+This crate requires **Rust 1.85.0** or higher (Rust 2024 edition), which CI checks.
+The toolchain snapfit is developed with, a recent stable Rust, is pinned in [`rust-toolchain.toml`](rust-toolchain.toml).
 
 ---
 
