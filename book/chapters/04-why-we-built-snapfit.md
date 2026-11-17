@@ -1,0 +1,111 @@
+# Why we built Snapfit
+
+Let's take stock of where we are. Our services from [Chapter 3](03-who-builds-everything.md) are written the right way: each one receives what it needs. What we want now is a composition root that works out the order by itself, shares every component, refuses mistakes when the program compiles, and shows the whole graph to anyone who reads it.
+
+That is what we built `snapfit` for. Instead of writing the composition root, you declare it, and a macro writes it for you.
+
+## The same shop, declared
+
+Here are the services again. There is one small change: the database and the Stripe client now read their settings from a `ShopConfig` instead of receiving them as text. Notice that none of them mentions `snapfit`:
+
+```example
+name: ch04_why_snapfit
+region: domain
+```
+
+And here is the composition root. It is a struct. Each field is one component, and the attribute above it says what that component needs:
+
+```example
+name: ch04_why_snapfit
+region: container
+```
+
+Read it like the ingredients list of a recipe: the database needs the configuration, the stock service needs the database, the order service needs the stock service and the payments. Let's run it:
+
+```example
+name: ch04_why_snapfit
+region: run
+```
+
+It prints:
+
+```output
+name: ch04_why_snapfit
+```
+
+One connection, one Stripe client, and the same order service every time we ask for it.
+
+## The graph, in one place
+
+Here is what `ShopContainer` declares, drawn as a picture:
+
+```mermaid
+flowchart LR
+    accTitle: The shop's dependency graph, as ShopContainer declares it
+    accDescr: config is needed by db and payments. db is needed by stock and reports. stock and payments are needed by orders.
+    CFG["config"] --> DB["db"]
+    CFG --> PAY["payments"]
+    DB --> STOCK["stock"]
+    DB --> REP["reports"]
+    STOCK --> ORD["orders"]
+    PAY --> ORD
+```
+
+What the diagram shows:
+
+1. `config` needs nothing, and both `db` and `payments` need it.
+2. `stock` and `reports` both need `db`.
+3. `orders` needs `stock` and `payments`.
+
+Everything in that picture is written in `ShopContainer`, and nowhere else.
+
+## What the macro writes for us
+
+`#[container]` reads the struct and writes the code we wrote by hand in `AppState`. Here is what it does, step by step:
+
+1. **It writes the composition root.** It generates `ShopContainer::new()`, which calls each component's constructor once, passing it clones of the fields listed in its `deps`. It also generates one `get_<field>()` method per field, so you can ask for any component.
+2. **It works out the order.** `new()` builds every field after the fields it needs. You never order the lines yourself, so when `Database` needs something new, you add one name to one `deps` list.
+3. **It shares everything it builds.** Every field is built once, and its getter hands you a clone of it. For an `Arc` field, every clone points to the same value, which is why the program printed `true`. No component is quietly built again on each call.
+4. **It checks the graph when the program compiles.** A name in `deps` that isn't a field, or two fields that need each other, stop the build with an error at the field. [Chapter 11](11-mistakes-caught-by-the-compiler.md) shows each one.
+5. **It names components by field, not by type.** `deps = [stock, payments]` names fields, so two fields of the same type, such as a read replica and a primary database, are two different components ([Chapter 9](09-multiple-instances-of-the-same-type.md)).
+6. **It leaves the services alone.** `OrderService` asks for any `Arc<dyn PaymentGateway>`. Only the container says Stripe, by declaring `payments` as `Arc<StripeGateway>`, and Rust converts it when `new()` passes it in ([Chapter 10](10-choosing-an-implementation.md)). To switch providers, you change that field to another type that implements `PaymentGateway` and has a `connect` constructor taking the configuration. That is the whole change.
+7. **It writes plain Rust.** `new()` is the code you would have written in `AppState::build`, and a getter is a field access and a clone. Nothing is looked up while the program runs.
+
+## Why not build it by hand, or use a locator?
+
+Here is how the three shapes we have seen compare:
+
+| Question | Building by hand | Service locator | `snapfit` |
+| :--- | :--- | :--- | :--- |
+| Where is the graph? | Spread over the constructor calls in `build` | In the `register` calls, while the program runs | In one struct |
+| Who orders construction? | You | You, as you build what you register | `new()`, worked out when compiling |
+| When is a missing dependency found? | When compiling | When the program asks for it | When compiling |
+| Two components of one type? | Yes, two variables | No, one entry per type | Yes, two fields |
+| What does a lookup cost? | A field access | A hash lookup and a downcast | A field access and a clone |
+| Does the domain code change? | No | Only if services use the locator | No |
+
+## Which problem this solves
+
+Every problem we found in Part 1, and the chapter where you can see how `snapfit` answers it:
+
+| Problem | How `snapfit` answers it | Where |
+| :--- | :--- | :--- |
+| Tight coupling | Services receive their dependencies; only the container names an implementation. | [Chapter 6](06-pure-domain-types.md), [Chapter 10](10-choosing-an-implementation.md) |
+| Hard to test | A service is a plain struct: a test builds it with `new(...)` and fakes, without any container. | [Chapter 6](06-pure-domain-types.md) |
+| Duplicated resources | Every field is built once; for an `Arc` field, every getter call returns the same value. | [Chapter 5](05-installing-and-first-singleton.md) |
+| Mixed responsibilities | A service knows only its own arguments; the container knows how everything is built. | [Chapter 7](07-wiring-dependencies-and-constructors.md) |
+| A closed list | A new implementation is a new type named in one field; no service changes. | [Chapter 10](10-choosing-an-implementation.md) |
+| Spreading type parameters | The concrete type is named once, in a field's type, and services can take a trait object instead. | [Chapter 10](10-choosing-an-implementation.md) |
+| Someone still has to choose | The container chooses, once, in the types of its fields. | [Chapter 10](10-choosing-an-implementation.md) |
+| Ordering by hand | `new()` works out the order from `deps`. | [Chapter 8](08-read-the-container-know-the-graph.md) |
+| Sharing by convention | There is one kind of field: built once, when the container is built. | [Chapter 5](05-installing-and-first-singleton.md) |
+| An invisible graph | The container struct is the graph, in one place. | [Chapter 8](08-read-the-container-know-the-graph.md) |
+| Run-time failures | Unknown names and cycles are compile errors. | [Chapter 11](11-mistakes-caught-by-the-compiler.md) |
+| One entry per type | Components are named by field. | [Chapter 9](09-multiple-instances-of-the-same-type.md) |
+| Hidden dependencies | Services never see the container, so they can't ask it for anything; each constructor lists what its service needs. | [Chapter 6](06-pure-domain-types.md), [Chapter 12](12-working-with-coding-agents.md) |
+
+## Remember
+
+1. `snapfit` is dependency injection where the composition root is a struct you write and a macro completes.
+2. Services stay plain Rust: no attribute, trait or import of `snapfit` in them.
+3. The container is the only place that names implementations, orders construction and shares components, and the compiler checks it.

@@ -1,0 +1,4 @@
+production order: Stripe charged 4500 cents
+production refund: Stripe charged 500 cents
+test order: fake gateway pretended to charge 4500 cents
+test refund: fake gateway pretended to charge 500 cents

@@ -1,0 +1,73 @@
+name: Publish Site & Book Edition
+
+# Publishes a tagged release's stripped README front page, Releases index,
+# and frozen `/book/<version>/` edition to the `site` branch without
+# altering previously published release editions.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Release tag/version to publish (for example, v0.1.0)
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release tag/version to publish (for example, v0.1.0)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: site-publish
+  cancel-in-progress: false
+
+jobs:
+  publish-site:
+    name: Publish ${{ inputs.version }} to site branch
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - name: Checkout tag ${{ inputs.version }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.version }}
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+          # This job can write to the repository, and setup-node advises against
+          # caching in workflows with elevated permissions.
+          package-manager-cache: false
+
+      - name: Install site dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Open site branch worktree
+        working-directory: .
+        run: site/scripts/publish.sh open "$RUNNER_TEMP/site-pages"
+
+      - name: Verify and build site for ${{ inputs.version }}
+        env:
+          BOOK_VERSION: ${{ inputs.version }}
+          BOOK_SOURCE_REF: ${{ inputs.version }}
+          SNAPFIT_RELEASES_FILE: ${{ runner.temp }}/site-pages/snapfit-site.json
+        run: npm run verify
+
+      - name: Commit and push ${{ inputs.version }} to site branch
+        working-directory: .
+        # Passed in the environment, never written into the script, so that
+        # the version cannot run as shell.
+        env:
+          VERSION: ${{ inputs.version }}
+        run: site/scripts/publish.sh publish "$RUNNER_TEMP/site-pages" "site/dist" "$VERSION"

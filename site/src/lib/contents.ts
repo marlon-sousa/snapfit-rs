@@ -1,0 +1,119 @@
+import { join } from 'node:path';
+import type { Heading, List, ListItem, Paragraph, PhrasingContent, Root } from 'mdast';
+import remarkParse from 'remark-parse';
+import { unified } from 'unified';
+import { chapters, root } from '../../book.config.mjs';
+import { readText } from './text.ts';
+
+export type PageKind = 'unnumbered' | 'chapter' | 'appendix';
+
+export interface Page {
+	slug: string;
+	file: string;
+	kind: PageKind;
+	number?: number;
+	label: string;
+	part: Part;
+}
+
+export interface Part {
+	title: string;
+	id: string;
+	pages: Page[];
+}
+
+export interface Contents {
+	introduction: string;
+	parts: Part[];
+	pages: Page[];
+}
+
+const CONTENTS = `${chapters}/README.md`;
+
+function text(nodes: PhrasingContent[]): string {
+	return nodes
+		.map((node) => {
+			if (node.type === 'text' || node.type === 'inlineCode') return node.value;
+			if ('children' in node) return text(node.children as PhrasingContent[]);
+			return '';
+		})
+		.join('');
+}
+
+function kindOf(slug: string, numbered: boolean): PageKind {
+	if (/^appendix-\d+-/.test(slug)) return 'appendix';
+	return numbered ? 'chapter' : 'unnumbered';
+}
+
+function pageOf(item: ListItem, number: number | undefined, part: Part): Page {
+	const paragraph = item.children.find((child): child is Paragraph => child.type === 'paragraph');
+	const link = paragraph?.children.find((child) => child.type === 'link');
+	if (!paragraph || !link || link.type !== 'link') {
+		throw new Error(`${CONTENTS}: an entry of "${part.title}" is not a link to a chapter.`);
+	}
+	const match = /^([a-z0-9-]+)\.md$/.exec(link.url);
+	if (!match) {
+		throw new Error(`${CONTENTS}: "${link.url}" in "${part.title}" is not a chapter file of this directory.`);
+	}
+	const slug = match[1];
+	const kind = kindOf(slug, number !== undefined);
+	const label = text(paragraph.children).trim();
+	return {
+		slug,
+		file: `${chapters}/${slug}.md`,
+		kind,
+		number: kind === 'chapter' ? number : undefined,
+		label: kind === 'chapter' || kind === 'unnumbered' ? text(link.children).trim() : label,
+		part,
+	};
+}
+
+function slugOf(title: string): string {
+	return title
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, '-')
+		.replace(/^-|-$/g, '');
+}
+
+function read(): Contents {
+	const source = readText(join(root, CONTENTS));
+	const tree = unified().use(remarkParse).parse(source) as Root;
+	const parts: Part[] = [];
+	const introduction: string[] = [];
+
+	for (const node of tree.children) {
+		if (node.type === 'heading' && (node as Heading).depth === 2) {
+			const title = text((node as Heading).children).trim();
+			parts.push({ title, id: slugOf(title), pages: [] });
+		} else if (node.type === 'paragraph' && parts.length === 0) {
+			introduction.push(source.slice(node.position?.start.offset, node.position?.end.offset));
+		} else if (node.type === 'list') {
+			const part = parts.at(-1);
+			if (!part) throw new Error(`${CONTENTS}: a list comes before the first part's heading.`);
+			const list = node as List;
+			const start = list.start ?? 1;
+			list.children.forEach((item, index) => {
+				part.pages.push(pageOf(item, list.ordered ? start + index : undefined, part));
+			});
+		}
+	}
+
+	const pages = parts.flatMap((part) => part.pages);
+	if (pages.length === 0) throw new Error(`${CONTENTS}: no chapter was found.`);
+	return { introduction: introduction.join('\n\n'), parts, pages };
+}
+
+let cached: Contents | undefined;
+
+export function contents(): Contents {
+	return (cached ??= read());
+}
+
+export function pageSlugs(): ReadonlySet<string> {
+	return new Set(contents().pages.map((page) => page.slug));
+}
+
+export function pageName(page: Page): string {
+	if (page.kind === 'chapter') return `${page.number}. ${page.label}`;
+	return page.label;
+}

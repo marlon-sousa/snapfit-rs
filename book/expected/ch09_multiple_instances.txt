@@ -1,0 +1,2 @@
+reads go to replica-ro, writes go to primary-rw
+distinct allocations: true

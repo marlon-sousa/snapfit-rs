@@ -1,12 +1,14 @@
 name: CI
 
-# Each mode of `cargo xtask ci` in a job of its own, as docs/WORKFLOW.md, section 7, lists them.
+# Each mode of `cargo xtask ci` in a job of its own, and the site's checks, as
+# docs/WORKFLOW.md, section 7, lists them.
 
 on:
+  # A push to a branch other than main runs no checks: a branch is checked
+  # through its pull request.
   push:
     branches:
       - main
-      - "stack/**"
   pull_request:
     types: [opened, synchronize, reopened]
   # The release workflow runs these checks again on the tagged commit.
@@ -109,3 +111,20 @@ jobs:
       - run: rustup toolchain install
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - run: cargo xtask package
+
+  site:
+    name: npm run verify, site and book
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run verify

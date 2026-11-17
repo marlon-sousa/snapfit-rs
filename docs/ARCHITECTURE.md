@@ -15,9 +15,11 @@ A procedural macro does no input or output: it is a pure function from tokens to
 - **`snapfit/`**, the crate users depend on: the `Container` trait and the re-export of the macros. Its README examples run as doctests.
 - **`snapfit-macros/`**, the procedural macros, laid out as the rest of this document describes.
 - **`tests/`**, the crate `snapfit_bdd`: the Gherkin features under `tests/features/` (`stable/`, and `unstable/`, run with the `unstable` feature), their step definitions, the containers they exercise, and the compile-fail fixtures under `tests/fixtures/compile_fail/`, compiled with [compile-outcomes](https://github.com/marlon-sousa/compile-outcomes-rs) against the build of snapfit the suite runs, whose diagnostics the steps check.
+- **`book/`**, the crate `snapfit_book`: The Snapfit Book, whose chapters, examples, recorded outputs and compile-error fixtures `cargo xtask book-check` verifies. [book/BOOK.md](../book/BOOK.md) describes it.
+- **`site/`**, the Astro site that renders the README as its front page and each edition of the book, checked by `npm run verify` and published onto the `site` branch by the site workflow.
 - **`xtask/`** and **`scripts/gate.py`**, the quality gate, `cargo xtask ci`, whose checks CI runs, the tests on Linux, macOS and Windows; [WORKFLOW.md](WORKFLOW.md), section 7, lists them.
 - **`.github/release/`**, the release gate and its fixtures, which the release workflow runs, as [WORKFLOW.md](WORKFLOW.md), section 9, says.
-- **`.github/workflows/`**, the CI, pull request, weekly and release workflows, as [WORKFLOW.md](WORKFLOW.md), section 7, lists them.
+- **`.github/workflows/`**, the CI, pull request, weekly, release and site workflows, as [WORKFLOW.md](WORKFLOW.md), section 7, lists them.
 - **`clippy.toml`**, what clippy allows in tests.
 - **`deny.toml`**, what cargo-deny allows of the dependencies.
 - **`cliff.toml`** and **`CHANGELOG.md`**, the template git-cliff writes a release's notes with, and the notes of every release.

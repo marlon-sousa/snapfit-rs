@@ -1,0 +1,13 @@
+---
+import { base, pageHref } from '../../book.config.mjs';
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Page not found" description="There is no page of the snapfit site at this address.">
+	<h1>Page not found</h1>
+	<p>There is no page at this address. It may have moved, or the address may be mistyped.</p>
+	<p>
+		Go to the <a href={`${base}/`}>snapfit front page</a>, browse <a href={`${base}/releases/`}>all releases</a>, or open{' '}
+		<a href={pageHref()}>The Snapfit Book</a>.
+	</p>
+</Base>

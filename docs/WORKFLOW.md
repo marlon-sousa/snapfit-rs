@@ -22,33 +22,32 @@
 
 ---
 
-## 3. GitHub Stacked PR Strategy (`gh stack`)
+## 3. Stacked pull requests
 
-To prevent blocking while maintaining small, reviewable diffs (< 300 lines of code per PR), development uses **Stacked PRs** (`gh stack` / Graphite / stacked Git branches).
+To prevent blocking while keeping diffs small and reviewable (under about 300 lines of code per pull request), work is split into stacked pull requests. Each pull request's base is the branch of the one below it, and the pull requests of one piece of work are grouped into a GitHub stack, which shows them in order. A branch can have any name: its pull request's base and its GitHub stack place it in the stack, and CI checks it through its pull request (section 7).
 
-### Stack Hierarchy (Phase 1: MVP & Phase 2: Advanced Capabilities):
-```text
-main (Stack 1: Workspace & Domain IR — PR #1)
- └── stack/02-graph-engine-and-planner
-      └── stack/03-adapters-inbound-outbound
-           └── stack/04-walking-skeleton-bdd (🎉 v0.1.0 MVP — First Gherkin Scenario GREEN)
-                ├── [Milestone: The Snapfit Book & Documentation Site (site branch)]
-                └── stack/05-async-container-boot
-                     └── stack/06-transient-lifecycles
-                          └── stack/07-enum-dispatch-polymorphism
-                               └── stack/08-companion-builders (and #[external] / before_init hooks)
-                                    └── stack/09-fork-and-rewire-overrides
-                                         └── stack/10-child-containers-scoping
-```
+### Roadmap
+
+Each stack builds on the one before it. Phase 1, stacks 1 to 4, is the core of `v0.1.0`; phase 2, stacks 5 to 10, adds the advanced capabilities.
+
+1. Workspace and domain model (PR #1).
+2. Graph engine and planner.
+3. Inbound and outbound adapters.
+4. Walking skeleton, with the first Gherkin scenario green: `v0.1.0`. The Snapfit Book and its site follow it.
+5. Async container boot.
+6. Transient lifecycles.
+7. Enum dispatch polymorphism.
+8. Companion builders, with `#[external]` and `before_init` hooks.
+9. Fork-and-rewire overrides.
+10. Child containers and scoping.
 
 ### 0.1.0 scope
 
-`v0.1.0` ships the synchronous singleton container only. Async containers, transient dependencies and custom builders were implemented early (Stacks 2 to 4) and are kept behind the `unstable` Cargo feature until their stacks (05, 06, 08) settle the API. Planned features with no code generation (`dispatch`, `parent`, `introspection`) are compile errors. Items removed from the runtime crate for 0.1.0 are listed in [SPEC §0](SPEC.md#0-what-ships-in-010) so their stacks restore them.
+`v0.1.0` ships the synchronous singleton container only. Async containers, transient dependencies and custom builders were implemented early (Stacks 2 to 4) and are kept behind the `unstable` Cargo feature until their stacks (5, 6 and 8) settle the API. Planned features with no code generation (`dispatch`, `parent`, `introspection`) are compile errors. Items removed from the runtime crate for 0.1.0 are listed in [SPEC §0](SPEC.md#0-what-ships-in-010) so their stacks restore them.
 
 The QA gate runs the Gherkin suite once on the stable build, whose scenarios prove the gate rejects unstable APIs, and once with the `unstable` feature. Each run compiles the compile-fail fixtures against snapfit with its own features, so both builds share one target folder.
 
-### Git Branch & Commit Conventions:
-* **Branch Naming:** `stack/<number>-<short-description>` (e.g. `stack/02-graph-engine-and-planner`)
+### Commit conventions
 * **Commit Messages:** Follow [Conventional Commits](https://www.conventionalcommits.org/):
   * `feat(macros): add Kahn's algorithm topological sorter`
   * `test(domain): add cycle detection unit tests`
@@ -122,6 +121,8 @@ To eliminate environmental drift between local development and CI, all quality c
 | `deny` | the licences, advisories and sources of the dependencies, as `deny.toml` allows them. It needs cargo-deny, installed with `cargo install cargo-deny --version 0.20.2 --locked`. |
 | `package` | snapfit and snapfit-macros built from their packages alone, as crates.io receives them, with `cargo publish --workspace --dry-run`. |
 
+`cargo xtask book-check` runs only the tests of The Snapfit Book: it compiles and runs every example and checks every recorded output and compiler message. It is not a mode of `cargo xtask ci`, whose `test` mode already runs the book's tests with the rest of the workspace.
+
 ### The toolchain
 
 `rust-toolchain.toml` pins the toolchain every contributor, cloud session and CI job builds with, a recent stable Rust. The minimum Rust version promised to users is `rust-version` in `Cargo.toml`, 1.85.0, which its own CI job checks. Raising either is a change of its own.
@@ -130,30 +131,17 @@ To eliminate environmental drift between local development and CI, all quality c
 
 Every action a workflow uses is pinned to a commit, with its version in a comment beside it.
 
-* **`.github/workflows/ci.yml`**, on every pull request and every push to `main` or a `stack/*` branch: each mode of `cargo xtask ci` in a job of its own on Linux, the `test` mode on Linux, macOS and Windows, and the `test` mode again with the minimum supported Rust.
+* **`.github/workflows/ci.yml`**, on every pull request, whatever its base, and every push to `main`. A branch is checked through its pull request, so a push to a branch with no pull request, or whose pull request has a merge conflict, runs no checks. It runs each mode of `cargo xtask ci` in a job of its own on Linux, the `test` mode on Linux, macOS and Windows, the `test` mode again with the minimum supported Rust, and `npm run verify` in `site/`, which builds the site and checks its pages, links, accessibility and layout.
 * **`.github/workflows/pull-request.yml`**, on every pull request, whatever its base: every commit message keeps the convention of section 3, and the description has no unticked checkbox. Ticking a checkbox runs only this workflow again.
 * **`.github/workflows/weekly.yml`**, each Monday: the `test` mode on Rust beta, so that a change in the next Rust that breaks snapfit, such as a compiler message a compile-fail fixture checks, is known before it is released.
 * **`.github/workflows/release.yml`**, on a tag `v<version>`: section 9.
+* **`.github/workflows/site.yml`**, run by hand with a release's version: publishes that release's README front page and book edition onto the `site` branch, as section 8 says.
 
 ---
 
 ## 8. The Snapfit Book & Documentation Site (`site` branch)
 
-Immediately following the completion of **Stack 4 (v0.1.0 MVP)**, development will deliver **The Snapfit Book** on a dedicated `site` branch for static documentation publishing (e.g., mdBook / GitHub Pages):
-
-### Book Structure & Educational Goals:
-1. **Introduction to Dependency Injection & Inversion of Control:**
-   * Why DI matters in Rust without invasive runtime reflection or dynamic downcasting (`dyn Any`).
-   * Component-Driven vs. Container-Driven DI: Why centralized manifests prevent domain pollution.
-2. **The Snapfit Mental Model:**
-   * Pure domain services (zero macros).
-   * Container manifest (`#[container]`, `#[singleton]`, `#[transient]`).
-   * Compile-time verification: how the macro orders the fields and reports unknown dependencies and cycles before the program compiles.
-3. **Tutorial Walkthroughs (Human & Agent Friendly):**
-   * Step-by-step: Building a clean Web API with Axum/Actix and Snapfit.
-   * Multi-instance patterns (`read_db`, `write_db`).
-   * Custom builders and companion traits (`<ContainerName>Builders`).
-   * Testing overrides and the Fork-and-Rewire pattern.
+**The Snapfit Book** lives in `book/`: [book/BOOK.md](../book/BOOK.md) says what it contains and how it is written, and [book/FORMAT.md](../book/FORMAT.md) defines the directives its chapters use. Each edition teaches only the stable API of its release. The site in `site/` renders the book and the README, and the site workflow publishes them onto the `site` branch.
 
 ---
 

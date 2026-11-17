@@ -42,6 +42,13 @@ These items existed before 0.1.0 but nothing generated or used them, so they wer
 * **`SnapfitError` and the `Error` alias** (`ResolutionFailed`, `MissingDependency`, `InitializationFailed`): return when async initialization errors get dependency context.
 * **`ConstructionPlan::parallel_batches`** (groups of independent async singletons): the planner computed them but the generator never used them. They return with concurrent async boot.
 
+### Held back from The Snapfit Book (to restore later)
+
+The book's `v0.1.0` edition teaches only the stable API. Its chapters on the unstable APIs are kept, with their examples and expected output, in `book/unreleased/`, and return to Part 3 when those APIs are stabilised:
+
+* **Transient dependencies**: `book/unreleased/chapters/07-transient-dependencies.md`, example `ch07_transients`.
+* **Asynchronous containers**: `book/unreleased/chapters/08-asynchronous-containers.md`, example `ch08_async_container`.
+
 ### Decided syntax for later versions
 
 * **Async containers get their own macro** (decided 2026-11-16, not implemented yet): `#[async_container]` replaces `#[container(mode = "async")]`, and `mode` is removed. Inside it, async dependencies are marked with the bare `async` flag (`#[singleton(deps = [config], async, constructor = connect)]`); everything else stays sync. `async` inside a plain `#[container]` becomes an error pointing to `#[async_container]`. Until then the unstable `mode = "async"` syntax keeps working.
@@ -105,7 +112,7 @@ pub struct AppContainer {
     #[singleton(deps = [config, db], builder = build_auth)]
     auth: Arc<AuthService>,
 
-    // 6. Static polymorphism (Post-MVP): Macro rewrites field to generated enum!
+    // 6. Static polymorphism (Planned): Macro rewrites field to generated enum!
     #[dispatch(PostgresDb, MockDb)]
     database: Arc<dyn Database>,
 }
@@ -128,9 +135,9 @@ pub struct AppContainer {
 | **`#[transient]`** | **Transient** | **Stripped from struct memory storage.** Reconstructed on each `get_<name>()`. |
 | **`#[transient(deps = [a])]`** | **Transient (With Dependencies)** | **Stripped from struct memory storage.** Reconstructed on each `get_<name>()` passing `a`. |
 | **`#[singleton(deps = [...], builder = <fn>)]`** | **Custom Builder** | Calls companion trait `<ContainerName>Builders` method for custom construction. |
-| **`#[dispatch(ImplA, ImplB)]`** | **Static Trait (Post-MVP)** | Auto-generates `enum_dispatch` and **rewrites the struct field type** to the enum. |
-| **`#[external]`** | **External Input (Post-MVP)** | Passed as a parameter to `new(...)` / `init(...)` and exposed as a wireable leaf node in the DAG. |
-| *(Unannotated field)* | **Pre-Init Computed (Post-MVP)** | Populated via an optional `before_init` hook prior to DAG wiring and exposed as a wireable node in the DAG. |
+| **`#[dispatch(ImplA, ImplB)]`** | **Static Trait (Planned)** | Auto-generates `enum_dispatch` and **rewrites the struct field type** to the enum. |
+| **`#[external]`** | **External Input (Planned)** | Passed as a parameter to `new(...)` / `init(...)` and exposed as a wireable leaf node in the DAG. |
+| *(Unannotated field)* | **Pre-Init Computed (Planned)** | Populated via an optional `before_init` hook prior to DAG wiring and exposed as a wireable node in the DAG. |
 
 
 

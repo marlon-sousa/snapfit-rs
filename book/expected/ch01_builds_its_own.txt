@@ -1,0 +1,5 @@
+opening a connection to postgres://shop
+connecting to Stripe with key sk_live_shop
+opening a connection to postgres://shop
+reserved RUST-BOOK-01 in postgres://shop; Stripe charged 4500 cents
+sales report read from postgres://shop

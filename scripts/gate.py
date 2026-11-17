@@ -85,24 +85,25 @@ def check_architectural_invariants() -> bool:
                         )
 
     # 2. File line length guideline check and modern module layout (no mod.rs)
-    for crate_name in ["snapfit", "snapfit-macros", "xtask", "tests"]:
-        crate_src = root / crate_name / "src"
-        if not crate_src.exists():
-            continue
-        for rs_file in crate_src.rglob("*.rs"):
-            rel = rs_file.relative_to(root)
-            if rs_file.name == "mod.rs":
-                violations.append(
-                    f"  [MOD.RS] {rel}: forbidden 'mod.rs' detected. Use modern Rust module layout (<name>.rs and submodules in <name>/)."
-                )
-            try:
-                line_count = len(rs_file.read_text(encoding="utf-8").splitlines())
-            except Exception:
+    for crate_name in ["snapfit", "snapfit-macros", "xtask", "tests", "book"]:
+        for subdir in ["src", "examples"]:
+            crate_src = root / crate_name / subdir
+            if not crate_src.exists():
                 continue
-            if line_count > SOFT_LINE_LIMIT:
-                violations.append(
-                    f"  [SIZE] {rel}: {line_count} lines exceeds ~{SOFT_LINE_LIMIT} line soft limit"
-                )
+            for rs_file in crate_src.rglob("*.rs"):
+                rel = rs_file.relative_to(root)
+                if rs_file.name == "mod.rs":
+                    violations.append(
+                        f"  [MOD.RS] {rel}: forbidden 'mod.rs' detected. Use modern Rust module layout (<name>.rs and submodules in <name>/)."
+                    )
+                try:
+                    line_count = len(rs_file.read_text(encoding="utf-8").splitlines())
+                except Exception:
+                    continue
+                if line_count > SOFT_LINE_LIMIT:
+                    violations.append(
+                        f"  [SIZE] {rel}: {line_count} lines exceeds ~{SOFT_LINE_LIMIT} line soft limit"
+                    )
 
     if violations:
         print("❌ Architectural Boundary Check Failed:")
@@ -150,12 +151,18 @@ def checks() -> dict[str, list[Step]]:
     }
 
 
-ALIASES = {"fmt-check": "fmt", "arch-check": "arch"}
+def book_steps() -> list[Step]:
+    """Every example, recorded output and compiler message of The Snapfit Book."""
+    return [command(["cargo", "test", "-p", "snapfit_book", "--all-targets", "--locked"])]
 
-# `cargo xtask ci` runs every mode, in the order checks() lists them.
+
+ALIASES = {"fmt-check": "fmt", "arch-check": "arch", "book-check": "book"}
+
+# `cargo xtask ci` runs every mode, in the order checks() lists them. `book` is
+# not one of them: the `test` mode already runs the book's tests.
 CI_MODES = list(checks())
 
-VALID_MODES = {"all", "ci", *CI_MODES, *ALIASES}
+VALID_MODES = {"all", "ci", "book", *CI_MODES, *ALIASES}
 
 
 def main() -> int:
@@ -169,7 +176,7 @@ def main() -> int:
         return 1
 
     modes = CI_MODES if mode in ("all", "ci") else [ALIASES.get(mode, mode)]
-    steps = checks()
+    steps = checks() | {"book": book_steps()}
     success = True
     for name in modes:
         for step in steps[name]:

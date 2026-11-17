@@ -1,0 +1,5 @@
+error: field 'payments' has a trait-object type, which has no constructor; make the field's type an Arc of the concrete type that implements the trait; a constructor that takes the trait object in an Arc still accepts the field, because Rust converts the Arc where it is passed
+  --> book/compile-errors/ch10_trait_object_field.rs:18:5
+   |
+18 |     #[singleton]
+   |     ^^^^^^^^^^^^
