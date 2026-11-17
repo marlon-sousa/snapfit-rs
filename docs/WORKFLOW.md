@@ -54,6 +54,7 @@ The QA gate builds the `unstable` feature in `target/unstable`, separately from 
   * `test(domain): add cycle detection unit tests`
   * `docs(spec): document fork-and-rewire pattern`
   * `ci(qa): add cross-platform gate check`
+* **Commit types:** `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert` or `test`; a formatting-only change is a `refactor`.
 * **Changelog entries:** a `feat`, a `fix` or a breaking change (`!` before the colon) ends with at least one trailer, `Added:`, `Changed:`, `Fixed:` or `Removed:`, each a one-line entry of [CHANGELOG.md](../CHANGELOG.md) as a user reads it, or with `Changelog: none` when a user meets no change. git-cliff writes a release's notes from them, as `cliff.toml` says. For example:
 
   ```text
