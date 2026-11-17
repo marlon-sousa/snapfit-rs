@@ -45,3 +45,10 @@ Feature: Unstable lifecycles behind the `unstable` feature
       | planned_introspection    | 7    | #[container(introspection = true)]      |
       | planned_dispatch         | 10   | #[dispatch(...)] on dependency 'store'  |
       | generic_container        | 4    | generic parameters on container 'Repo'  |
+
+  @unstable @regression
+  Scenario: A trait-object field without a builder is told the builder the unstable build accepts
+    Given an invalid container fixture "trait_object_without_builder"
+    When the fixture is compiled
+    Then compilation should fail with "field 'store' has a trait-object type, which has no constructor; build it with a builder such as builder = build_store (unstable feature)"
+    And the error should point at line 8 of the fixture

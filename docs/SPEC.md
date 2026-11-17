@@ -52,7 +52,7 @@ These are compile errors that point at the offending field or container, instead
 
 * **Generic containers** (`struct Repo<T>`): planned; the generated `impl` blocks and getters need a design for bounds first.
 * **`#[cfg]` / `#[cfg_attr]` on a dependency field**: conditional dependencies would change the graph per build, so they are refused.
-* **Trait-object fields** (`Arc<dyn Store>`) without `builder = <fn>`: a trait object has no constructor to call. Use a builder (unstable) or, once implemented, `#[dispatch(...)]`.
+* **Trait-object fields** (`Arc<dyn PaymentGateway>`) without `builder = <fn>`: a trait object has no constructor to call. On the stable build the error tells the user to give the field the concrete type that implements the trait (`Arc<StripeGateway>`); a constructor that takes `Arc<dyn PaymentGateway>` still accepts that field, because Rust converts the `Arc` where the generated code passes it. On the `unstable` build the error suggests a builder named after the field (`builder = build_payments`) instead. `#[dispatch(...)]` is another way once implemented.
 * **`constructor` or `builder` values that are not a plain function name** (`"connect()"`, `"Db::connect"`).
 
 ---
@@ -307,7 +307,7 @@ pub struct AppContainer {
 ```
 * **Performance:** 100% static dispatch, compiler-inlined calls, zero `dyn Any`, zero `vtable`.
 * **Trait Annotation Contract:** Because Rust procedural macros operate syntactically and cannot inspect external trait method definitions, static dispatch leverages `enum_dispatch` (which requires `#[enum_dispatch]` on the trait).
-* **When dynamic dispatch is desired (Zero Trait Macros):** Omit `#[dispatch]` and use `Arc<dyn Database + Send + Sync>` directly. This requires zero annotations on the trait definition and supports dynamic plugin architectures.
+* **When dynamic dispatch is desired (Zero Trait Macros):** Omit `#[dispatch]` and use `Arc<dyn Database + Send + Sync>` directly, built by a `builder = <fn>`. This requires zero annotations on the trait definition and supports dynamic plugin architectures. Builders are unstable in 0.1.0, so on the stable build the field holds the concrete type and a constructor takes the trait object instead (§0, "Container shapes refused in 0.1.0").
 
 ---
 

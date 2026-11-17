@@ -9,7 +9,7 @@ use thiserror::Error;
 use crate::domain::names::DependencyName;
 
 pub(crate) use accumulated::DomainErrors;
-pub(crate) use parts::{AttributeProblem, Feature, FunctionRole};
+pub(crate) use parts::{AttributeProblem, Feature, FunctionRole, TraitObjectRemedy};
 
 #[cfg(test)]
 mod tests;
@@ -104,9 +104,13 @@ pub(crate) enum DomainError {
     AsyncTransient { dependency: DependencyName },
 
     #[error(
-        "field '{dependency}' has a trait-object type, which has no constructor; build it with a builder such as builder = build_{dependency} (unstable feature)"
+        "field '{dependency}' has a trait-object type, which has no constructor; {}",
+        .remedy.advice(.dependency)
     )]
-    TraitObjectWithoutBuilder { dependency: DependencyName },
+    TraitObjectWithoutBuilder {
+        dependency: DependencyName,
+        remedy: TraitObjectRemedy,
+    },
 
     #[error(
         "#[derive(Container)] does not support #[transient] or #[dispatch] fields; use #[container] instead, which can leave field '{dependency}' out of the struct"
@@ -139,7 +143,7 @@ impl DomainError {
             | Self::NotAFunctionName { dependency, .. }
             | Self::AsyncDependencyInSyncContainer { dependency }
             | Self::AsyncTransient { dependency }
-            | Self::TraitObjectWithoutBuilder { dependency }
+            | Self::TraitObjectWithoutBuilder { dependency, .. }
             | Self::NeedsStructRewrite { dependency } => Some(dependency),
             Self::RequiresUnstable { feature } | Self::NotYetImplemented { feature } => {
                 feature.dependency()

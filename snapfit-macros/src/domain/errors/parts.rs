@@ -49,6 +49,28 @@ impl Feature {
     }
 }
 
+/// What a field holding a trait object is told to do instead, which depends
+/// on whether this build of snapfit accepts builders.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum TraitObjectRemedy {
+    /// The stable build: hold the concrete type, which Rust converts to the
+    /// trait object where a constructor asks for one.
+    ConcreteType,
+    /// The `unstable` build: build the trait object with a builder.
+    Builder,
+}
+
+impl TraitObjectRemedy {
+    pub(super) fn advice(self, dependency: &DependencyName) -> String {
+        match self {
+            Self::ConcreteType => "give the field the concrete type that implements the trait, and a constructor that takes the trait object will still accept it, because Rust converts it where it is passed".to_owned(),
+            Self::Builder => format!(
+                "build it with a builder such as builder = build_{dependency} (unstable feature)"
+            ),
+        }
+    }
+}
+
 /// Which setting names a function.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
 pub(crate) enum FunctionRole {

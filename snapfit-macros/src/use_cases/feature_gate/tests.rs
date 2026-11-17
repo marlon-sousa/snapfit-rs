@@ -100,3 +100,15 @@ fn a_generic_container_is_planned_and_named() {
         [planned("generic parameters on container 'App'")]
     );
 }
+
+#[test]
+fn only_a_build_that_accepts_builders_suggests_one_for_a_trait_object() {
+    assert_eq!(
+        FeatureGate::Stable.trait_object_remedy(),
+        TraitObjectRemedy::ConcreteType
+    );
+    assert_eq!(
+        FeatureGate::Unstable.trait_object_remedy(),
+        TraitObjectRemedy::Builder
+    );
+}

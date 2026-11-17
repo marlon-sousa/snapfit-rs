@@ -48,11 +48,26 @@ fn an_error_about_the_whole_container_has_no_subject() {
     assert_eq!(error.subject(), None);
 }
 
-#[test]
-fn a_trait_object_without_a_builder_suggests_a_builder_named_after_its_field() {
-    let error = DomainError::TraitObjectWithoutBuilder {
+fn trait_object(remedy: TraitObjectRemedy) -> String {
+    DomainError::TraitObjectWithoutBuilder {
         dependency: name("cache"),
-    };
+        remedy,
+    }
+    .to_string()
+}
 
-    assert!(error.to_string().contains("builder = build_cache"));
+#[test]
+fn a_trait_object_on_the_unstable_build_is_told_a_builder_named_after_its_field() {
+    assert!(trait_object(TraitObjectRemedy::Builder).contains("builder = build_cache"));
+}
+
+#[test]
+fn a_trait_object_on_the_stable_build_is_told_to_hold_the_concrete_type_not_a_builder() {
+    let message = trait_object(TraitObjectRemedy::ConcreteType);
+
+    assert_eq!(
+        message,
+        "field 'cache' has a trait-object type, which has no constructor; give the field the concrete type that implements the trait, and a constructor that takes the trait object will still accept it, because Rust converts it where it is passed"
+    );
+    assert!(!message.contains("builder"));
 }
