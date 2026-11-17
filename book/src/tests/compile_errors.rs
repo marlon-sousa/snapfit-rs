@@ -1,107 +1,127 @@
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::time::SystemTime;
+use std::sync::LazyLock;
+
+use compile_outcomes::{Compilation, Dependency, Edition, Outcome, Outcomes, compile};
 
 use super::{file_stem, sorted_files, target_deps_dir};
 
+/// Every fixture, compiled once against the stable snapfit the book teaches, in a work folder beside the book's own build.
+static OUTCOMES: LazyLock<Outcomes> = LazyLock::new(|| {
+    let work_dir = target_deps_dir()
+        .parent()
+        .expect("missing debug dir")
+        .join("book_compile_errors");
+    let compilation = Compilation::new(Edition::E2024, work_dir)
+        .snippets_in(compile_errors_dir())
+        .dependency(Dependency::path("snapfit", book_dir().join("../snapfit")))
+        .lockfile(book_dir().join("../Cargo.lock"));
+    compile(&compilation).unwrap_or_else(|errors| {
+        panic!("the book's compile-error fixtures could not be compiled:\n{errors}")
+    })
+});
+
 #[test]
 fn compile_error_fixtures_fail_and_match_recorded_diagnostics() {
-    let book_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let ce_dir = book_dir.join("compile-errors");
-    let deps_dir = target_deps_dir();
-    let snapfit_rlib = find_latest_snapfit_rlib(&deps_dir);
-    let out_dir = deps_dir.join("book_compile_errors_out");
-    fs::create_dir_all(&out_dir).expect("failed to create book_compile_errors_out");
     let bless = env::var("SNAPFIT_BOOK_BLESS").is_ok();
 
-    for rs_file in sorted_files(&ce_dir, "rs") {
+    for rs_file in sorted_files(&compile_errors_dir(), "rs") {
         let name = file_stem(&rs_file);
-        let actual = compile_failing_fixture(&rs_file, &name, &snapfit_rlib, &deps_dir, &out_dir);
-        let txt_path = ce_dir.join(format!("{name}.txt"));
+        let actual = recorded_form(&rs_file, &name);
+        let txt_path = recorded_path(&name);
 
         if bless {
             fs::write(&txt_path, &actual).expect("failed to write recorded compile error");
             continue;
         }
 
-        let expected = fs::read_to_string(&txt_path)
-            .unwrap_or_else(|_| panic!("missing book/compile-errors/{name}.txt"))
-            .replace("\r\n", "\n");
         assert_eq!(
-            actual, expected,
+            actual,
+            recorded(&txt_path, &name),
             "compiler diagnostic mismatch for book/compile-errors/{name}.rs"
         );
     }
 }
 
-fn compile_failing_fixture(
-    rs_file: &Path,
-    name: &str,
-    snapfit_rlib: &Path,
-    deps_dir: &Path,
-    out_dir: &Path,
-) -> String {
-    let rustc = env::var("RUSTC").unwrap_or_else(|_| "rustc".to_string());
-    let output = Command::new(rustc)
-        .arg("--crate-type=lib")
-        .arg("--edition=2024")
-        .arg("--color=never")
-        .arg("-Awarnings")
-        .arg("--crate-name")
-        .arg(name)
-        .arg("--out-dir")
-        .arg(out_dir)
-        .arg(format!("--extern=snapfit={}", snapfit_rlib.display()))
-        .arg(format!("-Ldependency={}", deps_dir.display()))
-        .arg(rs_file)
-        .output()
-        .expect("failed to invoke rustc on book compile-error fixture");
+#[test]
+fn a_newer_snapfit_library_from_another_build_changes_no_recorded_diagnostic() {
+    let name = "ch11_dependency_cycle";
+    let _stale = StaleLibrary::plant();
 
-    assert!(
-        !output.status.success(),
-        "book compile-error fixture '{name}' unexpectedly compiled cleanly"
-    );
-    normalize_stderr(&String::from_utf8_lossy(&output.stderr), rs_file, name)
+    let actual = recorded_form(&compile_errors_dir().join(format!("{name}.rs")), name);
+
+    assert_eq!(actual, recorded(&recorded_path(name), name));
 }
 
-fn normalize_stderr(stderr: &str, rs_file: &Path, name: &str) -> String {
+/// A file named like a snapfit library, the newest in the book's dependency folder, removed when dropped.
+struct StaleLibrary(PathBuf);
+
+impl StaleLibrary {
+    fn plant() -> Self {
+        let path = target_deps_dir().join("libsnapfit-0000000000000000.rlib");
+        fs::write(&path, "not a library").expect("failed to write the stale snapfit library");
+        Self(path)
+    }
+}
+
+impl Drop for StaleLibrary {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(&self.0);
+    }
+}
+
+fn book_dir() -> &'static Path {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+}
+
+fn compile_errors_dir() -> PathBuf {
+    book_dir().join("compile-errors")
+}
+
+fn recorded_path(name: &str) -> PathBuf {
+    compile_errors_dir().join(format!("{name}.txt"))
+}
+
+fn recorded(txt_path: &Path, name: &str) -> String {
+    fs::read_to_string(txt_path)
+        .unwrap_or_else(|_| panic!("missing book/compile-errors/{name}.txt"))
+        .replace("\r\n", "\n")
+}
+
+/// The fixture's errors as the book records them: rendered as a terminal shows them, with the fixture's path written alike on every platform.
+fn recorded_form(rs_file: &Path, name: &str) -> String {
+    let outcome = OUTCOMES
+        .get(name)
+        .unwrap_or_else(|| panic!("no outcome for book/compile-errors/{name}.rs"));
+    assert!(
+        outcome.is_failed(),
+        "book compile-error fixture '{name}' unexpectedly compiled cleanly"
+    );
+    normalize(&rendered_errors(outcome), rs_file, name)
+}
+
+/// Every error as a terminal shows it, in the order rustc wrote them.
+fn rendered_errors(outcome: &Outcome) -> String {
+    outcome
+        .errors()
+        .iter()
+        .map(|error| error.rendered.as_str())
+        .collect()
+}
+
+fn normalize(rendered: &str, rs_file: &Path, name: &str) -> String {
     let rel_display = format!("book/compile-errors/{name}.rs");
     let raw_path = rs_file.to_string_lossy();
     let slash_path = raw_path.replace('\\', "/");
-    let normalized = stderr
+    let normalized = rendered
         .replace("\r\n", "\n")
         .replace(raw_path.as_ref(), &rel_display)
         .replace(&slash_path, &rel_display);
 
     let filtered: Vec<&str> = normalized
         .lines()
-        .filter(|line| {
-            !line.starts_with("error: aborting due to ")
-                && !line.starts_with("For more information about this error")
-                && !line.contains("this error originates in the attribute macro")
-        })
+        .filter(|line| !line.contains("this error originates in the attribute macro"))
         .collect();
     format!("{}\n", filtered.join("\n").trim())
-}
-
-fn find_latest_snapfit_rlib(deps_dir: &Path) -> PathBuf {
-    fs::read_dir(deps_dir)
-        .expect("failed to read deps dir")
-        .filter_map(Result::ok)
-        .map(|e| e.path())
-        .filter(|p| {
-            let fname = p.file_name().and_then(|s| s.to_str()).unwrap_or("");
-            (fname == "libsnapfit.rlib" || fname.starts_with("libsnapfit-"))
-                && fname.ends_with(".rlib")
-        })
-        .max_by_key(|p| modified_time(p))
-        .expect("failed to find compiled libsnapfit.rlib")
-}
-
-fn modified_time(path: &Path) -> SystemTime {
-    path.metadata()
-        .and_then(|m| m.modified())
-        .unwrap_or(SystemTime::UNIX_EPOCH)
 }

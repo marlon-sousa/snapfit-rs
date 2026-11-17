@@ -12,3 +12,6 @@ path = "src/lib.rs"
 
 [dependencies]
 snapfit = { workspace = true }
+
+[dev-dependencies]
+compile-outcomes = { workspace = true }
