@@ -82,13 +82,13 @@ Every problem named in Part 1, and the chapter that shows how `snapfit` answers 
 | :--- | :--- | :--- |
 | The service picks its own dependencies | Services receive their dependencies; only the container names an implementation. | [Chapter 6](06-pure-domain-types.md), [Chapter 10](10-choosing-an-implementation.md) |
 | It cannot be tested alone | A service is a plain struct: a test builds it with `new(...)` and fakes, without any container. | [Chapter 6](06-pure-domain-types.md) |
-| Nothing is shared | Every field is built once and shared through its getter. | [Chapter 5](05-installing-and-first-singleton.md) |
+| Nothing is shared | Every field is built once; for an `Arc` field, every getter call returns the same value. | [Chapter 5](05-installing-and-first-singleton.md) |
 | Two jobs in one place | A service knows only its own arguments; the container knows how everything is built. | [Chapter 7](07-wiring-dependencies-and-constructors.md) |
 | A closed list | A new implementation is a new type named in one field; no service changes. | [Chapter 10](10-choosing-an-implementation.md) |
 | Type parameters spread | The concrete type is named once, in a field's type, and services can take a trait object instead. | [Chapter 10](10-choosing-an-implementation.md) |
 | The choice still has to be made | The container makes it, once, in the types of its fields. | [Chapter 10](10-choosing-an-implementation.md) |
 | The order is kept by hand | `new()` works out the order from `deps`. | [Chapter 8](08-read-the-container-know-the-graph.md) |
-| Sharing is a convention | There is one kind of field: built once, shared. | [Chapter 5](05-installing-and-first-singleton.md) |
+| Sharing is a convention | There is one kind of field: built once, when the container is built. | [Chapter 5](05-installing-and-first-singleton.md) |
 | The graph is nowhere | The container struct is the graph, in one place. | [Chapter 8](08-read-the-container-know-the-graph.md) |
 | Mistakes appear at run time | Unknown names and cycles are compile errors. | [Chapter 11](11-mistakes-caught-by-the-compiler.md) |
 | One entry per type | Components are named by field. | [Chapter 9](09-multiple-instances-of-the-same-type.md) |

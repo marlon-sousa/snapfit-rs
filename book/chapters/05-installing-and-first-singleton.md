@@ -48,6 +48,6 @@ name: ch05_first_singleton
 
 ## Remember
 
-1. `snapfit` requires Rust `1.85.0` or newer (Rust 2024 Edition).
+1. `snapfit` requires Rust `1.85.0` or newer. Your own crate can use any edition from 2018 on.
 2. A `#[singleton]` field with no `deps` is a leaf: it needs nothing, so `ShopContainer::new()` builds it when it reaches the field in the declaration, or earlier if a field declared before it needs it.
 3. For `Arc<T>` fields, your constructor `T::new()` returns `T`, not `Arc<T>` — `snapfit` wraps it in `Arc::new(...)` automatically.

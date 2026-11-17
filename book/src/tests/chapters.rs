@@ -57,12 +57,15 @@ fn chapters_table_of_contents_and_structure_are_valid() {
     verify_all_examples_and_compile_errors_are_used(book_dir, &chapters_dir);
 }
 
+/// The lines of the contents between `heading` and the next level 2 heading.
 fn part_lines<'a>(readme: &'a str, heading: &'a str) -> impl Iterator<Item = &'a str> {
-    readme
-        .lines()
-        .skip_while(move |line| !line.starts_with(heading))
-        .skip(1)
-        .take_while(|line| !line.starts_with("## "))
+    let mut lines = readme.lines();
+    lines.find(|line| line.starts_with(heading));
+    lines.take_while(is_not_a_level_2_heading)
+}
+
+fn is_not_a_level_2_heading(line: &&str) -> bool {
+    !line.starts_with("## ")
 }
 
 fn extract_linked_chapter_files<'a>(lines: impl Iterator<Item = &'a str>) -> HashSet<String> {

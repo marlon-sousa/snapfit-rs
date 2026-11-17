@@ -1,6 +1,6 @@
 # What this version supports
 
-This edition of **The Snapfit Book** covers `snapfit` **`0.1.0`**. It needs Rust **`1.85.0`** or newer, with the 2024 edition.
+This edition of **The Snapfit Book** covers `snapfit` **`0.1.0`**. It needs Rust **`1.85.0`** or newer; your own crate can use any edition from 2018 on.
 
 ## Who 0.1.0 is for
 
@@ -11,7 +11,7 @@ This edition of **The Snapfit Book** covers `snapfit` **`0.1.0`**. It needs Rust
 | Capability | Details |
 | :--- | :--- |
 | **Plain domain types** | Services, repositories and controllers need no attribute, trait or import of `snapfit` ([Chapter 6](06-pure-domain-types.md)). |
-| **Shared components** | Every field of a `#[container]` is built once and shared; fields can be `Arc<T>`, wrapped for you, or any `T: Clone` ([Chapter 5](05-installing-and-first-singleton.md), [Chapter 7](07-wiring-dependencies-and-constructors.md)). |
+| **Shared components** | Every field of a `#[container]` is built once, and its getter returns a clone of it, which for an `Arc<T>` field is the same value; fields can be `Arc<T>`, wrapped for you, or any `T: Clone` ([Chapter 5](05-installing-and-first-singleton.md), [Chapter 7](07-wiring-dependencies-and-constructors.md)). |
 | **Dependencies by name** | `deps = [...]` lists the fields a component needs, passed to its constructor in that order ([Chapter 7](07-wiring-dependencies-and-constructors.md)). |
 | **Named constructors** | `constructor = <fn>` calls a constructor other than `new` ([Chapter 7](07-wiring-dependencies-and-constructors.md)). |
 | **Construction order worked out when compiling** | Fields can be declared in any order; each is built after the fields it needs ([Chapter 8](08-read-the-container-know-the-graph.md)). |
@@ -23,7 +23,7 @@ This edition of **The Snapfit Book** covers `snapfit` **`0.1.0`**. It needs Rust
 
 These are the questions an experienced reader asks first. `0.1.0` answers each one this way:
 
-1. **A constructor cannot fail.** It returns the value, not a `Result`. A component that cannot start, such as a database that is down, has to panic, so the program stops at startup.
+1. **A constructor cannot fail.** It returns the value, not a `Result`. A component that cannot start, such as a database that is down, can only panic, so the program stops at startup.
 2. **Nothing is awaited.** Constructors are synchronous, so a client that has to be awaited before it is usable cannot be a field of the container.
 3. **Nothing is passed in.** `new()` takes no arguments. A configuration component reads its own settings, for example from environment variables, in its constructor.
 4. **A field cannot be a trait object.** A field typed `Arc<dyn PaymentGateway>` is refused, because the container has no constructor to call for it. Give the field the concrete type, and let the services take the trait object ([Chapter 10](10-choosing-an-implementation.md)).

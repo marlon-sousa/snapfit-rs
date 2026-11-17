@@ -5,7 +5,7 @@ import { unified } from 'unified';
 import { chapters, root } from '../../book.config.mjs';
 import { readText } from './text.ts';
 
-export type PageKind = 'welcome' | 'chapter' | 'appendix';
+export type PageKind = 'unnumbered' | 'chapter' | 'appendix';
 
 export interface Page {
 	slug: string;
@@ -42,7 +42,7 @@ function text(nodes: PhrasingContent[]): string {
 
 function kindOf(slug: string, numbered: boolean): PageKind {
 	if (/^appendix-\d+-/.test(slug)) return 'appendix';
-	return numbered ? 'chapter' : 'welcome';
+	return numbered ? 'chapter' : 'unnumbered';
 }
 
 function pageOf(item: ListItem, number: number | undefined, part: Part): Page {
@@ -63,7 +63,7 @@ function pageOf(item: ListItem, number: number | undefined, part: Part): Page {
 		file: `${chapters}/${slug}.md`,
 		kind,
 		number: kind === 'chapter' ? number : undefined,
-		label: kind === 'chapter' || kind === 'welcome' ? text(link.children).trim() : label,
+		label: kind === 'chapter' || kind === 'unnumbered' ? text(link.children).trim() : label,
 		part,
 	};
 }

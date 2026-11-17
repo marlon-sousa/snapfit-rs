@@ -56,13 +56,13 @@ name: ch02_choosing_between_implementations
 ## What goes wrong
 
 1. **A closed list.** `OrderServiceWithList` can be tested now, but it still picks its own dependencies: it knows every provider by name and builds each one. Adding PayPal means editing the service again.
-2. **Type parameters spread.** `OrderService<P>` no longer chooses, and calls to the gateway cost nothing at run time. But `CheckoutController` has to become `CheckoutController<P>`, and so does everything that holds a controller. Give the service a database and a stock service the same way, and every type above it carries three parameters it does not care about.
+2. **Type parameters spread.** `OrderService<P>` no longer chooses, and calls to the gateway add no run-time cost. But `CheckoutController` has to become `CheckoutController<P>`, and so does everything that holds a controller. Give the service a database and a stock service the same way, and every type above it carries three parameters it does not care about.
 3. **The choice still has to be made.** With a type parameter or a trait object, the service receives its gateway instead of building it. That fixes the first two problems of [Chapter 1](01-a-service-that-builds-its-own-dependencies.md): the service no longer picks its own dependencies, and a test can hand it a fake. But someone now has to choose Stripe, build it, and pass it in. That someone is the subject of the next chapter.
 
-A trait object costs a little at run time: one pointer to follow on each call, and the compiler cannot inline the call. For a service that talks to a database or a payment provider, that cost is far below the cost of the call itself. Use a type parameter where it matters, and a trait object where it keeps the code simpler.
+A trait object costs a little at run time: one pointer to follow on each call, and the compiler usually cannot inline the call. For a service that talks to a database or a payment provider, that cost is far below the cost of the call itself. Use a type parameter where it matters, and a trait object where it keeps the code simpler.
 
 ## Remember
 
 1. A service that receives its dependencies, as a type parameter or as a trait object, no longer decides which implementation it uses.
-2. Type parameters cost nothing at run time, but they spread to every type that holds the service.
+2. Type parameters add no run-time cost, but they spread to every type that holds the service.
 3. Receiving dependencies moves the decision to whoever builds the service. Something still has to make it.

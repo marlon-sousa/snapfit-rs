@@ -1,5 +1,5 @@
 #![deny(warnings)]
-//! Chapter 3: services receive their dependencies, and `main` builds and connects them by hand.
+//! Chapter 3: services receive their dependencies, and `AppState` builds and connects them by hand.
 
 use std::sync::Arc;
 
