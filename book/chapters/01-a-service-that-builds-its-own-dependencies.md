@@ -67,15 +67,15 @@ It's like two flatmates each signing their own internet contract for the same fl
 
 ## A chef who also has to farm
 
-Finally, look at what `OrderService` knows. It should know how to place an order. But it also knows how to build a `StockService`, which means it knows that a stock service needs a database, and which one. If the stock service one day needs a cache, the order service has to learn about the cache too. Every service carries the knowledge of everything below it.
+Finally, look at what `OrderService` does besides placing orders. It decides how its stock service is made, by calling `StockService::new()`, and when. So every order service drags in whatever `StockService::new` opens: a database connection today, and if the stock service one day needs a cache, every order service quietly opens one too. A test of placing an order runs all of that as well. Every service ends up building everything below it.
 
-That's like a chef who, to cook dinner, must also know how the vegetables were grown. A good chef cares that the tomatoes are ripe, not which farm they came from. Using your ingredients and producing them are two different jobs.
+That's like a chef who, to cook dinner, must also grow the vegetables. A good chef cares that the tomatoes are ripe, not how to grow them. Using your ingredients and producing them are two different jobs.
 
 ## What we found
 
 1. **Tight coupling.** A service that calls the constructors of its dependencies decides which implementations it uses, and everyone who uses the service inherits that decision.
 2. **Hard to test.** A service that builds its own infrastructure can't be tested without that infrastructure.
 3. **Duplicated resources.** When every service builds what it needs, nothing is shared, and nobody can see how many instances exist.
-4. **Mixed responsibilities.** A service that builds its dependencies has two jobs: its own work, and knowing how everything below it is made.
+4. **Mixed responsibilities.** A service that builds its dependencies has two jobs: its own work, and building everything below it.
 
 All four come from the same place: the service builds what it needs instead of receiving it. In the next chapter, our services stop choosing.

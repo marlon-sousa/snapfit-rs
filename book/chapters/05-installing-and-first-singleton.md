@@ -42,7 +42,7 @@ The same allocation, both times. Think of the one printer in an office: everyone
 `#[container]` wrote three things for us.
 
 1. **A way to build the container.** It generated `ShopContainer::new()`, and also implemented `Default` and `snapfit::Container`, so `ShopContainer::default()` builds it too.
-2. **The `Arc` around the configuration.** The field's type is `Arc<ShopConfig>`, so the container called `ShopConfig::new()`, which returns a plain `ShopConfig`, and wrapped the result in `Arc::new(...)` itself. Your constructor never has to return an `Arc`.
+2. **The `Arc` around the configuration.** The field's type is `Arc<ShopConfig>`, so the container called `ShopConfig::new()` and wrapped the plain `ShopConfig` it returned in `Arc::new(...)` itself. Your constructor returns the plain type; the `Arc` is the container's job.
 3. **A getter.** For each field, it generated a method named after it, here `get_config()`, which returns a clone of the field. Cloning an `Arc` only adds one to a counter, so both calls point to the same `ShopConfig`, which is what `Arc::ptr_eq` confirmed.
 
 ## Which problem this solves

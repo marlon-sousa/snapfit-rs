@@ -1,6 +1,6 @@
 # Mistakes caught by the compiler
 
-Everybody mistypes a name now and then, and sooner or later someone wires two services that need each other. The question is when you find out. With the service locator of [Chapter 3](03-who-builds-everything.md), you found out when a customer placed an order. Let's make some mistakes on purpose and see when `snapfit` tells us.
+Everybody mistypes a name now and then, and sooner or later someone wires two services that need each other. The question is when you find out. With the service locator of [Chapter 3](03-who-builds-everything.md), you found out only when the program asked for the component. Let's make some mistakes on purpose and see when `snapfit` tells us.
 
 Think of a building inspector who checks the plans before anyone moves in, rather than waiting for a wall to fall down.
 
@@ -14,7 +14,7 @@ name: ch11_unknown_dependency
 
 ## Two components that need each other
 
-Now `orders` needs `inventory`, and `inventory` needs `orders`. Neither can be built first. The message describes the circle in a sentence, and points at the first field in it:
+Now `orders` needs `inventory`, and `inventory` needs `orders`. Neither can be built first. This circle is what the compiler calls a dependency cycle. The message describes it in a sentence, and points at the first field in it:
 
 ```compile-error
 name: ch11_dependency_cycle

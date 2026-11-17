@@ -98,7 +98,7 @@ fn verify_closing_sections(file_name: &str, content: &str, closing: &[&str]) {
         "{file_name} must end with the ## sections {closing:?}, in this order"
     );
     assert!(
-        !own.is_empty() && own.iter().all(|heading| !closing.contains(heading)),
+        !own.is_empty() && !own.iter().any(|heading| closing.contains(heading)),
         "{file_name} must have its own ## sections before {closing:?}, and use those only at the end"
     );
 }

@@ -53,13 +53,13 @@ Put the two containers side by side. Apart from their names, they differ only in
 
 Now imagine the shop moves from Stripe to another provider. You write a type that implements `PaymentGateway`, change `payments: Arc<StripeGateway>` to that type, and recompile. For services that take a trait object, that's the whole change. A service with a type parameter names the gateway in its own field too, as `Arc<RefundService<StripeGateway>>` does, so that's one more line, still inside the container.
 
-That isn't a special trick for payment gateways. It's a general rule, and it's worth knowing well. The generated `new()` is ordinary Rust: for each field, it calls the constructor its attribute names, on the field's type (or on `T`, for an `Arc<T>` field, which it then wraps in an `Arc`). It passes that constructor clones of the fields in its `deps`, and passes clones of the field on to the constructors of the fields that list it. So you can change a field's type to any other type that fits those calls, recompile, and the application works with it. A type fits when:
+That isn't a special trick for payment gateways. It works for any field, and `TestShopContainer` shows why. Remember that the generated `new()` is ordinary Rust. Let's follow what it does with `FakeGateway`, and see what the new type had to offer:
 
-1. **It has the constructor.** It, or `T` for an `Arc<T>` field, has the constructor the attribute calls, `new` or the one `constructor =` names, taking the fields in `deps`, in that order.
-2. **It can be cloned.** An `Arc<T>` field always can. A field of any other type must implement `Clone`, because its getter and the fields that need it receive clones.
-3. **The fields that need it accept it.** Each constructor that receives the field takes the new type, because it asks for exactly that type, because it is generic over a trait the new type implements (the type of that field then names the new type too, as `Arc<RefundService<FakeGateway>>` does), or because it takes an `Arc<dyn Trait>` of a trait the new type implements.
+1. **It has the constructor.** For `payments: Arc<FakeGateway>`, the container calls `FakeGateway::new()` and wraps the result in an `Arc`. So the new type needs the constructor the attribute names, `new` here or the one `constructor =` names, taking the fields in `deps`, in that order. For an `Arc<T>` field, that constructor lives on `T`.
+2. **It can be cloned.** The getter and every field that needs `payments` receive a clone of it. An `Arc` can always be cloned; a field of any other type must implement `Clone`.
+3. **The fields that need it accept it.** `orders` and `refunds` receive a clone of `payments`. `OrderService::new` takes an `Arc<dyn PaymentGateway>`, and `FakeGateway` implements `PaymentGateway`, so Rust converts it. `RefundService<P>` is generic over the gateway, so it accepts it too, and its field names the new type: `Arc<RefundService<FakeGateway>>`. A constructor that asked for exactly `Arc<FakeGateway>` would accept it as well.
 
-No service changes, and no attribute does. If the new type doesn't fit, the program doesn't compile, so you find out right away.
+That's the whole rule: you can change a field's type to any type that has the same constructor, can be cloned, and is accepted by the fields that need it. No service changes, and no attribute does. The only other line that changes is the type of a field that is generic over the new type, like `refunds`. If the new type doesn't fit, the program doesn't compile, so you find out right away.
 
 ## Why the field itself is concrete
 

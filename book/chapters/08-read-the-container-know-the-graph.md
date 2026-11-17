@@ -4,7 +4,7 @@ When you open a new codebase, one of the first things you want to know is how it
 
 ## Five components, written top-down
 
-Our checkout now has five components across three layers: a configuration, a database and a payment client, an order repository, and the checkout handler at the top. We write the container the way you would explain it to a colleague, starting from the entry point and ending with the configuration:
+Our checkout now has five components across four layers: a configuration, a database and a payment client, an order repository, and the checkout handler at the top. We write the container the way you would explain it to a colleague, starting from the entry point and ending with the configuration:
 
 ```example
 name: ch08_container_graph
@@ -24,7 +24,7 @@ It prints:
 name: ch08_container_graph
 ```
 
-It just works. Think of writing a shopping list for a cake: you can list the ingredients in any order, and the cook still knows the eggs go in before the cake goes in the oven.
+It just works. Think of a recipe whose steps each say what they need. You can write the steps in any order: the baking step says it needs the batter, so the batter is mixed first.
 
 ## The graph, read from the struct
 

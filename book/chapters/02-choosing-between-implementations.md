@@ -28,7 +28,7 @@ region: closed_list
 
 This works, and a test can now pass `Provider::Fake`. But look at what the service still knows: every provider, by name, and how to build each one. When the shop adds PayPal, we edit `OrderServiceWithList` again, even though placing an order hasn't changed at all.
 
-It's like a coffee machine that only takes its own brand's capsules. It's fine until you want a different coffee, and then you need a different machine. We'll call this a closed list: you can't add an option without opening up the code that uses the options.
+It's like a vending machine with a fixed set of slots: to sell a new drink, someone has to open the machine and add a slot. We'll call this a closed list: you can't add an option without opening up the code that uses the options.
 
 ## Second try: a type parameter
 

@@ -65,7 +65,7 @@ fn bold_names_under(pages: &[String], heading: &str) -> BTreeSet<String> {
         .collect()
 }
 
-/// `1. **Nothing is shared.** ...` and `1. **Nothing is shared** (...)` both name `Nothing is shared`.
+/// `1. **Duplicated resources.** ...` and `1. **Duplicated resources** (...)` both name `Duplicated resources`.
 fn opening_bold_name(line: &str) -> Option<String> {
     let (number, rest) = line.split_once(". **")?;
     let (name, _) = rest.split_once("**")?;
@@ -82,7 +82,7 @@ fn table_rows<'a>(page: &'a str, heading: &str) -> impl Iterator<Item = &'a str>
     lines.take_while(|line| line.starts_with('|'))
 }
 
-/// `| Nothing is shared | ... |` names `Nothing is shared`.
+/// `| Duplicated resources | ... |` names `Duplicated resources`.
 fn first_cell(row: &str) -> Option<String> {
     let cell = row.strip_prefix('|')?.split('|').next()?.trim();
     (!cell.is_empty()).then_some(cell.to_string())

@@ -21,7 +21,7 @@ This edition of **The Snapfit Book** covers `snapfit` **`0.1.0`**. It needs Rust
 
 ## What it doesn't do
 
-If you have used dependency injection before, some questions probably came to mind while reading. Here are the ones we hear first, and how `0.1.0` answers them:
+If you have used dependency injection before, some questions probably came to mind while reading. Here are the ones that usually come first, and how `0.1.0` answers them:
 
 1. **Can a constructor fail?** No. A constructor returns the value, not a `Result`. A component that can't start, such as a database that is down, can only panic, so the program stops at startup.
 2. **Can a constructor wait for something?** No. Constructors are synchronous, so a client that has to be awaited before it is usable can't be a field of the container.

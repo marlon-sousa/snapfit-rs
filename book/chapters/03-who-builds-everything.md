@@ -77,7 +77,7 @@ name: ch03_service_locator
 
 Two surprises. We registered two databases, but the map kept one: the primary replaced the replica without a word, so every read now goes to the primary. And we registered the gateway as `StripeGateway` but asked for an `Arc<StripeGateway>`, so the locator found nothing.
 
-Think of a cloakroom that files coats by colour instead of giving you a ticket. Hand in two black coats, and the second one takes the first one's hook. Describe yours slightly wrong, and you find out only at the end of the evening, when you're about to leave. The compiler couldn't see either mistake: the program starts, and the first order fails.
+Think of a cloakroom that files coats by colour instead of giving you a ticket. Hand in two black coats, and the second one takes the first one's hook. Describe yours slightly wrong, and you find out only at the end of the evening, when you're about to leave. The compiler couldn't see either mistake: the program starts, and fails only when it asks for the component.
 
 There is one more trap, and it's subtler. Once a service can reach the locator, it's tempting to hand it the whole locator and let it ask for whatever it needs. Then the service's constructor no longer says what the service depends on. You find out by reading its body, or by running it. It's like a recipe that says "take what you need from the pantry" instead of listing its ingredients: you discover that you're out of eggs halfway through the cake. And the service is back to choosing its own dependencies, as in the first chapter, only now without the compiler's help.
 
