@@ -17,8 +17,8 @@
 | Role | Entity | Core Responsibilities |
 | :--- | :--- | :--- |
 | **Architect & Tech Lead** | **Human (You)** | • Final authority on API design, trade-offs, and feature acceptance.<br>• Approves stack scopes before implementation starts.<br>• Reviews and merges PRs. |
-| **Lead Implementer** | **Antigravity (Agent)** | • Implements clean Rust adhering strictly to Ports & Adapters.<br>• Writes comprehensive in-memory unit tests alongside code.<br>• Runs formatting, linting, and compile checks. |
-| **Independent Code Reviewer** | **Reviewer Subagent** | • Spawned fresh for each PR slice to act as a second pair of eyes.<br>• Verifies architectural boundaries (no compiler leaks into domain).<br>• Audits for unhandled `unwrap`s, edge cases, and test coverage.<br>• Emits a formal PR Review Report before human sign-off. |
+| **Implementer** | **Agent or contributor** | • Implements the change as [ARCHITECTURE.md](ARCHITECTURE.md) describes, following the rules of [AGENTS.md](../AGENTS.md).<br>• Writes the unit tests, Gherkin scenarios and fixtures the rules ask for.<br>• Runs `cargo xtask ci`. |
+| **Independent Code Reviewer** | **Reviewer agent** | • Started fresh for each change, given the change and not its author's reasoning.<br>• Works through every item of the checklist in [AGENTS.md](../AGENTS.md), "Reviewing a change".<br>• Returns findings, each blocking or not, and a verdict before human sign-off. |
 
 ---
 
@@ -71,18 +71,10 @@ Rather than waiting until the end to write integration tests, `snapfit` uses an 
 
 For every PR slice in the stack:
 
-1. **Implementation & Local Verification:**
-   * Antigravity writes the module + unit tests.
-   * Runs local pre-flight QA: `cargo xtask ci` (validates formatting, clippy, architectural boundaries, unit tests, and docs).
-2. **Agentic Code Review:**
-   * Antigravity invokes an independent `Reviewer Subagent` (pinned to `pro`).
-   * The subagent evaluates the diff against the **Architectural Invariants** in `AGENTS.md`.
-   * Any findings (e.g., leaky types, missing edge cases) are fixed immediately.
-3. **Automated CI & PR QA:**
-   * GitHub Actions runs the cross-platform matrix (Linux, macOS, Windows) executing `cargo xtask ci`.
-4. **Human Review & Sign-Off:**
-   * Antigravity presents the PR summary, diff, and Reviewer Report.
-   * You approve, merge (or advance the stack), and we proceed to the next slice.
+1. **Implementation & Local Verification:** the implementer writes the code and its tests, and runs `cargo xtask ci`.
+2. **Independent Review:** before the pull request is opened, a reviewer agent reviews the commits against the checklist in [AGENTS.md](../AGENTS.md), "Reviewing a change"; `.claude/skills/review-change` says how Claude starts it. Findings are fixed, or rejected with a reason the reviewer accepts or the maintainer decides. Every later push is reviewed the same way.
+3. **Automated CI:** GitHub Actions runs `cargo xtask ci` on Linux, macOS and Windows.
+4. **Human Review & Sign-Off:** the pull request is reported ready, with the review's verdict, once both the review and the CI of its latest push have passed. The maintainer approves and merges, or advances the stack.
 
 ---
 
@@ -95,8 +87,9 @@ A slice is only ready for human merge when:
 - [ ] **Properly Formatted:** `cargo fmt --check` succeeds.
 - [ ] **100% Tests Pass:** All unit and BDD tests pass in `cargo test`.
 - [ ] **Zero Compiler Leaks:** `cargo xtask arch-check` confirms zero `syn`, `quote`, or `darling` imports in `domain/` or `use_cases/`.
+- [ ] **Rules Followed:** every behaviour has its scenario or fixture, and every fixed bug its regression test, as [AGENTS.md](../AGENTS.md), "Rules", asks.
 - [ ] **Green CI Matrix:** GitHub Actions passes across Linux, macOS, and Windows.
-- [ ] **Reviewer Subagent Approval:** Review report from `snapfit-reviewer` returns `PASS`.
+- [ ] **Independent Review Approval:** the reviewer agent's verdict on the latest push is approve.
 
 ---
 
