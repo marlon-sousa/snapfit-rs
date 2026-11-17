@@ -47,6 +47,15 @@ name: ch10_choosing_an_implementation
 5. **A test container.** `TestShopContainer` declares the same fields with `FakeGateway`. A test builds it with `TestShopContainer::new()` and gets the real services around the fake. For a test of one service, building that service directly with a fake is often simpler still ([Chapter 6](06-pure-domain-types.md)).
 6. **Why the field itself is concrete.** The container builds each field by calling a constructor of the field's type. A trait object has no constructor, so a field typed `Arc<dyn PaymentGateway>` is refused. The concrete field, passed to services that take the trait, gives the same freedom.
 
+### The rule: any type that fits works
+
+Everything above follows from one rule. The generated `new()` is ordinary Rust: for each field, it calls the constructor its attribute names on the field's type, passing clones of the fields in its `deps`, and it passes the field on to the constructors of the fields that list it. So you can change a field's type to any other type that fits those two calls, recompile, and the application works with it:
+
+1. **The new type has the constructor.** It has the constructor the attribute calls, `new` or the one `constructor =` names, taking the fields in `deps`, in that order.
+2. **The fields that need it accept it.** Each constructor that receives the field takes the new type: because it asks for exactly that type, because it is generic over a trait the new type implements (the type of that field then names the new type too, as `Arc<RefundService<FakeGateway>>` does), or because it takes an `Arc<dyn Trait>` of a trait the new type implements.
+
+No service changes, and no attribute does. If the new type does not fit, the program does not compile.
+
 ## Which problem this solves
 
 1. **The service picks its own dependencies** ([Chapter 1](01-a-service-that-builds-its-own-dependencies.md)): no service names a gateway. The type of the `payments` field is the only choice.
@@ -58,5 +67,6 @@ name: ch10_choosing_an_implementation
 ## Remember
 
 1. Name the implementation once, in the type of a container field; let services take a trait object or a type parameter.
-2. A trait object keeps the service's type the same whatever the gateway; a type parameter avoids the indirect call, and its concrete type is named in the container.
-3. To build the application around different implementations, such as fakes for tests, declare a second container with the same fields.
+2. Changing a field to any other type that has the same constructor and that the fields needing it accept, through a trait object, a type parameter or the exact type, works with no other change.
+3. A trait object keeps the service's type the same whatever the gateway; a type parameter avoids the indirect call, and its concrete type is named in the container.
+4. To build the application around different implementations, such as fakes for tests, declare a second container with the same fields.
