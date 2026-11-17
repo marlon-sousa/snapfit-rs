@@ -1,0 +1,36 @@
+# What `cargo deny check` allows of the dependencies: their licences, the
+# advisories against them, duplicate versions, and where they come from.
+
+[graph]
+all-features = true
+
+[advisories]
+version = 2
+ignore = [
+    # humantime is unmaintained, with no safe upgrade. Only cucumber uses it,
+    # in the Gherkin suite, snapfit_bdd, which is never published.
+    { id = "RUSTSEC-2026-0542", reason = "used only by cucumber in the unpublished test suite, with no upgrade" },
+]
+
+[licenses]
+version = 2
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Unicode-3.0",
+]
+unused-allowed-license = "allow"
+exceptions = [
+    # synthez, used by cucumber's code generation, only in the unpublished Gherkin suite.
+    { crate = "synthez", allow = ["BlueOak-1.0.0"] },
+    { crate = "synthez-codegen", allow = ["BlueOak-1.0.0"] },
+    { crate = "synthez-core", allow = ["BlueOak-1.0.0"] },
+]
+
+[bans]
+multiple-versions = "warn"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
