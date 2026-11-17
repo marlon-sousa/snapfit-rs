@@ -87,7 +87,7 @@ fn attributes_that_cannot_be_read_together_are_refused() {
     let cases: [(syn::Field, &str); 4] = [
         (
             parse_quote!(config: Arc<Config>),
-            "field 'config' must be annotated with #[singleton], #[transient], or #[dispatch]",
+            "field 'config' has no snapfit attribute; add #[singleton] to have the container build it",
         ),
         (
             parse_quote!(#[singleton] #[transient] config: Arc<Config>),
