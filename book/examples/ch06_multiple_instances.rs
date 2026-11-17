@@ -35,7 +35,7 @@ impl CqrsOrderStore {
 
     pub fn describe_routing(&self) -> String {
         format!(
-            "reads -> {}, writes -> {}",
+            "reads go to {}, writes go to {}",
             self.read_db.role(),
             self.write_db.role()
         )
