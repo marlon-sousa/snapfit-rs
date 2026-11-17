@@ -60,6 +60,10 @@ name: ch11_tuple_struct_container
 2. **Checking the graph:** `snapfit` then visits the fields in the order they are declared and orders each one after the fields it needs. On the way, it reports every name in `deps` that is not a field of the container, and every cycle, told from the cycle's first declared field.
 3. **Reporting:** Each problem becomes its own compiler error, a sentence that points at the attribute of the field it is about, or at the container's name when no single field is at fault. The fields that cannot be read are reported together, and the graph is checked only once every field reads; then every problem in the graph is reported together. `new()` and the getters are generated only once every problem is fixed.
 
+## Which problem this solves
+
+1. **Mistakes appear at run time** ([Chapter 3](03-who-builds-everything.md)): a dependency that does not exist, a cycle, or a constructor name that cannot be read stops `cargo build`, with an error at the field. The program never starts with a broken graph.
+
 ## Remember
 
 1. When `snapfit` reports `unknown dependency`, check the list of available field names at the end of the compiler message.

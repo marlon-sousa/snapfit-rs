@@ -8,6 +8,7 @@ const FEATURE_SECTIONS: &[&str] = &[
     "## What you want to do",
     "## The code",
     "## How it works",
+    "## Which problem this solves",
     "## Remember",
 ];
 
@@ -48,7 +49,7 @@ fn chapters_table_of_contents_and_structure_are_valid() {
             } else {
                 FEATURE_SECTIONS
             };
-            verify_four_sections(file_name, &content, sections);
+            verify_sections(file_name, &content, sections);
         }
         verify_mermaid_accessibility(file_name, &content);
     }
@@ -101,14 +102,14 @@ fn verify_single_h1(file_name: &str, content: &str) {
     );
 }
 
-fn verify_four_sections(file_name: &str, content: &str, sections: &[&str]) {
+fn verify_sections(file_name: &str, content: &str, sections: &[&str]) {
     let h2_headings: Vec<&str> = non_fenced_lines(content)
         .into_iter()
         .filter(|line| line.starts_with("## "))
         .collect();
     assert_eq!(
         h2_headings, sections,
-        "{file_name} must have the four required ## sections in exact order"
+        "{file_name} must have the required ## sections in exact order"
     );
 }
 

@@ -52,6 +52,12 @@ You can copy the following section directly into your project's `AGENTS.md`:
 3. **Named Edges Over Wrapper Types:** When wiring multiple instances of the same type (such as `read_db` and `write_db`), declare separate named fields on the container rather than creating wrapper newtypes.
 ```
 
+## Which problem this solves
+
+1. **Two jobs in one place** ([Chapter 1](01-a-service-that-builds-its-own-dependencies.md)): a business rule lives in its service and the wiring lives in the container, so an agent changing one does not read or edit the other.
+2. **The graph is nowhere** ([Chapter 3](03-who-builds-everything.md)): an agent learns how the whole application is wired by reading one struct.
+3. **Services drift back to choosing** ([Chapter 3](03-who-builds-everything.md)): the reviewer rule above, that no domain module imports `snapfit` or builds its own dependencies, keeps it from happening.
+
 ## Remember
 
 1. Keep domain modules and the `#[container]` manifest in distinct modules or crates so agents have clear boundaries.

@@ -57,6 +57,11 @@ What the diagram shows:
 
 The order is worked out at compile time, so it costs nothing when the program runs, and it is the same every time.
 
+## Which problem this solves
+
+1. **The order is kept by hand** ([Chapter 3](03-who-builds-everything.md)): the fields are declared top-down, the opposite of the order they must be built in, and `new()` still builds each one after the fields it needs.
+2. **The graph is nowhere** ([Chapter 3](03-who-builds-everything.md)): every component and every edge of the diagram above is written in `ShopContainer`, and nowhere else.
+
 ## Remember
 
 1. You can declare the fields of a `#[container]` in any order: `snapfit` visits them in the order they are declared, and builds the fields each one needs before it.

@@ -1,6 +1,7 @@
 mod chapters;
 mod compile_errors;
 mod directives;
+mod problems;
 mod readme;
 mod stable_only;
 

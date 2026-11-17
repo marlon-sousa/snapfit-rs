@@ -8,7 +8,7 @@ Instead of inventing unrelated `Foo` and `Bar` types on every page, every exampl
 
 ## The shape of a chapter
 
-Every numbered chapter, and the [Quick start](quick-start.md), has four level 2 sections in the same order.
+Every numbered chapter, and the [Quick start](quick-start.md), has its level 2 sections in the same order.
 
 The chapters of Part 1 show a problem, so their sections are:
 
@@ -22,7 +22,8 @@ Every other chapter teaches a feature, so its sections are:
 1. **What you want to do:** one or two sentences stating the goal in the shop's terms.
 2. **The code:** the relevant slices of the chapter's compiled program, followed by the exact output it prints.
 3. **How it works:** a numbered walkthrough explaining each mechanism in plain language.
-4. **Remember:** a short checklist of invariants to keep in mind.
+4. **Which problem this solves:** the problems of Part 1 this feature answers, by their bold names, and how.
+5. **Remember:** a short checklist of invariants to keep in mind.
 
 ## Every listing is compiled and verified
 

@@ -43,6 +43,11 @@ name: ch07_wiring_and_constructors
 2. **Named constructors (`constructor = from_tax_table`):** Setting `constructor = from_tax_table` on `db: Arc<CatalogDb>` tells `snapfit` to call `CatalogDb::from_tax_table(tax.clone())` and wrap the returned `CatalogDb` in `Arc::new(...)`.
 3. **Constructors receive their prerequisites (`deps = [db], constructor = for_catalog`):** `snapfit` calls `ShippingClient::for_catalog(db.clone())`, passing the prerequisites in the order listed in `deps`, so the endpoint can be assembled from the database's DSN inside the domain type itself.
 
+## Which problem this solves
+
+1. **Two jobs in one place** ([Chapter 1](01-a-service-that-builds-its-own-dependencies.md)): `ShippingClient::for_catalog` knows how to build a shipping client from a database, and nothing else. Which database it gets, and how that database was built, is written once, in `ShopContainer`.
+2. **The service picks its own dependencies** ([Chapter 1](01-a-service-that-builds-its-own-dependencies.md)): every constructor receives its dependencies as arguments, in the order `deps` lists them.
+
 ## Remember
 
 1. Omit `Arc<...>` whenever a singleton type already implements `Clone` cheaply (such as small config structs, `PgPool`, or `reqwest::Client`).

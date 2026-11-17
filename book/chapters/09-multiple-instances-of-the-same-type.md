@@ -39,6 +39,10 @@ name: ch09_multiple_instances
 2. **Positional mapping from `deps`:** Because `order_store` declares `deps = [read_db, write_db]`, `ShopContainer::new()` calls `CqrsOrderStore::new(read_db.clone(), write_db.clone())`.
 3. **Distinct getters:** `ShopContainer` generates `get_read_db(&self) -> Arc<Database>` and `get_write_db(&self) -> Arc<Database>`, returning the two separate allocations.
 
+## Which problem this solves
+
+1. **One entry per type** ([Chapter 3](03-who-builds-everything.md)): `read_db` and `write_db` have the same type and are still two components, because `snapfit` names components by field. No wrapper type is needed to tell them apart.
+
 ## Remember
 
 1. You can declare as many fields of the same Rust type in a `#[container]` as your architecture requires.

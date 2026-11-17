@@ -40,6 +40,13 @@ name: quick_start
 3. **Dependent singleton (`#[singleton(deps = [config])]`):** `db: Arc<CatalogDb>` declares `config` as its prerequisite, so `ShopContainer::new()` passes `config.clone()` into `CatalogDb::new(...)` ([Chapter 7](07-wiring-dependencies-and-constructors.md)).
 4. **A singleton that depends on another (`#[singleton(deps = [db])]`):** `checkout` is built once via `OrderCheckout::new(db)` after `db`, and `container.get_checkout()` returns a clone of the same `Arc<OrderCheckout>` ([Chapter 7](07-wiring-dependencies-and-constructors.md)).
 
+## Which problem this solves
+
+This page shows the result before the reasons. [Part 1](01-a-service-that-builds-its-own-dependencies.md) names the problems of wiring an application without `snapfit`, and [Chapter 4](04-why-we-built-snapfit.md) maps each one to the chapter that answers it. In short:
+
+1. **The service picks its own dependencies** ([Chapter 1](01-a-service-that-builds-its-own-dependencies.md)): `OrderCheckout` receives its database; only `ShopContainer` decides what it is.
+2. **The order is kept by hand** ([Chapter 3](03-who-builds-everything.md)): nobody orders the construction. `ShopContainer::new()` builds each field after the fields its `deps` list.
+
 ## Remember
 
 1. Domain structs stay 100% pure Rust; only the container struct carries `snapfit` attributes.

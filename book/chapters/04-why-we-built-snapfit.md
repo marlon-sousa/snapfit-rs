@@ -63,21 +63,6 @@ Everything in the diagram is written in `ShopContainer`, and nowhere else.
 6. **It leaves the services alone.** `OrderService` asks for any `Arc<dyn PaymentGateway>`. Only the container says Stripe, by declaring `payments` as `Arc<StripeGateway>`; Rust converts it when `new()` passes it in ([Chapter 10](10-choosing-an-implementation.md)).
 7. **It generates plain Rust.** `new()` is the code you would have written in `AppState::build`, and a getter is a field access and a clone. Nothing is looked up when the program runs.
 
-### The problems, and where the book answers them
-
-| Problem | How `snapfit` answers it | Where |
-| :--- | :--- | :--- |
-| The service picks its own dependencies | Services receive their dependencies; only the container names an implementation. | [Chapter 6](06-pure-domain-types.md), [Chapter 10](10-choosing-an-implementation.md) |
-| It cannot be tested alone | A service is a plain struct: a test builds it with `new(...)` and fakes, without any container. | [Chapter 6](06-pure-domain-types.md) |
-| Nothing is shared | Every field is built once and shared through its getter. | [Chapter 5](05-installing-and-first-singleton.md) |
-| Two jobs in one place | A service knows only its own arguments; the container knows how everything is built. | [Chapter 7](07-wiring-dependencies-and-constructors.md) |
-| Type parameters spread | The concrete type is named once, in a field's type, and services can take a trait object instead. | [Chapter 10](10-choosing-an-implementation.md) |
-| The order is kept by hand | `new()` works out the order from `deps`. | [Chapter 8](08-read-the-container-know-the-graph.md) |
-| Sharing is a convention | There is one kind of field: built once, shared. | [Chapter 5](05-installing-and-first-singleton.md) |
-| The graph is nowhere | The container struct is the graph, in one place. | [Chapter 8](08-read-the-container-know-the-graph.md) |
-| Mistakes appear at run time | Unknown names and cycles are compile errors. | [Chapter 11](11-mistakes-caught-by-the-compiler.md) |
-| One entry per type | Components are named by field. | [Chapter 9](09-multiple-instances-of-the-same-type.md) |
-
 ### Why not the shapes of Chapter 3?
 
 | Question | Building by hand | Service locator | `snapfit` |
@@ -88,6 +73,26 @@ Everything in the diagram is written in `ShopContainer`, and nowhere else.
 | Two components of one type? | Yes, two variables | No, one entry per type | Yes, two fields |
 | What does a lookup cost? | A field access | A hash lookup and a downcast | A field access and a clone |
 | Does the domain code change? | No | Only if services use the locator | No |
+
+## Which problem this solves
+
+Every problem named in Part 1, and the chapter that shows how `snapfit` answers it:
+
+| Problem | How `snapfit` answers it | Where |
+| :--- | :--- | :--- |
+| The service picks its own dependencies | Services receive their dependencies; only the container names an implementation. | [Chapter 6](06-pure-domain-types.md), [Chapter 10](10-choosing-an-implementation.md) |
+| It cannot be tested alone | A service is a plain struct: a test builds it with `new(...)` and fakes, without any container. | [Chapter 6](06-pure-domain-types.md) |
+| Nothing is shared | Every field is built once and shared through its getter. | [Chapter 5](05-installing-and-first-singleton.md) |
+| Two jobs in one place | A service knows only its own arguments; the container knows how everything is built. | [Chapter 7](07-wiring-dependencies-and-constructors.md) |
+| A closed list | A new implementation is a new type named in one field; no service changes. | [Chapter 10](10-choosing-an-implementation.md) |
+| Type parameters spread | The concrete type is named once, in a field's type, and services can take a trait object instead. | [Chapter 10](10-choosing-an-implementation.md) |
+| The choice still has to be made | The container makes it, once, in the types of its fields. | [Chapter 10](10-choosing-an-implementation.md) |
+| The order is kept by hand | `new()` works out the order from `deps`. | [Chapter 8](08-read-the-container-know-the-graph.md) |
+| Sharing is a convention | There is one kind of field: built once, shared. | [Chapter 5](05-installing-and-first-singleton.md) |
+| The graph is nowhere | The container struct is the graph, in one place. | [Chapter 8](08-read-the-container-know-the-graph.md) |
+| Mistakes appear at run time | Unknown names and cycles are compile errors. | [Chapter 11](11-mistakes-caught-by-the-compiler.md) |
+| One entry per type | Components are named by field. | [Chapter 9](09-multiple-instances-of-the-same-type.md) |
+| Services drift back to choosing | Services never see the container, so they cannot ask it for anything. | [Chapter 6](06-pure-domain-types.md), [Chapter 12](12-working-with-coding-agents.md) |
 
 ## Remember
 

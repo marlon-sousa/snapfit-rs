@@ -41,6 +41,11 @@ name: ch05_first_singleton
 2. **Generated constructors (`new` and `Default`):** `#[container]` generates `pub fn new() -> Self`, implements `std::default::Default`, and implements `snapfit::Container`.
 3. **Zero-cost typed getter (`get_config`):** For each field `<name>: <Type>`, `#[container]` emits `pub fn get_<name>(&self) -> <Type>` which returns `self.<name>.clone()`. Because `Arc::clone` only increments an atomic reference count, both calls point to the exact same `ShopConfig` allocation (`Arc::ptr_eq(&first, &second)` is `true`).
 
+## Which problem this solves
+
+1. **Nothing is shared** ([Chapter 1](01-a-service-that-builds-its-own-dependencies.md)): `config` is built once, when the container is built, and every call to `get_config()` returns the same allocation, as `Arc::ptr_eq` shows.
+2. **Sharing is a convention** ([Chapter 3](03-who-builds-everything.md)): every field of a container is built once and shared. There is no second kind of field that is quietly built again on each call.
+
 ## Remember
 
 1. `snapfit` requires Rust `1.85.0` or newer (Rust 2024 Edition).

@@ -47,6 +47,14 @@ name: ch10_choosing_an_implementation
 5. **A test container.** `TestShopContainer` declares the same fields with `FakeGateway`. A test builds it with `TestShopContainer::new()` and gets the real services around the fake. For a test of one service, building that service directly with a fake is often simpler still ([Chapter 6](06-pure-domain-types.md)).
 6. **Why the field itself is concrete.** The container builds each field by calling a constructor of the field's type. A trait object has no constructor, so a field typed `Arc<dyn PaymentGateway>` is refused. The concrete field, passed to services that take the trait, gives the same freedom.
 
+## Which problem this solves
+
+1. **The service picks its own dependencies** ([Chapter 1](01-a-service-that-builds-its-own-dependencies.md)): no service names a gateway. The type of the `payments` field is the only choice.
+2. **A closed list** ([Chapter 2](02-choosing-between-implementations.md)): adding a provider means writing a type that implements `PaymentGateway` and naming it in a field. No service changes.
+3. **Type parameters spread** ([Chapter 2](02-choosing-between-implementations.md)): a service can take a trait object, and its type stays the same whatever the gateway. A service that takes a type parameter still carries it, but only the container names the concrete type.
+4. **It cannot be tested alone** ([Chapter 1](01-a-service-that-builds-its-own-dependencies.md)): `TestShopContainer` builds the real services around a fake gateway.
+5. **The choice still has to be made** ([Chapter 2](02-choosing-between-implementations.md)): the container makes it, once, in the types of its fields.
+
 ## Remember
 
 1. Name the implementation once, in the type of a container field; let services take a trait object or a type parameter.

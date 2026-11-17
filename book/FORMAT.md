@@ -8,7 +8,7 @@ Where each part of the book lives in `book/`, and how a chapter embeds code that
 2. An unnumbered page inside a part is a file named after its title without a number, for example `what-this-version-supports.md`.
 3. Each appendix is a file named `appendix-N-short-name.md`.
 4. Each welcome page before Part 1 is a file named after its title without a number, for example `quick-start.md`. The contents list them unnumbered under the heading "Welcome".
-5. Every numbered chapter, and the quick start, opens with its title as the only level 1 heading (`#`), followed by the four sections of [BOOK.md](BOOK.md) as level 2 headings (`##`), in order: "What you want to do", "The code", "What goes wrong" for a problem chapter of Part 1 or "How it works" for every other chapter, and "Remember". It may use level 3 headings (`###`) inside them.
+5. Every numbered chapter, and the quick start, opens with its title as the only level 1 heading (`#`), followed by the sections of [BOOK.md](BOOK.md) as level 2 headings (`##`), in order: "What you want to do", "The code", then "What goes wrong" for a problem chapter of Part 1, or "How it works" and "Which problem this solves" for every other chapter, and "Remember". It may use level 3 headings (`###`) inside them.
 6. An unnumbered page, an appendix or a welcome page other than the quick start opens with its own title, and chooses its own level 2 and level 3 headings.
 7. Every name a chapter gives to an example or a compile error starts with the chapter's number (`ch05_first_singleton`), or is `quick_start` for the quick start, so names never clash between chapters.
 8. Any page may show a region of another chapter's example by naming it, so the same code is never written twice.

@@ -36,7 +36,7 @@ Every chapter teaches only the stable API of `0.1.0`: nothing behind the `unstab
 
 ### The shape of a chapter
 
-Every numbered chapter, and the quick start, has four level 2 sections in exact order. A chapter of Part 1 shows a problem; every other chapter teaches a feature.
+Every numbered chapter, and the quick start, has its level 2 sections in exact order. A chapter of Part 1 shows a problem; every other chapter teaches a feature.
 
 A problem chapter (Part 1):
 
@@ -50,11 +50,12 @@ A feature chapter (every other chapter, and the quick start):
 1. **What you want to do:** one or two sentences stating the goal in the shop's terms.
 2. **The code:** directives showing the relevant regions of the runnable program and what it prints (or the compiler diagnostic for compile-error chapters).
 3. **How it works:** numbered points explaining the mechanics in plain language.
-4. **Remember:** a concise list of rules and invariants for readers and coding agents.
+4. **Which problem this solves:** the problems of Part 1, by their bold names and with a link to the chapter that names them, that this feature answers, and how.
+5. **Remember:** a concise list of rules and invariants for readers and coding agents.
 
 ### The problem first
 
-The book does not open with `snapfit`. Part 1 follows the shop without it: services that build their own dependencies, then services that receive them, then the one place that has to build everything. Each step fixes a problem and names the next. Part 2 then shows the same shop with `snapfit` and maps every named problem to the chapter that answers it. Every comparison is a program in `book/examples/` that compiles and runs.
+The book does not open with `snapfit`. Part 1 follows the shop without it: services that build their own dependencies, then services that receive them, then the one place that has to build everything. Each step fixes a problem and names the next. Part 2 then shows the same shop with `snapfit` and maps every named problem to the chapter that answers it, and every feature chapter after it says which of those problems it solves. Every comparison is a program in `book/examples/` that compiles and runs.
 
 ### Limits, honestly
 

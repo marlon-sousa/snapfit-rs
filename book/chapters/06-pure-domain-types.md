@@ -39,6 +39,12 @@ name: ch06_pure_domain
 2. **Direct construction in tests:** Because `InvoiceCalculator::new` is an ordinary Rust function taking `Arc<PricingConfig>`, a unit test can construct `PricingConfig { tax_basis_points: 500 }` directly and pass it in with zero ceremony.
 3. **Zero-boilerplate wiring in production:** When `BillingContainer::new()` runs, it calls `PricingConfig::new()`, wraps the result in `Arc`, and passes a clone into `InvoiceCalculator::new(...)`.
 
+## Which problem this solves
+
+1. **It cannot be tested alone** ([Chapter 1](01-a-service-that-builds-its-own-dependencies.md)): `InvoiceCalculator` is built in a test with its own `PricingConfig`, without a container and without any real infrastructure.
+2. **The service picks its own dependencies** ([Chapter 1](01-a-service-that-builds-its-own-dependencies.md)): `InvoiceCalculator::new` receives its configuration. Whether that is the production configuration or a test's is decided by its caller.
+3. **Services drift back to choosing** ([Chapter 3](03-who-builds-everything.md)): nothing in `InvoiceCalculator` refers to the container, so it cannot ask the container for anything.
+
 ## Remember
 
 1. A domain struct wired by `snapfit` is indistinguishable from a domain struct written without `snapfit`.
