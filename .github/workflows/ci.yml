@@ -4,10 +4,11 @@ name: CI
 # docs/WORKFLOW.md, section 7, lists them.
 
 on:
+  # A push to a branch other than main runs no checks: a branch is checked
+  # through its pull request.
   push:
     branches:
       - main
-      - "stack/**"
   pull_request:
     types: [opened, synchronize, reopened]
   # The release workflow runs these checks again on the tagged commit.
