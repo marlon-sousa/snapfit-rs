@@ -1,15 +1,6 @@
 use super::*;
-use crate::domain::{DependencyName, EnumDispatch, Execution, Lifecycle, TypeName};
-use crate::test_support::{self, dependency};
-
-fn container(
-    form: MacroForm,
-    dependencies: Vec<DependencyDeclaration<()>>,
-) -> ContainerDeclaration<(), ()> {
-    let mut container = test_support::container(dependencies);
-    container.form = form;
-    container
-}
+use crate::domain::{DependencyName, Execution, Lifecycle};
+use crate::test_support::{container, dependency};
 
 fn transient(name: &str, execution: Execution) -> DependencyDeclaration<()> {
     let mut dependency = dependency(name, &[]);
@@ -19,19 +10,22 @@ fn transient(name: &str, execution: Execution) -> DependencyDeclaration<()> {
 }
 
 #[test]
-fn singletons_break_no_rule_in_either_form() {
+fn singletons_break_no_rule() {
     let dependencies = vec![dependency("config", &[]), dependency("db", &[])];
 
-    assert!(rule_violations(&container(MacroForm::Attribute, dependencies.clone())).is_empty());
-    assert!(rule_violations(&container(MacroForm::Derive, dependencies)).is_empty());
+    assert!(rule_violations(&container(dependencies)).is_empty());
+}
+
+#[test]
+fn a_sync_transient_breaks_no_rule() {
+    let dependencies = vec![transient("request", Execution::Sync)];
+
+    assert!(rule_violations(&container(dependencies)).is_empty());
 }
 
 #[test]
 fn an_async_transient_is_refused() {
-    let errors = rule_violations(&container(
-        MacroForm::Attribute,
-        vec![transient("request", Execution::Async)],
-    ));
+    let errors = rule_violations(&container(vec![transient("request", Execution::Async)]));
 
     assert_eq!(
         errors,
@@ -39,37 +33,4 @@ fn an_async_transient_is_refused() {
             dependency: DependencyName::new("request").unwrap()
         }]
     );
-}
-
-#[test]
-fn the_derive_reports_every_field_it_cannot_leave_out() {
-    let mut dispatched = dependency("store", &[]);
-    let store = TypeName::new("Store").unwrap();
-    dispatched.dispatch = Some(EnumDispatch::new(store.clone(), vec![store]));
-
-    let errors = rule_violations(&container(
-        MacroForm::Derive,
-        vec![
-            transient("request", Execution::Sync),
-            dependency("config", &[]),
-            dispatched,
-        ],
-    ));
-
-    let subjects: Vec<_> = errors
-        .iter()
-        .filter_map(DomainError::subject)
-        .map(DependencyName::as_str)
-        .collect();
-    assert_eq!(subjects, ["request", "store"]);
-}
-
-#[test]
-fn an_async_transient_in_a_derive_breaks_both_rules() {
-    let errors = rule_violations(&container(
-        MacroForm::Derive,
-        vec![transient("request", Execution::Async)],
-    ));
-
-    assert_eq!(errors.len(), 2);
 }

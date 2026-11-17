@@ -36,7 +36,6 @@ fn every_bad_field_is_reported_at_once() {
 fn shapes_that_cannot_be_a_container_are_refused() {
     let invalid_mode: syn::ItemStruct = parse_quote! { struct Bad {} };
     let tuple_struct: syn::ItemStruct = parse_quote! { struct Bad(Arc<Config>); };
-    let enum_derive: syn::DeriveInput = parse_quote! { enum Bad { A } };
 
     assert_eq!(
         messages(parse_attribute(quote!(mode = "threaded"), &invalid_mode).unwrap_err())[0],
@@ -45,10 +44,6 @@ fn shapes_that_cannot_be_a_container_are_refused() {
     assert_eq!(
         messages(parse_attribute(quote!(), &tuple_struct).unwrap_err()),
         ["tuple structs are not supported by #[container]; use named fields"]
-    );
-    assert_eq!(
-        messages(parse_derive(&enum_derive).unwrap_err()),
-        ["#[derive(Container)] can only be applied to a struct"]
     );
 }
 
@@ -61,6 +56,19 @@ fn a_second_container_attribute_is_refused() {
 
     assert_eq!(
         messages(parse_attribute(quote!(mode = "async"), &input).unwrap_err()),
+        ["multiple #[container] attributes are not allowed"]
+    );
+}
+
+#[test]
+fn a_container_attribute_after_the_macro_is_a_second_declaration() {
+    let input: syn::ItemStruct = parse_quote! {
+        #[container(mode = "sync")]
+        struct App {}
+    };
+
+    assert_eq!(
+        messages(parse_attribute(quote!(), &input).unwrap_err()),
         ["multiple #[container] attributes are not allowed"]
     );
 }

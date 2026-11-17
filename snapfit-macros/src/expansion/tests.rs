@@ -78,39 +78,6 @@ fn an_async_container_needs_the_unstable_build() {
 }
 
 #[test]
-fn the_derive_adds_impls_without_writing_the_struct() {
-    let input = quote! {
-        pub struct DerivedContainer {
-            #[singleton]
-            config: Arc<Config>,
-        }
-    };
-
-    let code = compact(expand_derive(input, FeatureGate::Stable));
-
-    assert!(!code.contains("pubstructDerivedContainer"));
-    assert!(code.contains("implDerivedContainer"));
-    assert!(code.contains("pubfnget_config(&self)->Arc<Config>"));
-}
-
-#[test]
-fn the_derive_reports_every_field_it_cannot_leave_out_and_nothing_else() {
-    let input = quote! {
-        pub struct BadDerivedContainer {
-            #[transient]
-            service: MyService,
-            #[transient]
-            other: Other,
-        }
-    };
-
-    let errors = compile_errors(&expand_derive(input, FeatureGate::Unstable));
-
-    assert_eq!(errors.len(), 2);
-    assert!(errors[1].ends_with("which can leave field 'other' out of the struct"));
-}
-
-#[test]
 fn every_problem_is_reported_once_and_the_struct_is_kept() {
     let input = quote! {
         pub struct Broken {

@@ -34,14 +34,6 @@ impl ContainerAttrMeta {
         let nested = NestedMeta::parse_meta_list(tokens).map_err(unreadable)?;
         Self::from_list(&nested).map_err(unreadable)
     }
-
-    pub(super) fn from_attribute(attr: &syn::Attribute) -> Result<Self, AttributeProblem> {
-        match &attr.meta {
-            syn::Meta::Path(_) => Ok(Self::default()),
-            syn::Meta::List(list) => Self::from_tokens(list.tokens.clone()),
-            syn::Meta::NameValue(_) => Err(AttributeProblem::Assigned),
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

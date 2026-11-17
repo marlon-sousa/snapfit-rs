@@ -35,5 +35,10 @@ pub(crate) fn is_snapfit_attribute(attr: &syn::Attribute) -> bool {
 
 /// An attribute snapfit writes back as the user wrote it.
 pub(crate) fn is_user_attribute(attr: &&syn::Attribute) -> bool {
-    !is_snapfit_attribute(attr) && !attr.path().is_ident("container")
+    !is_snapfit_attribute(attr) && !is_container_attribute(attr)
+}
+
+/// `#[container]`, with or without settings.
+pub(crate) fn is_container_attribute(attr: &syn::Attribute) -> bool {
+    attr.path().is_ident("container")
 }

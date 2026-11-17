@@ -21,7 +21,7 @@ pub(crate) use diagnostics::{Origins, fallback_struct};
 /// `#[container]` rewrites the struct and adds its impls.
 pub(crate) fn emit_container(plan: &Plan) -> TokenStream {
     let struct_def = struct_def::emit_struct_definition(plan);
-    let impls = emit_derive_impls(plan);
+    let impls = emit_impls(plan);
 
     quote! {
         #struct_def
@@ -29,8 +29,8 @@ pub(crate) fn emit_container(plan: &Plan) -> TokenStream {
     }
 }
 
-/// `#[derive(Container)]` cannot rewrite the struct, so it only adds impls.
-pub(crate) fn emit_derive_impls(plan: &Plan) -> TokenStream {
+/// The constructor, the `Default` and `Container` impls, and the getters.
+fn emit_impls(plan: &Plan) -> TokenStream {
     let init_impl = init_constructor::emit_init_impl(plan);
     let getters = getters::emit_getters_impl(plan);
 

@@ -12,8 +12,8 @@ A procedural macro does no input or output: it is a pure function from tokens to
 
 ## The repository
 
-- **`snapfit/`**, the crate users depend on: the `Container` trait and the re-export of the macros. Its README examples run as doctests.
-- **`snapfit-macros/`**, the procedural macros, laid out as the rest of this document describes.
+- **`snapfit/`**, the crate users depend on: the `Container` trait and the re-export of the macro. Its README examples run as doctests.
+- **`snapfit-macros/`**, the procedural macro, laid out as the rest of this document describes.
 - **`tests/`**, the crate `snapfit_bdd`: the Gherkin features under `tests/features/` (`stable/`, and `unstable/`, run with the `unstable` feature), their step definitions, the containers they exercise, and the compile-fail fixtures under `tests/fixtures/compile_fail/`, compiled with [compile-outcomes](https://github.com/marlon-sousa/compile-outcomes-rs) against the build of snapfit the suite runs, whose diagnostics the steps check.
 - **`book/`**, the crate `snapfit_book`: The Snapfit Book, whose chapters, examples, recorded outputs and compile-error fixtures `cargo xtask book-check` verifies. [book/BOOK.md](../book/BOOK.md) describes it.
 - **`site/`**, the Astro site that renders the README as its front page and each edition of the book, checked by `npm run verify` and published onto the `site` branch by the site workflow.
@@ -28,8 +28,8 @@ A procedural macro does no input or output: it is a pure function from tokens to
 
 ## How an expansion runs
 
-1. `lib.rs` defines the two macros, `#[container]` and `#[derive(Container)]`, and hands their tokens to the handler.
-2. The handler, `expansion.rs`, parses the tokens with `syn`, asks the inbound adapter for the container's declaration, asks the `plan_container` service for its plan, and asks the outbound adapter for the tokens of that plan. When any step finds problems, it asks the outbound adapter for one compiler error per problem instead, and for `#[container]` also keeps the struct as written.
+1. `lib.rs` defines the macro, `#[container]`, and hands its tokens to the handler.
+2. The handler, `expansion.rs`, parses the tokens with `syn`, asks the inbound adapter for the container's declaration, asks the `plan_container` service for its plan, and asks the outbound adapter for the tokens of that plan. When any step finds problems, it asks the outbound adapter for one compiler error per problem instead, and keeps the struct as written.
 3. The inbound adapter, `adapters/inbound`, reads the struct with `syn` and the attributes with `darling` into a `ContainerDeclaration`, and reports every field it cannot read.
 4. The service, `use_cases/derive_container.rs`, runs every policy over the declaration: the feature gate, the declaration rules, the container's execution and the resolver, which orders the dependencies and links each step to the steps it needs. It reports every problem the policies find together.
 5. The outbound adapter, `adapters/outbound`, writes the struct, `new()` or `init()`, the `Default` and `Container` impls and the getters from the plan with `quote`, or writes the compiler errors.
@@ -44,7 +44,7 @@ Every module plays one role, and says which on the first line of its `//!` doc c
 4. **Service**: `use_cases/derive_container.rs`, which runs the policies over one declaration and gathers their problems.
 5. **Adapter**: the code that speaks `syn`, `darling` and `quote`, in `adapters/`: the inbound adapter, the outbound adapter, and the syntax they share. Pure code that only one adapter uses to speak its library, such as reading a type's shape, is a private submodule of that adapter.
 6. **Handler**: `expansion.rs`, the way in, which turns a macro's tokens into calls to the adapters and the service, and their results into tokens.
-7. **Facade**: `lib.rs`, which holds only the two macros, each a one-line call to the handler.
+7. **Facade**: `lib.rs`, which holds only the macro, a one-line call to the handler.
 
 A submodule that serves a single module, such as the resolver's walk state, plays its parent's role and says so on its role line.
 
@@ -54,7 +54,7 @@ Layering goes one way. The facade calls the handler; the handler calls the adapt
 
 - **One model from parser to emitter.** `ContainerDeclaration<C, F>` and `ConstructionPlan<C, F>` carry the adapter's syntax, `C` for the container and `F` for each field, without reading it. The domain names no compiler type, yet the emitter gets back each field's own syntax with every decision about it, so it never looks a field up by name and never re-parses text.
 - **Steps are linked, not named.** Each `Step` holds the steps of its prerequisites, shared with `Rc`, in the order they are passed. A step the plan holds always has the steps it needs, so the emitter has no lookup that could fail.
-- **Adapters translate, they don't decide.** The inbound adapter reports what it sees: the field's lifecycle, its `deps`, whether it is `async`, its constructor or builder, and its type's shape (`Arc<T>`, a trait object, or a plain value). Every choice made from those facts is a policy: whether the container is async, whether a value is wrapped in `Arc::new`, whether a trait object can be built, what `#[derive(Container)]` can express, and what this build of snapfit accepts. A reading the adapter cannot turn into a declaration, such as a quoted function name or both `constructor` and `builder`, is an error of the adapter.
+- **Adapters translate, they don't decide.** The inbound adapter reports what it sees: the field's lifecycle, its `deps`, whether it is `async`, its constructor or builder, and its type's shape (`Arc<T>`, a trait object, or a plain value). Every choice made from those facts is a policy: whether the container is async, whether a value is wrapped in `Arc::new`, whether a trait object can be built, and what this build of snapfit accepts. A reading the adapter cannot turn into a declaration, such as a quoted function name or both `constructor` and `builder`, is an error of the adapter.
 - **No compiler type in the domain.** `domain/` and `use_cases/` name no type or macro of `syn`, `quote`, `darling`, `proc_macro` or `proc_macro2`, which `cargo xtask ci` checks. Those types reach the domain only as the `C` and `F` parameters.
 - **Diagnostics locate by subject.** An error names the dependency it is about, and the outbound adapter points the compiler error at that field's snapfit attribute, or at its name, or at the container's name when the error is about no field or the field is unknown. This is the one lookup by name, and it cannot fail.
 
@@ -76,7 +76,7 @@ Layering goes one way. The facade calls the handler; the handler calls the adapt
 - **No `unsafe` code**: `[workspace.lints]` forbids it.
 - **Reuse before writing.** Look first at the standard library, then at the crates already depended on, then at well-known crates. Write it ourselves only when none fits, or when a crate would replace only a couple of lines. A crate is judged by what it replaces across the code, not only by its first use.
 - **Derive what a derive produces.** Errors derive with `thiserror`; `Display` with `derive_more`; a constructor that only assigns fields with `derive-new`; an enum's `is_*` predicates with `strum`'s `EnumIs`. An impl is written by hand only when it needs logic.
-- **Types hold every constraint they can.** An enum for a closed set of values, never a string or a `bool` standing for one: `Lifecycle`, `Execution`, `Construction`, `TypeShape`, `TypeParameters`, `MacroForm`, `Introspection`, `FeatureGate`, `Feature`. A newtype for a name with rules of its own: `Name<K>`, never blank, whose kind keeps a dependency's name from being passed as a function's. A doc comment stating a constraint the type could enforce means the type is wrong. A newtype never derives `Deref`, which is for smart pointers.
+- **Types hold every constraint they can.** An enum for a closed set of values, never a string or a `bool` standing for one: `Lifecycle`, `Execution`, `Construction`, `TypeShape`, `TypeParameters`, `Introspection`, `FeatureGate`, `Feature`. A newtype for a name with rules of its own: `Name<K>`, never blank, whose kind keeps a dependency's name from being passed as a function's. A doc comment stating a constraint the type could enforce means the type is wrong. A newtype never derives `Deref`, which is for smart pointers.
 - **A chain of iterator adapters reads as a sentence of names**, such as `.filter(is_async).map(async_in_sync_container)`. A closure in a chain is one call, one method call, one field read or one comparison with a value it captures; a closure that negates, matches, computes or builds a value becomes a named function.
 - **Iterating to get a result uses adapters, not a `for` loop.** A `for` loop stays only when its body acts on each item, such as visiting each dependency or asserting in a test.
 - **Every line does something.** No line that changes nothing.
