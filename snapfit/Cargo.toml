@@ -8,6 +8,9 @@ license.workspace = true
 authors.workspace = true
 repository.workspace = true
 readme.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [lints]
 workspace = true
@@ -18,8 +21,6 @@ snapfit-macros = { workspace = true }
 [features]
 # Opt in to APIs whose shape may still change before they are stabilised:
 # async containers (`mode = "async"`, `#[singleton(async)]`, `init().await`),
-# transient dependencies (`#[transient]`) and custom builders (`builder = "..."`).
+# transient dependencies (`#[transient]`) and custom builders (`builder = <fn>`).
+# docs.rs documents the default build only, the stable API the book teaches.
 unstable = ["snapfit-macros/unstable"]
-
-[package.metadata.docs.rs]
-features = ["unstable"]

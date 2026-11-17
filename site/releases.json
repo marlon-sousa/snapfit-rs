@@ -1,7 +1,7 @@
 [
 	{
 		"version": "v0.1.0",
-		"date": "2026-11-16",
+		"date": "2026-11-17",
 		"summary": "Compile-time verified dependency injection with pure-Rust domain types, singletons, named constructors, multi-instance named edges, and unknown dependencies and cycles reported at compile time.",
 		"prerelease": false
 	}

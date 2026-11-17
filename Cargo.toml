@@ -16,6 +16,9 @@ license = "MIT OR Apache-2.0"
 authors = ["snapfit contributors"]
 repository = "https://github.com/marlon-sousa/snapfit-rs"
 readme = "README.md"
+homepage = "https://marlon-sousa.github.io/snapfit-rs/"
+keywords = ["dependency-injection", "di", "ioc", "container", "compile-time"]
+categories = ["rust-patterns"]
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

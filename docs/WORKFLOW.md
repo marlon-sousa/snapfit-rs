@@ -117,7 +117,7 @@ To eliminate environmental drift between local development and CI, all quality c
 | `clippy` | clippy with every warning an error, on the default and the `unstable` builds. |
 | `arch` | no compiler type in `domain/` or `use_cases/`, no `mod.rs`, and files under about 200 lines. |
 | `test` | every unit test and Gherkin scenario, on the default and the `unstable` builds. |
-| `doc` | the documentation of both builds, with every warning an error; docs.rs documents snapfit with `unstable`. |
+| `doc` | the documentation of both builds, with every warning an error; docs.rs documents the default build only, the stable API. |
 | `deny` | the licences, advisories and sources of the dependencies, as `deny.toml` allows them. It needs cargo-deny, installed with `cargo install cargo-deny --version 0.20.2 --locked`. |
 | `package` | snapfit and snapfit-macros built from their packages alone, as crates.io receives them, with `cargo publish --workspace --dry-run`. |
 
@@ -176,4 +176,4 @@ A pull request that changes how releases are made runs the release tools and pac
 
 ### Publishing to crates.io
 
-crates.io's trusted publishing lets the workflow publish without a token, but it is set up on a crate that already exists there. So the first version, 0.1.0, is published by hand: after the gate passes, the maintainer runs `cargo publish --workspace --locked` at the tagged commit, from Linux or macOS, which publishes snapfit-macros, then snapfit. Each crate's licence files are links to the ones at the root, which a Windows checkout without symbolic links would pack as text. Until trusted publishing is set up for both crates, the crates.io job only runs `cargo publish --workspace --dry-run --locked`. A later pull request then makes the job publish, in a `crates-io` environment, with the `publish-crates` action of itinera-dev/actions, which publishes each crate whose version is not on crates.io yet.
+crates.io's trusted publishing lets the workflow publish without a token, but it is set up on a crate that already exists there. So the first version, 0.1.0, is published by hand: after the gate passes, the maintainer runs `cargo publish --workspace --locked` at the tagged commit, from Linux or macOS, which publishes snapfit-macros, then snapfit. Each crate's licence files are links to the ones at the root, which a Windows checkout without symbolic links would pack as text. Until trusted publishing is set up for both crates, the crates.io job only runs `cargo publish --workspace --dry-run --locked`. A later pull request (#35) then makes the job publish, as compile-outcomes does: in a `crates-io` environment that only `v*` tags may deploy to, `rust-lang/crates-io-auth-action` exchanges the workflow's identity for a short-lived crates.io token, and `cargo publish --workspace --locked` uses it.
