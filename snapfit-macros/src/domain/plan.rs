@@ -1,43 +1,62 @@
-use crate::domain::ir::{ContainerName, DependencyName, Lifecycle, TypeName};
+//! Entity: how a container is built, step by step, as the emitter writes it.
+
+use std::rc::Rc;
+
 use derive_new::new;
+use strum::EnumIs;
+
+use crate::domain::declaration::{Constructor, Execution, Lifecycle};
+use crate::domain::names::{DependencyName, FunctionName};
 
 #[cfg(test)]
 mod tests;
 
-/// How a dependency's value is produced.
+#[derive(EnumIs, Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Wrapping {
+    None,
+    /// The constructor builds `T`, and the field holds `Arc<T>`.
+    Arc,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Construction {
-    /// An associated function on the dependency's own type, e.g. `Database::connect`.
-    Constructor(String),
-    /// An associated function on the container, e.g. `AppContainer::build_auth`.
-    Builder(String),
+pub(crate) enum Call {
+    Constructor {
+        constructor: Constructor,
+        wrapping: Wrapping,
+    },
+    Builder(FunctionName),
 }
 
-#[derive(new, Debug, Clone, PartialEq, Eq)]
-pub struct InstantiationStep {
-    #[new(into)]
-    pub dep_name: DependencyName,
-    #[new(into)]
-    pub dep_type: TypeName,
-    pub construction: Construction,
-    pub prerequisites: Vec<DependencyName>,
-    pub is_async: bool,
-    pub lifecycle: Lifecycle,
+#[derive(new, Debug, PartialEq, Eq)]
+pub(crate) struct Step<F> {
+    pub(crate) name: DependencyName,
+    pub(crate) syntax: F,
+    pub(crate) lifecycle: Lifecycle,
+    pub(crate) execution: Execution,
+    pub(crate) call: Call,
+    /// The steps whose values are passed to the call, in order.
+    pub(crate) prerequisites: Vec<Rc<Step<F>>>,
 }
 
-#[derive(new, Debug, Clone, PartialEq, Eq)]
-pub struct ConstructionPlan {
-    #[new(into)]
-    pub container_name: ContainerName,
-    pub is_async: bool,
-    #[new(default)]
-    pub ordered_steps: Vec<InstantiationStep>,
+#[derive(new, Debug, PartialEq, Eq)]
+pub(crate) struct ConstructionPlan<C, F> {
+    pub(crate) syntax: C,
+    pub(crate) execution: Execution,
+    /// Every step after the steps it needs.
+    pub(crate) construction_order: Vec<Rc<Step<F>>>,
+    /// The same steps, in the order the fields are declared.
+    pub(crate) declaration_order: Vec<Rc<Step<F>>>,
 }
 
-impl ConstructionPlan {
-    pub fn step(&self, name: &DependencyName) -> Option<&InstantiationStep> {
-        self.ordered_steps
+impl<C, F> ConstructionPlan<C, F> {
+    pub(crate) fn singletons(&self) -> impl Iterator<Item = &Step<F>> {
+        self.construction_order
             .iter()
-            .find(|step| &step.dep_name == name)
+            .map(Rc::as_ref)
+            .filter(is_singleton)
     }
+}
+
+fn is_singleton<F>(step: &&Step<F>) -> bool {
+    step.lifecycle.is_singleton()
 }

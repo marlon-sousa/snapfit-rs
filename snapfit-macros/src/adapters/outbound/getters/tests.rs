@@ -1,11 +1,12 @@
 use syn::parse_quote;
 
 use super::*;
-use crate::adapters::outbound::test_support::{compact, plan_for};
+use crate::adapters::outbound::test_support::plan_for;
+use crate::test_support::compact;
 
 #[test]
-fn test_getters_clone_singletons_and_build_transients() {
-    let (plan, syntax) = plan_for(parse_quote! {
+fn a_getter_clones_a_singleton_and_builds_a_transient_fresh() {
+    let plan = plan_for(parse_quote! {
         struct App {
             #[singleton]
             config: std::sync::Arc<Config>,
@@ -16,7 +17,7 @@ fn test_getters_clone_singletons_and_build_transients() {
         }
     });
 
-    let code = compact(emit_getters_impl(&plan, &syntax));
+    let code = compact(emit_getters_impl(&plan));
 
     assert!(code.contains("pubfnget_config(&self)->std::sync::Arc<Config>{self.config.clone()}"));
     assert!(code.contains("pubfnget_cart(&self)->Cart{<Cart>::new(self.config.clone())}"));

@@ -2,11 +2,10 @@ use syn::parse_quote;
 
 use super::test_support::plan_for;
 use super::*;
-use crate::ports::CodeEmitterPort;
 
 #[test]
-fn test_emit_container_produces_parseable_struct_and_impls() {
-    let (plan, syntax) = plan_for(parse_quote! {
+fn a_container_is_emitted_as_a_struct_and_its_impls_that_parse() {
+    let plan = plan_for(parse_quote! {
         #[derive(Clone)]
         pub struct AppContainer {
             #[singleton]
@@ -18,7 +17,7 @@ fn test_emit_container_produces_parseable_struct_and_impls() {
         }
     });
 
-    let tokens = QuoteEmitterAdapter::new().emit_container(&plan, &syntax);
+    let tokens = emit_container(&plan);
     let file: syn::File = syn::parse2(tokens).expect("emitted tokens must be valid Rust");
 
     // struct, inherent new, Default, Container, getters
@@ -31,15 +30,15 @@ fn test_emit_container_produces_parseable_struct_and_impls() {
 }
 
 #[test]
-fn test_emit_derive_impls_does_not_repeat_the_struct() {
-    let (plan, syntax) = plan_for(parse_quote! {
+fn the_derive_form_emits_the_impls_without_repeating_the_struct() {
+    let plan = plan_for(parse_quote! {
         pub struct AppContainer {
             #[singleton]
             config: Arc<Config>,
         }
     });
 
-    let tokens = QuoteEmitterAdapter::new().emit_derive_impls(&plan, &syntax);
+    let tokens = emit_derive_impls(&plan);
     let file: syn::File = syn::parse2(tokens).expect("emitted tokens must be valid Rust");
 
     assert_eq!(file.items.len(), 4);

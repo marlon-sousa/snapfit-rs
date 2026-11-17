@@ -1,41 +1,62 @@
 use super::*;
-use crate::domain::{ContainerIR, ContainerName, DependencyIR, DependencyName, TypeName};
+use crate::domain::{DomainError, Execution, Lifecycle};
+use crate::test_support::{container, dependency};
 
-fn dep_name(s: &str) -> DependencyName {
-    DependencyName::new(s).unwrap()
-}
+#[test]
+fn a_valid_container_is_planned_in_dependency_order() {
+    let plan = plan_container(
+        container(vec![
+            dependency("service", &["db"]),
+            dependency("db", &["config"]),
+            dependency("config", &[]),
+        ]),
+        FeatureGate::Stable,
+    )
+    .unwrap();
 
-fn type_name(s: &str) -> TypeName {
-    TypeName::new(s).unwrap()
-}
-
-fn container_name(s: &str) -> ContainerName {
-    ContainerName::new(s).unwrap()
-}
-
-fn make_dep(name: &str, ty: &str, prereqs: &[&str]) -> DependencyIR {
-    let mut dep = DependencyIR::new(dep_name(name), type_name(ty));
-    dep.prerequisites = prereqs.iter().map(|p| dep_name(p)).collect();
-    dep
+    let order: Vec<_> = plan
+        .construction_order
+        .iter()
+        .map(|step| step.name.as_str())
+        .collect();
+    assert_eq!(order, ["config", "db", "service"]);
+    assert_eq!(plan.execution, Execution::Sync);
 }
 
 #[test]
-fn test_derive_container_use_case_orchestrates_sorting_and_planning() {
-    let mut container = ContainerIR::new(container_name("AppContainer"));
-    let config = make_dep("config", "Arc<Config>", &[]);
-    let db = make_dep("db", "Arc<Database>", &["config"]);
-    let service = make_dep("service", "Arc<UserService>", &["db"]);
+fn an_async_dependency_makes_the_plan_async() {
+    let mut db = dependency("db", &[]);
+    db.execution = Execution::Async;
 
-    container.dependencies = vec![service, db, config];
+    let plan = plan_container(container(vec![db]), FeatureGate::Unstable).unwrap();
 
-    let use_case =
-        DeriveContainerUseCase::with_components(GraphEngine::new(), ExecutionPlanner::new());
-    let plan = use_case.execute(container).unwrap();
+    assert_eq!(plan.execution, Execution::Async);
+}
 
-    let step_names: Vec<DependencyName> =
-        plan.ordered_steps.into_iter().map(|s| s.dep_name).collect();
-    assert_eq!(
-        step_names,
-        vec![dep_name("config"), dep_name("db"), dep_name("service")]
-    );
+#[test]
+fn refusals_mode_errors_and_graph_errors_are_reported_together() {
+    let mut cart = dependency("cart", &[]);
+    cart.lifecycle = Lifecycle::Transient;
+    let mut db = dependency("db", &["confog"]);
+    db.execution = Execution::Async;
+    let mut declared = container(vec![cart, db, dependency("loop", &["loop"])]);
+    declared.mode = Some(Execution::Sync);
+
+    let errors: Vec<_> = plan_container(declared, FeatureGate::Stable)
+        .unwrap_err()
+        .into_iter()
+        .collect();
+
+    assert!(matches!(errors[0], DomainError::RequiresUnstable { .. }));
+    assert!(matches!(errors[1], DomainError::RequiresUnstable { .. }));
+    assert!(matches!(
+        errors[2],
+        DomainError::AsyncDependencyInSyncContainer { .. }
+    ));
+    assert!(matches!(
+        errors[3],
+        DomainError::UnknownPrerequisites { .. }
+    ));
+    assert!(matches!(errors[4], DomainError::DependencyCycle { .. }));
+    assert_eq!(errors.len(), 5);
 }

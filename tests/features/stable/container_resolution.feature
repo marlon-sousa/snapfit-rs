@@ -22,44 +22,74 @@ Feature: Container Dependency Resolution
     And the "read_db" instance should have a different memory address from the "write_db" instance
 
   @v0_1_0
+  Scenario: Values are built in declaration order, each after the fields it needs
+    When the container declaring service, db, config and clock in that order is instantiated
+    Then its values should be built in the order "config, db, service, clock"
+
+  @v0_1_0
   Scenario Outline: Invalid container declarations are refused at compile time with actionable diagnostics
     Given an invalid container fixture "<fixture>"
     When the fixture is compiled
     Then compilation should fail with "<expected_error>"
+    And the error should point at line <line> of the fixture
 
     Examples:
-      | fixture                  | expected_error                                                                                                                     |
-      | unknown_dependency       | unknown dependency 'confog' on field 'db'. You must choose between the dependencies the container can wire: [config, user_service] |
-      | dependency_cycle         | dependency cycle detected: service_a -> service_b -> service_a                                                                     |
-      | self_dependency_cycle    | dependency cycle detected: service_a -> service_a                                                                                  |
-      | conflicting_lifecycle    | field 'config' cannot declare multiple lifecycle attributes                                                                        |
-      | tuple_struct_container   | tuple structs are not supported by #[container]; use named fields                                                                  |
-      | invalid_container_mode   | invalid container mode 'threaded': expected 'sync' or 'async'                                                                      |
-      | sync_mode_with_async_dep | container with mode = "sync" cannot contain async dependencies                                                                     |
-      | derive_with_transient    | #[derive(Container)] does not support #[transient] or #[dispatch] fields; use #[container] instead                                 |
+      | fixture                  | line | expected_error                                                                                                                     |
+      | unknown_dependency       | 13   | unknown dependency 'confog' on field 'db'. You must choose between the dependencies the container can wire: [config, user_service] |
+      | dependency_cycle         | 9    | dependency cycle: service_a depends on service_b, which depends on service_a                                                       |
+      | self_dependency_cycle    | 8    | dependency cycle: service_a depends on itself                                                                                      |
+      | conflicting_lifecycle    | 8    | field 'config' cannot declare multiple lifecycle attributes                                                                        |
+      | tuple_struct_container   | 7    | tuple structs are not supported by #[container]; use named fields                                                                  |
+      | invalid_container_mode   | 7    | invalid container mode 'threaded': expected 'sync' or 'async'                                                                      |
+      | sync_mode_with_async_dep | 8    | container with mode = "sync" cannot contain async dependencies                                                                     |
+      | derive_with_transient    | 7    | #[derive(Container)] does not support #[transient] or #[dispatch] fields; use #[container] instead                                 |
+
+  @v0_1_0
+  Scenario: Every problem in the dependency graph is reported in one compile, each at its field
+    Given an invalid container fixture "several_graph_problems"
+    When the fixture is compiled
+    Then compilation should fail with "dependency cycle: service_a depends on service_b, which depends on service_a"
+    And compilation should fail with "unknown dependency 'confog' on field 'db'"
+    And compilation should fail with "field 'store' has a trait-object type, which has no constructor"
+    And the compiler should report 3 errors
+    And the error should point at line 11 of the fixture
+    And the error should point at line 17 of the fixture
+    And the error should point at line 20 of the fixture
+
+  @v0_1_0
+  Scenario: Every badly declared field is reported in one compile
+    Given an invalid container fixture "several_field_problems"
+    When the fixture is compiled
+    Then compilation should fail with "field 'config' must be annotated with #[singleton], #[transient], or #[dispatch]"
+    And compilation should fail with "constructor "connect" on field 'db' must be written without quotes: constructor = connect"
+    And the compiler should report 2 errors
+    And the error should point at line 9 of the fixture
+    And the error should point at line 11 of the fixture
 
   @v0_1_0
   Scenario Outline: APIs that are not stable in 0.1.0 require the unstable feature
     Given an invalid container fixture "<fixture>"
     When the fixture is compiled
     Then compilation should fail with "<expected_error> is unstable in this version of snapfit; enable the `unstable` feature of the `snapfit` crate to use it"
+    And the error should point at line <line> of the fixture
 
     Examples:
-      | fixture                   | expected_error                                    |
-      | unstable_async_container  | #[container(mode = "async")]                      |
-      | unstable_async_dependency | async dependency 'db'                             |
-      | unstable_transient        | transient dependency 'cart'                       |
-      | unstable_builder          | custom builder 'build_auth' on dependency 'auth'  |
+      | fixture                   | line | expected_error                                    |
+      | unstable_async_container  | 7    | #[container(mode = "async")]                      |
+      | unstable_async_dependency | 8    | async dependency 'db'                             |
+      | unstable_transient        | 12   | transient dependency 'cart'                       |
+      | unstable_builder          | 12   | custom builder 'build_auth' on dependency 'auth'  |
 
   @v0_1_0
   Scenario Outline: Planned container features are refused until they are implemented
     Given an invalid container fixture "<fixture>"
     When the fixture is compiled
     Then compilation should fail with "<expected_error> is planned for a future version of snapfit and is not implemented yet"
+    And the error should point at line <line> of the fixture
 
     Examples:
-      | fixture                  | expected_error                          |
-      | planned_parent_container | #[container(parent = ...)]              |
-      | planned_introspection    | #[container(introspection = true)]      |
-      | planned_dispatch         | #[dispatch(...)] on dependency 'store'  |
-      | generic_container        | generic parameters on container 'Repo'  |
+      | fixture                  | line | expected_error                          |
+      | planned_parent_container | 7    | #[container(parent = ...)]              |
+      | planned_introspection    | 7    | #[container(introspection = true)]      |
+      | planned_dispatch         | 10   | #[dispatch(...)] on dependency 'store'  |
+      | generic_container        | 4    | generic parameters on container 'Repo'  |

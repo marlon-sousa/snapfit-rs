@@ -1,45 +1,16 @@
 use syn::parse_quote;
 
 use super::*;
-use crate::adapters::outbound::test_support::{compact, plan_for};
-use crate::domain::DependencyName;
+use crate::adapters::outbound::test_support::{plan_for, step};
+use crate::test_support::compact;
 
-fn construct(item: syn::ItemStruct, name: &str, source: ValueSource) -> String {
-    let (plan, syntax) = plan_for(item);
-    let step = plan
-        .step(&DependencyName::new(name).unwrap())
-        .unwrap()
-        .clone();
-    compact(ExprBuilder::new(&plan, &syntax, source).construct(&step))
+fn built(item: syn::ItemStruct, name: &str, source: ValueSource) -> String {
+    let plan = plan_for(item);
+    compact(construct(step(&plan, name), source))
 }
 
 #[test]
-fn test_arc_inner_type_recognises_only_std_arc_paths() {
-    let arcs: [syn::Type; 4] = [
-        parse_quote!(Arc<Config>),
-        parse_quote!(std::sync::Arc<Config>),
-        parse_quote!(::std::sync::Arc<Config>),
-        parse_quote!(alloc::sync::Arc<Config>),
-    ];
-    arcs.iter().for_each(|ty| {
-        let inner = arc_inner_type(ty).expect("an Arc path");
-        assert_eq!(compact(quote!(#inner)), "Config");
-    });
-
-    let not_arcs: [syn::Type; 5] = [
-        parse_quote!(Vec<Config>),
-        parse_quote!(std::rc::Rc<Config>),
-        parse_quote!(::Arc<Config>),
-        parse_quote!(my::Arc<Config>),
-        parse_quote!(Arc<Config, Global>),
-    ];
-    not_arcs
-        .iter()
-        .for_each(|ty| assert!(arc_inner_type(ty).is_none(), "{}", quote!(#ty)));
-}
-
-#[test]
-fn test_construct_uses_qualified_paths_for_generic_and_qualified_types() {
+fn a_generic_or_qualified_type_is_constructed_through_a_qualified_path() {
     let item: syn::ItemStruct = parse_quote! {
         struct App {
             #[singleton]
@@ -54,21 +25,21 @@ fn test_construct_uses_qualified_paths_for_generic_and_qualified_types() {
     };
 
     assert_eq!(
-        construct(item.clone(), "names", ValueSource::Locals),
+        built(item.clone(), "names", ValueSource::Locals),
         "<Vec<String>>::new()"
     );
     assert_eq!(
-        construct(item.clone(), "config", ValueSource::Locals),
+        built(item.clone(), "config", ValueSource::Locals),
         "::std::sync::Arc::new(<Config>::new())"
     );
     assert_eq!(
-        construct(item, "shared", ValueSource::Locals),
+        built(item, "shared", ValueSource::Locals),
         "::std::sync::Arc::new(<Mutex<Counter>>::new(__snapfit_counter.clone()))"
     );
 }
 
 #[test]
-fn test_construct_builds_nested_transients_fresh_for_each_argument() {
+fn a_nested_transient_is_built_fresh_for_each_argument() {
     let item: syn::ItemStruct = parse_quote! {
         struct App {
             #[singleton]
@@ -83,17 +54,17 @@ fn test_construct_builds_nested_transients_fresh_for_each_argument() {
     };
 
     assert_eq!(
-        construct(item.clone(), "orders", ValueSource::Locals),
+        built(item.clone(), "orders", ValueSource::Locals),
         "::std::sync::Arc::new(<Orders>::new(<Checkout>::new(<Pricing>::new(__snapfit_config.clone())),__snapfit_config.clone()))"
     );
     assert_eq!(
-        construct(item, "checkout", ValueSource::SelfFields),
+        built(item, "checkout", ValueSource::SelfFields),
         "<Checkout>::new(<Pricing>::new(self.config.clone()))"
     );
 }
 
 #[test]
-fn test_construct_awaits_async_constructors_and_calls_builders_on_self() {
+fn an_async_constructor_is_awaited_and_a_builder_is_called_on_self() {
     let item: syn::ItemStruct = parse_quote! {
         struct App {
             #[singleton]
@@ -106,11 +77,11 @@ fn test_construct_awaits_async_constructors_and_calls_builders_on_self() {
     };
 
     assert_eq!(
-        construct(item.clone(), "db", ValueSource::Locals),
+        built(item.clone(), "db", ValueSource::Locals),
         "::std::sync::Arc::new(<Database>::connect(__snapfit_config.clone()).await?)"
     );
     assert_eq!(
-        construct(item, "auth", ValueSource::Locals),
+        built(item, "auth", ValueSource::Locals),
         "Self::build_auth(__snapfit_config.clone(),__snapfit_db.clone())"
     );
 }

@@ -1,34 +1,24 @@
-use crate::domain::{ConstructionPlan, ContainerIR, DomainError};
-use crate::use_cases::{ExecutionPlanner, GraphEngine};
+//! Service: plans a container, reporting every problem its declaration has at once.
+
+use crate::domain::{ConstructionPlan, ContainerDeclaration, DomainErrors};
+use crate::use_cases::declaration_rules::rule_violations;
+use crate::use_cases::execution::container_execution;
+use crate::use_cases::feature_gate::FeatureGate;
+use crate::use_cases::resolver::resolve;
 
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, Default, Clone)]
-pub(crate) struct DeriveContainerUseCase {
-    graph_engine: GraphEngine,
-    planner: ExecutionPlanner,
-}
-
-impl DeriveContainerUseCase {
-    pub(crate) fn new() -> Self {
-        Self::with_components(GraphEngine::new(), ExecutionPlanner::new())
-    }
-
-    pub(crate) fn with_components(graph_engine: GraphEngine, planner: ExecutionPlanner) -> Self {
-        Self {
-            graph_engine,
-            planner,
-        }
-    }
-
-    pub(crate) fn execute(
-        &self,
-        container_ir: ContainerIR,
-    ) -> Result<ConstructionPlan, DomainError> {
-        let sorted_dependencies = self
-            .graph_engine
-            .topological_sort(&container_ir.dependencies)?;
-        self.planner.build_plan(&container_ir, sorted_dependencies)
-    }
+pub(crate) fn plan_container<C, F>(
+    container: ContainerDeclaration<C, F>,
+    gate: FeatureGate,
+) -> Result<ConstructionPlan<C, F>, DomainErrors> {
+    let mut refusals = gate.refusals(&container);
+    refusals.extend(rule_violations(&container));
+    let checked = DomainErrors::check(refusals);
+    let execution = container_execution(&container);
+    let steps = resolve(container);
+    let ((_, execution), steps) =
+        DomainErrors::both(DomainErrors::both(checked, execution), steps)?;
+    Ok(steps.into_plan(execution))
 }

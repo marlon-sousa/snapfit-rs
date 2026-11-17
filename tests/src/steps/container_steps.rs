@@ -118,3 +118,13 @@ fn then_read_and_write_db_have_different_addresses(world: &mut ContainerWorld) {
         "Expected read_db and write_db to have different memory addresses"
     );
 }
+
+#[when("the container declaring service, db, config and clock in that order is instantiated")]
+fn when_ordered_container_instantiated(world: &mut ContainerWorld) {
+    world.instantiate_ordered();
+}
+
+#[then(expr = "its values should be built in the order {string}")]
+fn then_values_built_in_order(world: &mut ContainerWorld, order: String) {
+    assert_eq!(world.construction_order().join(", "), order);
+}

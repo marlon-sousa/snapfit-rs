@@ -88,7 +88,7 @@ fn main() {
 ## What 0.1.0 Supports
 
 * **Plain domain types:** services, repositories and controllers need no macros or framework traits.
-* **Compile-time graph checks:** unknown dependencies and cycles (`A -> B -> A`) fail `cargo build`; initialization order is computed with a topological sort, whatever order the fields are declared in.
+* **Compile-time graph checks:** unknown dependencies and cycles, such as `service_a` depending on `service_b` which depends on `service_a`, fail `cargo build`, each reported at its field and all of them in one compile. Fields are built in the order they are declared, each after the fields it needs.
 * **Typed getters:** `get_<name>()` returns the declared type with no `dyn Any` and no forced `Arc<T>` (any `T: Clone` works).
 * **Named edges:** two dependencies of the same type (`read_db` and `write_db`) are wired by field name, without wrapper newtypes.
 * **Named constructors:** `constructor = connect` calls `Type::connect(...)` instead of `Type::new(...)`.
@@ -117,7 +117,7 @@ The exact toolchain and required components (`clippy`, `rustfmt`, `rust-src`) ar
 ## Documentation
 
 * [Specification & API Guide](docs/SPEC.md) — Comprehensive functional specification, attribute syntax, and lifecycles.
-* [Technical Architecture (Hexagonal)](docs/TECHNICAL_SPEC.md) — Ports & Adapters blueprint, Intermediate Representation (IR), and compiler isolation.
+* [Architecture](docs/ARCHITECTURE.md) — how the code is organised and written: module roles, the typed model, errors and tests.
 * [Development Workflow](docs/WORKFLOW.md) — Stacked PR roadmap, Double-Loop BDD, and agentic review loops.
 * [Agent Guidelines](AGENTS.md) — Authoritative rules, reuse guidelines, and architectural invariants for AI agents working in this repository.
 

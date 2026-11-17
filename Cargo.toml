@@ -16,14 +16,25 @@ authors = ["snapfit contributors"]
 repository = "https://github.com/marlon-sousa/snapfit-rs"
 readme = "README.md"
 
+[workspace.lints.rust]
+unsafe_code = "forbid"
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "deny"
+todo = "deny"
+unimplemented = "deny"
+
 [workspace.dependencies]
 snapfit = { path = "snapfit", version = "0.1.0" }
 snapfit-macros = { path = "snapfit-macros", version = "0.1.0" }
 thiserror = "2.0"
 strum = { version = "0.27", features = ["derive"] }
 derive-new = "0.7"
-derive_more = { version = "2.1", features = ["deref", "display", "from", "into", "as_ref"] }
-petgraph = { version = "0.7", default-features = false }
+derive_more = { version = "2.1", features = ["display"] }
 cucumber = "0.21"
 futures = "0.3"
 rayon = "1.10"

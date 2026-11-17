@@ -1,40 +1,30 @@
 use super::*;
 
-#[test]
-fn test_construction_plan_and_steps() {
-    let container = ContainerName::new("AppContainer").unwrap();
-    let config = DependencyName::new("config").unwrap();
-    let db = DependencyName::new("db").unwrap();
-
-    let mut plan = ConstructionPlan::new(container, true);
-    assert_eq!(*plan.container_name, "AppContainer");
-    assert!(plan.is_async);
-    assert!(plan.ordered_steps.is_empty());
-
-    plan.ordered_steps.push(InstantiationStep::new(
-        config.clone(),
-        TypeName::new("Arc<Config>").unwrap(),
-        Construction::Constructor("new".to_string()),
+fn step(name: &str, lifecycle: Lifecycle) -> Rc<Step<()>> {
+    let call = Call::Constructor {
+        constructor: Constructor::New,
+        wrapping: Wrapping::None,
+    };
+    let name = DependencyName::new(name).unwrap();
+    Rc::new(Step::new(
+        name,
+        (),
+        lifecycle,
+        Execution::Sync,
+        call,
         Vec::new(),
-        false,
-        Lifecycle::Singleton,
-    ));
-    plan.ordered_steps.push(InstantiationStep::new(
-        db.clone(),
-        TypeName::new("Arc<Database>").unwrap(),
-        Construction::Builder("build_db".to_string()),
-        vec![config.clone()],
-        false,
-        Lifecycle::Singleton,
-    ));
+    ))
+}
 
-    assert_eq!(plan.step(&db).unwrap().prerequisites, vec![config.clone()]);
-    assert_eq!(
-        plan.step(&config).unwrap().construction,
-        Construction::Constructor("new".to_string())
-    );
-    assert!(
-        plan.step(&DependencyName::new("missing").unwrap())
-            .is_none()
-    );
+#[test]
+fn singletons_are_listed_in_construction_order_without_transients() {
+    let config = step("config", Lifecycle::Singleton);
+    let request = step("request", Lifecycle::Transient);
+    let db = step("db", Lifecycle::Singleton);
+    let order = vec![config, request, db];
+    let plan = ConstructionPlan::new((), Execution::Sync, order.clone(), order);
+
+    let names: Vec<_> = plan.singletons().map(|step| step.name.as_str()).collect();
+
+    assert_eq!(names, ["config", "db"]);
 }

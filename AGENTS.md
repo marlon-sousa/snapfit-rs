@@ -12,7 +12,7 @@
 * **Purpose:** A zero-cost, compile-time verified, pure-Rust dependency injection framework with zero domain pollution, automated `enum_dispatch` trait polymorphism, and eager async boot.
 * **Core Documentation Index:**
   * Conceptual Spec: [docs/SPEC.md](docs/SPEC.md)
-  * Technical Spec (Ports & Adapters): [docs/TECHNICAL_SPEC.md](docs/TECHNICAL_SPEC.md)
+  * Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
   * Development Workflow: [docs/WORKFLOW.md](docs/WORKFLOW.md)
 
 ---
@@ -110,7 +110,7 @@ Every agent (coder or reviewer) working in this repository **must** enforce thes
 ### `snapfit-reviewer` (Independent Reviewer):
 * Audits diffs across **both** dimensions: **Functional & Behavioral Correctness** AND **Architecture & Coding Standards**.
 * **1. Functional & Behavioral Verification (Primary Mandate):**
-  * **Spec Conformance:** Verifies that all functional requirements in [docs/SPEC.md](docs/SPEC.md), [docs/TECHNICAL_SPEC.md](docs/TECHNICAL_SPEC.md), and the active stack's scope are accurately and completely implemented.
+  * **Spec Conformance:** Verifies that all functional requirements in [docs/SPEC.md](docs/SPEC.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and the active stack's scope are accurately and completely implemented.
   * **Algorithmic & Domain Logic Audit:** Traces through graph algorithms, state transitions, error paths, and edge cases (e.g., complex multi-SCC graphs, non-cycle nodes pointing into/out of cycles, diamond dependencies, empty inputs, argument ordering, wrapper type stripping, async propagation, custom builder invocation semantics) to uncover subtle bugs or false assumptions.
   * **Test Quality & Edge-Case Coverage:** Audits unit and BDD tests to verify they assert exact behavioral outcomes and tricky edge cases, rather than superficial happy-path checks.
 * **2. Architectural & Engineering Judgment (Not Just Checklists):**
