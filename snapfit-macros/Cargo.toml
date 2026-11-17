@@ -1,6 +1,6 @@
 [package]
 name = "snapfit-macros"
-description = "Procedural derive macros for snapfit dependency injection"
+description = "The procedural macro of snapfit, compile-time dependency injection"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

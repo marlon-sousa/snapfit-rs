@@ -7,7 +7,6 @@ Every container attribute and field attribute in `snapfit` `0.1.0`, with a link 
 | Declaration | What it does | Taught in |
 | :--- | :--- | :--- |
 | `#[container]` | Keeps the struct as written (attributes, docs, visibility), builds each field after the fields it needs, and generates `new()`, `Default`, `Container`, and `get_<name>()` methods. | [Chapter 5](05-installing-and-first-singleton.md) |
-| `#[derive(Container)]` | Generates `new()` and the getters as a derive, leaving the struct untouched. It takes the same field attributes as `#[container]`. | Not taught; it works like `#[container]` ([Chapter 5](05-installing-and-first-singleton.md)). |
 
 ## Field attributes
 

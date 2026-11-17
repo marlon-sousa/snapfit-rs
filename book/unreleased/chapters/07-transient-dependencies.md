@@ -42,5 +42,5 @@ name: ch07_transients
 ## Remember
 
 1. Use `#[transient]` for stateless controllers, request handlers, or per-operation objects that should be freshly created on each `get_<name>()` call.
-2. `#[transient]` fields require the `#[container]` attribute macro (not `#[derive(Container)]`), because only an attribute macro can strip fields from the struct definition.
+2. `#[transient]` fields are stripped from the struct definition, which the `#[container]` attribute macro rewrites.
 3. Transient constructors must be synchronous because `get_<name>()` is always a synchronous method.

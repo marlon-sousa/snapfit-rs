@@ -5,5 +5,5 @@ mod inbound;
 mod outbound;
 mod syntax;
 
-pub(crate) use inbound::{parse_attribute, parse_derive};
-pub(crate) use outbound::{Origins, emit_container, emit_derive_impls, fallback_struct};
+pub(crate) use inbound::parse_attribute;
+pub(crate) use outbound::{Origins, emit_container, fallback_struct};

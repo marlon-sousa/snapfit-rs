@@ -5,12 +5,12 @@ use super::*;
 
 #[test]
 fn the_container_attribute_reads_every_setting() {
-    let attr: syn::Attribute = parse_quote!(#[container(
+    let meta = ContainerAttrMeta::from_tokens(quote!(
         mode = "async",
         parent = AppContainer,
         introspection = true
-    )]);
-    let meta = ContainerAttrMeta::from_attribute(&attr).unwrap();
+    ))
+    .unwrap();
 
     assert_eq!(meta.mode.as_deref(), Some("async"));
     assert_eq!(

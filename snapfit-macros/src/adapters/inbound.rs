@@ -9,10 +9,12 @@ mod tests;
 
 use proc_macro2::TokenStream;
 
-use crate::adapters::syntax::{ContainerSyntax, Declaration, FieldDeclaration, is_user_attribute};
+use crate::adapters::syntax::{
+    ContainerSyntax, Declaration, FieldDeclaration, is_container_attribute, is_user_attribute,
+};
 use crate::domain::{
     AttributeProblem, ContainerDeclaration, ContainerName, DomainError, DomainErrors, Execution,
-    Introspection, MacroForm, TypeName, TypeParameters,
+    Introspection, TypeName, TypeParameters,
 };
 use darling_models::ContainerAttrMeta;
 
@@ -21,61 +23,21 @@ pub(crate) fn parse_attribute(
     args: TokenStream,
     item: &syn::ItemStruct,
 ) -> Result<Declaration, DomainErrors> {
-    let meta = container_meta(args, &item.attrs);
-    let parts = StructParts {
-        ident: &item.ident,
-        vis: &item.vis,
-        attrs: &item.attrs,
-        generics: &item.generics,
-    };
-    parse(MacroForm::Attribute, parts, meta, &item.fields)
-}
-
-/// `#[derive(Container)]` on `input`.
-pub(crate) fn parse_derive(input: &syn::DeriveInput) -> Result<Declaration, DomainErrors> {
-    let syn::Data::Struct(data) = &input.data else {
-        return Err(DomainError::NotAStruct.into());
-    };
-    let meta = container_meta(TokenStream::new(), &input.attrs);
-    let parts = StructParts {
-        ident: &input.ident,
-        vis: &input.vis,
-        attrs: &input.attrs,
-        generics: &input.generics,
-    };
-    parse(MacroForm::Derive, parts, meta, &data.fields)
-}
-
-/// What the attribute and the derive both give, apart from the fields.
-struct StructParts<'a> {
-    ident: &'a syn::Ident,
-    vis: &'a syn::Visibility,
-    attrs: &'a [syn::Attribute],
-    generics: &'a syn::Generics,
-}
-
-fn parse(
-    form: MacroForm,
-    parts: StructParts<'_>,
-    meta: Result<ContainerAttrMeta, DomainError>,
-    fields: &syn::Fields,
-) -> Result<Declaration, DomainErrors> {
-    let header = meta
-        .and_then(|meta| container_header(&parts, meta))
+    let header = container_meta(args, &item.attrs)
+        .and_then(|meta| container_header(item, meta))
         .map_err(DomainErrors::from);
-    let (mut container, dependencies) = DomainErrors::both(header, parse_fields(fields))?;
-    container.form = form;
+    let (mut container, dependencies) = DomainErrors::both(header, parse_fields(&item.fields))?;
     container.dependencies = dependencies;
     Ok(container)
 }
 
 fn container_header(
-    parts: &StructParts<'_>,
+    item: &syn::ItemStruct,
     meta: ContainerAttrMeta,
 ) -> Result<Declaration, DomainError> {
-    let name = ContainerName::new(parts.ident.to_string())?;
-    let mut container = ContainerDeclaration::new(name, container_syntax(parts));
-    container.type_parameters = type_parameters(parts.generics);
+    let name = ContainerName::new(item.ident.to_string())?;
+    let mut container = ContainerDeclaration::new(name, container_syntax(item));
+    container.type_parameters = type_parameters(&item.generics);
     container.mode = meta.mode.as_deref().map(execution_of).transpose()?;
     container.parent = meta
         .parent
@@ -89,11 +51,11 @@ fn container_header(
     Ok(container)
 }
 
-fn container_syntax(parts: &StructParts<'_>) -> ContainerSyntax {
+fn container_syntax(item: &syn::ItemStruct) -> ContainerSyntax {
     ContainerSyntax {
-        ident: parts.ident.clone(),
-        vis: parts.vis.clone(),
-        attrs: parts
+        ident: item.ident.clone(),
+        vis: item.vis.clone(),
+        attrs: item
             .attrs
             .iter()
             .filter(is_user_attribute)
@@ -122,20 +84,16 @@ fn execution_of(mode: &str) -> Result<Execution, DomainError> {
     }
 }
 
+/// The settings are the macro's own arguments; another `#[container]` left
+/// on the struct is a second declaration.
 fn container_meta(
     args: TokenStream,
     attrs: &[syn::Attribute],
 ) -> Result<ContainerAttrMeta, DomainError> {
-    let container_attrs: Vec<_> = attrs
-        .iter()
-        .filter(|attr| attr.path().is_ident("container"))
-        .collect();
-    match (args.is_empty(), container_attrs.as_slice()) {
-        (false, []) => ContainerAttrMeta::from_tokens(args).map_err(container_attribute),
-        (true, []) => Ok(ContainerAttrMeta::default()),
-        (true, [attr]) => ContainerAttrMeta::from_attribute(attr).map_err(container_attribute),
-        _ => Err(DomainError::MultipleContainerAttributes),
+    if attrs.iter().any(is_container_attribute) {
+        return Err(DomainError::MultipleContainerAttributes);
     }
+    ContainerAttrMeta::from_tokens(args).map_err(container_attribute)
 }
 
 fn container_attribute(problem: AttributeProblem) -> DomainError {

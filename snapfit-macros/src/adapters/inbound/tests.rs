@@ -10,7 +10,6 @@ use crate::test_support::names;
 #[test]
 fn every_setting_and_field_is_read_into_the_declaration() {
     let input: syn::ItemStruct = parse_quote! {
-        #[container(mode = "async", parent = RootContainer, introspection = true)]
         pub struct AppContainer {
             #[singleton]
             config: Arc<Config>,
@@ -29,10 +28,13 @@ fn every_setting_and_field_is_read_into_the_declaration() {
         }
     };
 
-    let container = parse_attribute(quote!(), &input).unwrap();
+    let container = parse_attribute(
+        quote!(mode = "async", parent = RootContainer, introspection = true),
+        &input,
+    )
+    .unwrap();
 
     assert_eq!(container.name.as_str(), "AppContainer");
-    assert_eq!(container.form, MacroForm::Attribute);
     assert_eq!(container.mode, Some(Execution::Async));
     assert_eq!(
         container.parent,
@@ -89,23 +91,6 @@ fn the_attribute_s_arguments_are_its_settings() {
     let container = parse_attribute(quote!(mode = "sync"), &input).unwrap();
 
     assert_eq!(container.mode, Some(Execution::Sync));
-}
-
-#[test]
-fn the_derive_keeps_its_form_and_reads_its_helper_attribute() {
-    let input: syn::DeriveInput = parse_quote! {
-        #[container(introspection = true)]
-        pub struct SimpleApp {
-            #[singleton(constructor = connect)]
-            db: Arc<Database>,
-        }
-    };
-
-    let container = parse_derive(&input).unwrap();
-
-    assert_eq!(container.form, MacroForm::Derive);
-    assert_eq!(container.introspection, Introspection::On);
-    assert_eq!(container.dependencies.len(), 1);
 }
 
 #[test]

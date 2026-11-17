@@ -20,13 +20,13 @@ fn every_error_becomes_one_compile_error_in_order() {
     let item = item();
     let origins = Origins::new(&item.ident, &item.fields);
     let first = DomainError::TupleStruct;
-    let second = DomainError::NotAStruct;
+    let second = DomainError::MultipleContainerAttributes;
     let errors = DomainErrors::check(vec![first, second]).unwrap_err();
 
     let text = origins.compile_errors(&errors).to_string();
 
     assert_eq!(text.matches("compile_error").count(), 2);
-    assert!(text.find("tuple structs") < text.find("can only be applied"));
+    assert!(text.find("tuple structs") < text.find("multiple #[container]"));
 }
 
 #[test]

@@ -39,15 +39,22 @@ Feature: Container Dependency Resolution
     And the error should point at line <line> of the fixture
 
     Examples:
-      | fixture                  | line | expected_error                                                                                                                     |
-      | unknown_dependency       | 13   | unknown dependency 'confog' on field 'db'. You must choose between the dependencies the container can wire: [config, user_service] |
-      | dependency_cycle         | 9    | dependency cycle: service_a depends on service_b, which depends on service_a                                                       |
-      | self_dependency_cycle    | 8    | dependency cycle: service_a depends on itself                                                                                      |
-      | conflicting_lifecycle    | 8    | field 'config' cannot declare multiple lifecycle attributes                                                                        |
-      | tuple_struct_container   | 7    | tuple structs are not supported by #[container]; use named fields                                                                  |
-      | invalid_container_mode   | 7    | invalid container mode 'threaded': expected 'sync' or 'async'                                                                      |
-      | sync_mode_with_async_dep | 8    | container with mode = "sync" cannot contain async dependencies                                                                     |
-      | derive_with_transient    | 7    | #[derive(Container)] does not support #[transient] or #[dispatch] fields; use #[container] instead                                 |
+      | fixture                    | line | expected_error                                                                                                                     |
+      | unknown_dependency         | 13   | unknown dependency 'confog' on field 'db'. You must choose between the dependencies the container can wire: [config, user_service] |
+      | dependency_cycle           | 9    | dependency cycle: service_a depends on service_b, which depends on service_a                                                       |
+      | self_dependency_cycle      | 8    | dependency cycle: service_a depends on itself                                                                                      |
+      | conflicting_lifecycle      | 8    | field 'config' cannot declare multiple lifecycle attributes                                                                        |
+      | tuple_struct_container     | 7    | tuple structs are not supported by #[container]; use named fields                                                                  |
+      | second_container_attribute | 8    | multiple #[container] attributes are not allowed                                                                                   |
+      | invalid_container_mode     | 7    | invalid container mode 'threaded': expected 'sync' or 'async'                                                                      |
+      | sync_mode_with_async_dep   | 8    | container with mode = "sync" cannot contain async dependencies                                                                     |
+
+  @v0_1_0
+  Scenario: A container is declared with the attribute, never with a derive
+    Given an invalid container fixture "derive_container"
+    When the fixture is compiled
+    Then compilation should fail with "cannot find derive macro `Container` in this scope"
+    And the error should point at line 7 of the fixture
 
   @v0_1_0
   Scenario: Every problem in the dependency graph is reported in one compile, each at its field

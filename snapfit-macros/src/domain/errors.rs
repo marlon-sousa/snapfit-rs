@@ -40,9 +40,6 @@ pub(crate) enum DomainError {
     #[error("duplicate dependency name: '{0}'")]
     DuplicateDependency(DependencyName),
 
-    #[error("#[derive(Container)] can only be applied to a struct")]
-    NotAStruct,
-
     #[error("tuple structs are not supported by #[container]; use named fields")]
     TupleStruct,
 
@@ -114,11 +111,6 @@ pub(crate) enum DomainError {
     TraitObjectWithoutBuilder { dependency: DependencyName },
 
     #[error(
-        "#[derive(Container)] does not support #[transient] or #[dispatch] fields; use #[container] instead, which can leave field '{dependency}' out of the struct"
-    )]
-    NeedsStructRewrite { dependency: DependencyName },
-
-    #[error(
         "{feature} is unstable in this version of snapfit; enable the `unstable` feature of the `snapfit` crate to use it"
     )]
     RequiresUnstable { feature: Feature },
@@ -145,13 +137,11 @@ impl DomainError {
             | Self::AsyncDependencyInSyncContainer { dependency }
             | Self::AsyncTransient { dependency }
             | Self::TraitObjectNeedsConcreteType { dependency }
-            | Self::TraitObjectWithoutBuilder { dependency }
-            | Self::NeedsStructRewrite { dependency } => Some(dependency),
+            | Self::TraitObjectWithoutBuilder { dependency } => Some(dependency),
             Self::RequiresUnstable { feature } | Self::NotYetImplemented { feature } => {
                 feature.dependency()
             }
             Self::BlankName { .. }
-            | Self::NotAStruct
             | Self::TupleStruct
             | Self::MultipleContainerAttributes
             | Self::ContainerAttribute { .. } => None,

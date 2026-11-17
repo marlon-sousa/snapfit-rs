@@ -60,16 +60,6 @@ pub(crate) enum TypeShape {
     TraitObject,
 }
 
-/// Which of snapfit's macros declared the container.
-#[derive(EnumIs, Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub(crate) enum MacroForm {
-    /// `#[container]`, which rewrites the struct.
-    #[default]
-    Attribute,
-    /// `#[derive(Container)]`, which can only add impls to the struct as written.
-    Derive,
-}
-
 /// Whether the container struct declares type or lifetime parameters.
 #[derive(EnumIs, Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub(crate) enum TypeParameters {
@@ -118,8 +108,6 @@ pub(crate) struct DependencyDeclaration<F> {
 pub(crate) struct ContainerDeclaration<C, F> {
     pub(crate) name: ContainerName,
     pub(crate) syntax: C,
-    #[new(default)]
-    pub(crate) form: MacroForm,
     #[new(default)]
     pub(crate) type_parameters: TypeParameters,
     /// `mode = "..."`, absent when the container's dependencies decide.

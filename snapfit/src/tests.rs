@@ -47,8 +47,8 @@ pub struct ReverseOrderContainer {
     config: Arc<Config>,
 }
 
-#[derive(Container)]
-pub(crate) struct DerivedAppContainer {
+#[container]
+pub(crate) struct TraitAppContainer {
     #[singleton]
     config: Arc<Config>,
 
@@ -69,8 +69,8 @@ fn test_reverse_declaration_order_resolves_topologically() {
 }
 
 #[test]
-fn test_derive_container_macro_and_trait_reexport() {
-    let container = <DerivedAppContainer as Container>::new();
+fn test_container_trait_builds_a_container() {
+    let container = <TraitAppContainer as Container>::new();
     let config = container.get_config();
     let db = container.get_db();
 

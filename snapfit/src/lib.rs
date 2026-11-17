@@ -8,7 +8,7 @@ pub mod container;
 mod tests;
 
 pub use container::Container;
-pub use snapfit_macros::{Container, container};
+pub use snapfit_macros::container;
 
 /// Compiles and runs the README examples as doctests, so the front page
 /// cannot drift from the real API.

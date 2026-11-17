@@ -10,7 +10,7 @@ This document describes the full design. Only part of it ships as a stable API i
 
 | Capability | 0.1.0 status | Where it is specified |
 | :--- | :--- | :--- |
-| `#[container]` and `#[derive(Container)]` with `#[singleton]` fields | Stable | §2, §3, §4 |
+| `#[container]` with `#[singleton]` fields | Stable | §2, §3, §4 |
 | `deps = [...]` named edges, multiple instances of one type | Stable | §2, §5.A |
 | `constructor = <fn>` (a bare function name, `constructor = connect`) | Stable | §5.A |
 | Compile-time missing-dependency and cycle detection | Stable | §6 |
@@ -41,6 +41,10 @@ These items existed before 0.1.0 but nothing generated or used them, so they wer
 * **`introspection` module** (`GraphDescriptor`, `NodeDescriptor`, `EdgeDescriptor`): return with `introspection = true`.
 * **`SnapfitError` and the `Error` alias** (`ResolutionFailed`, `MissingDependency`, `InitializationFailed`): return when async initialization errors get dependency context.
 * **`ConstructionPlan::parallel_batches`** (groups of independent async singletons): the planner computed them but the generator never used them. They return with concurrent async boot.
+
+### Removed from the 0.1.0 macros
+
+* **`#[derive(Container)]`**: removed before 0.1.0 ([#32](https://github.com/marlon-sousa/snapfit-rs/issues/32)), so that a container has one way to be declared. A derive can only add code next to the struct, never rewrite it, so it could never take a transient, a dispatched field or a parent, each of which leaves the struct changed; on the stable build it generated the same code as `#[container]`. `#[derive(Container)]` is now the compiler's own "cannot find derive macro" error. The `Container` trait stays. Adding a derive form back later would break no one, but it needs a reason `#[container]` cannot meet.
 
 ### Held back from The Snapfit Book (to restore later)
 
@@ -74,7 +78,7 @@ Most dependency injection frameworks in Rust fall into two undesirable extremes:
 
 ### Key Design Pillars:
 * **Zero Domain Pollution:** Your services, repositories, and controllers require **zero framework macros or traits**. They are standard Rust structs with plain `pub fn new(...)` constructors.
-* **Compile-Time Graph Verification:** The derive macro builds the Directed Acyclic Graph (DAG) during `cargo build` and rejects dependency cycles with compile errors.
+* **Compile-Time Graph Verification:** The container macro builds the Directed Acyclic Graph (DAG) during `cargo build` and rejects dependency cycles with compile errors.
 * **Zero-Cost Direct Getters:** Direct, compile-time checked getters (`get_<dep>()`) for fast production code — singletons are cloned on read, and transients are freshly constructed on every call with zero `dyn Any` overhead.
 * **First-Class Static Polymorphism:** Integrates automatic `enum_dispatch` generation for traits, enabling test mocking and swappable backends with zero vtable overhead.
 * **Eager Async Boot with Synchronous Getters:** All async connections (databases, external APIs) are resolved during `Container::init().await`, while runtime getters remain **100% synchronous, non-blocking, and instant** for web request handlers.
@@ -125,6 +129,8 @@ pub struct AppContainer {
 | **`mode`** | `"async"`, `"sync"` | `"sync"` *(or auto `"async"` if any field is `async`)* | Controls whether the container produces `pub async fn init() -> Result<Self, ...>` or synchronous `pub fn new() -> Self`. |
 | **`parent`** | Type Identifier | None | Marks this container as a Child Scope copying/inheriting singletons from a parent container. |
 | **`introspection`** | `bool` | `false` | When `true`, generates `.dependency_graph()` and runtime inspection methods for BDD testing or runtime visualization. |
+
+The settings are the arguments of the one `#[container(...)]` that declares the struct. A second `#[container]` on the same struct, in either order, is refused with `multiple #[container] attributes are not allowed`, pointing at the container's name.
 
 ### Field-Level Attribute Vocabulary:
 

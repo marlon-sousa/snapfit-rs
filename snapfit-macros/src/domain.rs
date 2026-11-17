@@ -9,7 +9,7 @@ mod plan;
 pub(crate) use build::FeatureGate;
 pub(crate) use declaration::{
     Construction, Constructor, ContainerDeclaration, DependencyDeclaration, EnumDispatch,
-    Execution, Introspection, Lifecycle, MacroForm, TypeParameters, TypeShape,
+    Execution, Introspection, Lifecycle, TypeParameters, TypeShape,
 };
 pub(crate) use errors::{AttributeProblem, DomainError, DomainErrors, Feature, FunctionRole};
 pub(crate) use names::{ContainerName, DependencyName, FunctionName, TypeName};
