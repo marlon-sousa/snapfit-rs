@@ -2,9 +2,9 @@
 
 Every release of snapfit and snapfit-macros, which share one version. Each section is written in the release's pull request, from the changelog entries its commits carry as trailers, as [docs/WORKFLOW.md](docs/WORKFLOW.md), "Releases", describes, and becomes the notes of its [GitHub release](https://github.com/marlon-sousa/snapfit-rs/releases). Versions follow [Semantic Versioning](https://semver.org/).
 
-## [0.1.0]
+## [0.1.0-alpha.1]
 
-The first release: compile-time verified dependency injection, with the container declaring the wiring and the domain types left as plain Rust.
+The first pre-release of 0.1.0, released on GitHub only: compile-time verified dependency injection, with the container declaring the wiring and the domain types left as plain Rust.
 
 ### Added
 
