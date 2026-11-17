@@ -2,7 +2,7 @@
 
 use crate::domain::{
     Construction, ContainerDeclaration, DependencyDeclaration, DependencyName, DomainError,
-    Execution, Feature, TraitObjectRemedy,
+    Execution, Feature,
 };
 
 #[cfg(test)]
@@ -28,14 +28,6 @@ impl FeatureGate {
         planned
             .chain(unstable.into_iter().map(requires_unstable))
             .collect()
-    }
-
-    /// What a trait-object field without a builder is told to do.
-    pub(crate) fn trait_object_remedy(self) -> TraitObjectRemedy {
-        match self {
-            Self::Stable => TraitObjectRemedy::ConcreteType,
-            Self::Unstable => TraitObjectRemedy::Builder,
-        }
     }
 }
 

@@ -52,7 +52,7 @@ Feature: Generated code follows the container as written
   Scenario Outline: A trait-object field is told to hold the concrete type, not a builder the stable build refuses
     Given an invalid container fixture "<fixture>"
     When the fixture is compiled
-    Then compilation should fail with "field '<field>' has a trait-object type, which has no constructor; in the field's type, replace dyn and the trait with the concrete type that implements the trait, keeping the Arc around it; a constructor that takes the trait object still accepts the field, because Rust converts the Arc where it is passed"
+    Then compilation should fail with "field '<field>' has a trait-object type, which has no constructor; make the field's type an Arc of the concrete type that implements the trait; a constructor that takes the trait object in an Arc still accepts the field, because Rust converts the Arc where it is passed"
     And the compiler output should not mention "builder ="
     And the error should point at line 8 of the fixture
 

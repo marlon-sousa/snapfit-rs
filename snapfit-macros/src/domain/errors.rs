@@ -9,7 +9,7 @@ use thiserror::Error;
 use crate::domain::names::DependencyName;
 
 pub(crate) use accumulated::DomainErrors;
-pub(crate) use parts::{AttributeProblem, Feature, FunctionRole, TraitObjectRemedy};
+pub(crate) use parts::{AttributeProblem, Feature, FunctionRole};
 
 #[cfg(test)]
 mod tests;
@@ -104,7 +104,7 @@ pub(crate) enum DomainError {
     AsyncTransient { dependency: DependencyName },
 
     #[error(
-        "field '{dependency}' has a trait-object type, which has no constructor; in the field's type, replace dyn and the trait with the concrete type that implements the trait, keeping the Arc around it; a constructor that takes the trait object still accepts the field, because Rust converts the Arc where it is passed"
+        "field '{dependency}' has a trait-object type, which has no constructor; make the field's type an Arc of the concrete type that implements the trait; a constructor that takes the trait object in an Arc still accepts the field, because Rust converts the Arc where it is passed"
     )]
     TraitObjectNeedsConcreteType { dependency: DependencyName },
 

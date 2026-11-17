@@ -65,6 +65,6 @@ fn a_trait_object_on_the_stable_build_is_told_to_hold_the_concrete_type_in_its_a
 
     assert_eq!(
         error.to_string(),
-        "field 'cache' has a trait-object type, which has no constructor; in the field's type, replace dyn and the trait with the concrete type that implements the trait, keeping the Arc around it; a constructor that takes the trait object still accepts the field, because Rust converts the Arc where it is passed"
+        "field 'cache' has a trait-object type, which has no constructor; make the field's type an Arc of the concrete type that implements the trait; a constructor that takes the trait object in an Arc still accepts the field, because Rust converts the Arc where it is passed"
     );
 }

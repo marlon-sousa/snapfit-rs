@@ -17,25 +17,26 @@ use std::rc::Rc;
 
 use crate::domain::{
     ContainerDeclaration, DependencyDeclaration, DependencyName, DomainError, DomainErrors, Step,
-    TraitObjectRemedy,
 };
+use crate::use_cases::FeatureGate;
 
 /// Orders and links the steps, or reports every problem the graph of
 /// dependencies has.
 ///
 /// Dependencies are visited in declaration order, each after its
 /// prerequisites, so the construction order follows the fields wherever the
-/// graph allows it. A trait-object field without a builder is told `remedy`.
+/// graph allows it. A trait-object field without a builder is told what
+/// `gate` lets it do instead.
 pub(crate) fn resolve<C, F>(
     declaration: ContainerDeclaration<C, F>,
-    remedy: TraitObjectRemedy,
+    gate: FeatureGate,
 ) -> Result<ResolvedSteps<C, F>, DomainErrors> {
     let ContainerDeclaration {
         syntax,
         dependencies,
         ..
     } = declaration;
-    let mut resolver = Resolver::new(dependencies, remedy);
+    let mut resolver = Resolver::new(dependencies, gate);
     for name in resolver.declared.clone() {
         resolver.visit(&name);
     }
@@ -53,11 +54,11 @@ struct Resolver<F> {
     failed: HashSet<DependencyName>,
     construction_order: Vec<Placed<F>>,
     errors: Vec<DomainError>,
-    remedy: TraitObjectRemedy,
+    gate: FeatureGate,
 }
 
 impl<F> Resolver<F> {
-    fn new(dependencies: Vec<DependencyDeclaration<F>>, remedy: TraitObjectRemedy) -> Self {
+    fn new(dependencies: Vec<DependencyDeclaration<F>>, gate: FeatureGate) -> Self {
         let mut resolver = Self {
             declared: Vec::with_capacity(dependencies.len()),
             pending: HashMap::with_capacity(dependencies.len()),
@@ -66,7 +67,7 @@ impl<F> Resolver<F> {
             failed: HashSet::new(),
             construction_order: Vec::with_capacity(dependencies.len()),
             errors: Vec::new(),
-            remedy,
+            gate,
         };
         for dependency in dependencies {
             resolver.declare(dependency);
@@ -120,7 +121,7 @@ impl<F> Resolver<F> {
         });
         let prerequisites = self.prerequisites_of(&declaration);
         self.path.pop();
-        let call = call::call_for(&declaration, self.remedy);
+        let call = call::call_for(&declaration, self.gate);
         match (prerequisites, call) {
             (Some(prerequisites), Ok(call)) => {
                 let DependencyDeclaration {

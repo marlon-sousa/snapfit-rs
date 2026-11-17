@@ -49,17 +49,6 @@ impl Feature {
     }
 }
 
-/// Which error a trait-object field without a builder is refused with, which
-/// depends on whether this build of snapfit accepts builders.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum TraitObjectRemedy {
-    /// The stable build: hold the concrete type, which Rust converts to the
-    /// trait object where a constructor asks for one.
-    ConcreteType,
-    /// The `unstable` build: build the trait object with a builder.
-    Builder,
-}
-
 /// Which setting names a function.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
 pub(crate) enum FunctionRole {

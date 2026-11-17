@@ -52,7 +52,7 @@ These are compile errors that point at the offending field or container, instead
 
 * **Generic containers** (`struct Repo<T>`): planned; the generated `impl` blocks and getters need a design for bounds first.
 * **`#[cfg]` / `#[cfg_attr]` on a dependency field**: conditional dependencies would change the graph per build, so they are refused.
-* **Trait-object fields** (`Arc<dyn PaymentGateway>`) without `builder = <fn>`: a trait object has no constructor to call. On the stable build the error tells the user to replace `dyn` and the trait in the field's type with the concrete type that implements the trait, keeping the `Arc` around it (`Arc<StripeGateway>`); a constructor that takes `Arc<dyn PaymentGateway>` still accepts that field, because Rust converts the `Arc` where the generated code passes it. On the `unstable` build the error suggests a builder named after the field (`builder = build_payments`) instead. `#[dispatch(...)]` is another way once implemented.
+* **Trait-object fields** (`Arc<dyn PaymentGateway>`) without `builder = <fn>`: a trait object has no constructor to call. On the stable build the error tells the user to make the field's type an `Arc` of the concrete type that implements the trait (`Arc<StripeGateway>`), whatever wrapper held the trait object; a constructor that takes `Arc<dyn PaymentGateway>` still accepts that field, because Rust converts the `Arc` where the generated code passes it. On the `unstable` build the error suggests a builder named after the field (`builder = build_payments`) instead. `#[dispatch(...)]` is another way once implemented.
 * **`constructor` or `builder` values that are not a plain function name** (`"connect()"`, `"Db::connect"`).
 
 ---
