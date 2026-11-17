@@ -1,0 +1,5 @@
+error: constructor "connect" on field 'payments' must be written without quotes: constructor = connect
+  --> book/compile-errors/ch07_quoted_constructor.rs:25:5
+   |
+25 |     #[singleton(deps = [config], constructor = "connect")]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

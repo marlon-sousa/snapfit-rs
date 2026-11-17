@@ -15,6 +15,7 @@ A procedural macro does no input or output: it is a pure function from tokens to
 - **`snapfit/`**, the crate users depend on: the `Container` trait and the re-export of the macros. Its README examples run as doctests.
 - **`snapfit-macros/`**, the procedural macros, laid out as the rest of this document describes.
 - **`tests/`**, the crate `snapfit_bdd`: the Gherkin features under `tests/features/` (`stable/`, and `unstable/`, run with the `unstable` feature), their step definitions, the containers they exercise, and the compile-fail fixtures under `tests/fixtures/compile_fail/`, each compiled with rustc and its diagnostic checked.
+- **`book/`**, the crate `snapfit_book`: The Snapfit Book, whose chapters, examples, recorded outputs and compile-error fixtures `cargo xtask book-check` verifies. [book/BOOK.md](../book/BOOK.md) describes it.
 - **`xtask/`** and **`scripts/gate.py`**, the quality gate, `cargo xtask ci`, whose checks CI runs, the tests on Linux, macOS and Windows; [WORKFLOW.md](WORKFLOW.md), section 7, lists them.
 - **`.github/release/`**, the release gate and its fixtures, which the release workflow runs, as [WORKFLOW.md](WORKFLOW.md), section 9, says.
 - **`.github/workflows/`**, the CI, pull request, weekly and release workflows, as [WORKFLOW.md](WORKFLOW.md), section 7, lists them.
