@@ -14,5 +14,5 @@ The first pre-release of 0.1.0, released on GitHub only: compile-time verified d
 - `constructor = connect` calls `T::connect(...)` instead of `T::new(...)`.
 - Each field is built after the fields it needs, in the order the fields are declared wherever the graph allows.
 - An unknown dependency, a dependency cycle, a trait-object field, a generic container, a `#[cfg]` on a dependency and a misspelt attribute are compile errors, each a sentence pointing at its field, and every problem of a container is reported in one compile.
-- The Snapfit Book website, at https://marlon-sousa.github.io/snapfit-rs/, with the README as its front page and one edition of the book per release.
+- The Snapfit Book, in `book/`, whose examples and compiler messages CI checks; its website, with the README as its front page and one edition of the book per release, is first published with 0.1.0.
 - Async containers, `#[transient]` dependencies and `builder = <fn>` ship behind the `unstable` feature, whose API may still change; planned features, such as `#[dispatch(...)]`, child containers and introspection, are compile errors that name them.
