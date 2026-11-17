@@ -1,3 +1,4 @@
+use compile_outcomes::{Diagnostic, Location, Outcome};
 use cucumber::{given, then, when};
 
 use crate::world::ContainerWorld;
@@ -7,6 +8,11 @@ fn given_invalid_container_fixture(world: &mut ContainerWorld, fixture_name: Str
     world.select_invalid_fixture(fixture_name);
 }
 
+#[given("a newer snapfit library from another build sits beside the one the suite links to")]
+fn given_stale_snapfit_library(world: &mut ContainerWorld) {
+    world.plant_stale_library();
+}
+
 #[when("the fixture is compiled")]
 fn when_fixture_is_compiled(world: &mut ContainerWorld) {
     world.compile_selected_fixture();
@@ -14,52 +20,81 @@ fn when_fixture_is_compiled(world: &mut ContainerWorld) {
 
 #[then(regex = r#"^compilation should fail with "(.*)"$"#)]
 fn then_compilation_fails_with(world: &mut ContainerWorld, expected_error: String) {
-    let outcome = world.compile_outcome();
+    let (fixture, outcome) = world.compiled_fixture();
+    let reported = outcome
+        .errors()
+        .iter()
+        .any(|error| error.message.contains(&expected_error));
 
     assert!(
-        !outcome.succeeded,
-        "Expected fixture '{}' to fail compilation, but it succeeded",
-        outcome.fixture_name
+        outcome.is_failed(),
+        "Expected fixture '{fixture}' to fail compilation, but it compiled. Its warnings:\n{}",
+        rendered(outcome)
     );
     assert!(
-        outcome.stderr.contains(&expected_error),
-        "Expected stderr for fixture '{}' to contain:\n  {expected_error}\nActual stderr:\n{}",
-        outcome.fixture_name,
-        outcome.stderr
+        reported,
+        "Expected an error for fixture '{fixture}' to contain:\n  {expected_error}\nThe compiler said:\n{}",
+        rendered(outcome)
     );
 }
 
 #[then(expr = "the compiler output should not mention {string}")]
 fn then_compiler_output_does_not_mention(world: &mut ContainerWorld, unwanted: String) {
-    let outcome = world.compile_outcome();
+    let (fixture, outcome) = world.compiled_fixture();
+    let said = rendered(outcome);
     assert!(
-        !outcome.stderr.contains(&unwanted),
-        "Expected stderr for fixture '{}' not to mention '{unwanted}'. Actual stderr:\n{}",
-        outcome.fixture_name,
-        outcome.stderr
+        !said.contains(&unwanted),
+        "Expected the compiler not to mention '{unwanted}' for fixture '{fixture}'. The compiler said:\n{said}"
     );
 }
 
 #[then(expr = "the error should point at line {int} of the fixture")]
-fn then_error_points_at_line(world: &mut ContainerWorld, line: u32) {
-    let outcome = world.compile_outcome();
-    let location = format!("{}.rs:{line}:", outcome.fixture_name);
+fn then_error_points_at_line(world: &mut ContainerWorld, line: usize) {
+    let (fixture, outcome) = world.compiled_fixture();
+    let file_name = format!("{fixture}.rs");
+    let pointed = outcome
+        .errors()
+        .iter()
+        .any(|error| points_at(error, &file_name, line));
     assert!(
-        outcome.stderr.contains(&location),
-        "Expected the diagnostic for fixture '{}' to point at '{location}'. Actual stderr:\n{}",
-        outcome.fixture_name,
-        outcome.stderr
+        pointed,
+        "Expected an error for fixture '{fixture}' to point at line {line} of {file_name}. The compiler said:\n{}",
+        rendered(outcome)
     );
 }
 
 #[then(expr = "the compiler should report {int} errors")]
-fn then_compiler_reports_errors(world: &mut ContainerWorld, count: u32) {
-    let outcome = world.compile_outcome();
-    let summary = format!("aborting due to {count} previous errors");
-    assert!(
-        outcome.stderr.contains(&summary),
-        "Expected the compiler to report {count} errors for fixture '{}'. Actual stderr:\n{}",
-        outcome.fixture_name,
-        outcome.stderr
+fn then_compiler_reports_errors(world: &mut ContainerWorld, count: usize) {
+    let (fixture, outcome) = world.compiled_fixture();
+    assert_eq!(
+        outcome.errors().len(),
+        count,
+        "Expected the compiler to report {count} errors for fixture '{fixture}'. The compiler said:\n{}",
+        rendered(outcome)
     );
+}
+
+fn points_at(diagnostic: &Diagnostic, file_name: &str, line: usize) -> bool {
+    diagnostic
+        .location
+        .as_ref()
+        .is_some_and(|location| is_at(location, file_name, line))
+}
+
+fn is_at(location: &Location, file_name: &str, line: usize) -> bool {
+    location.line == line
+        && location
+            .file
+            .file_name()
+            .is_some_and(|name| name == file_name)
+}
+
+/// Every error and warning, as a terminal shows them.
+fn rendered(outcome: &Outcome) -> String {
+    outcome
+        .errors()
+        .iter()
+        .chain(outcome.warnings())
+        .map(|diagnostic| diagnostic.rendered.as_str())
+        .collect()
 }

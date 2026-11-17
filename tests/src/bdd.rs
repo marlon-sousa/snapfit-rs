@@ -1,9 +1,10 @@
 #![deny(warnings)]
 
 mod codegen_containers;
-mod compile_harness;
 mod containers;
+mod fixture_outcomes;
 mod services;
+mod stale_library;
 mod steps;
 #[cfg(feature = "unstable")]
 mod unstable_containers;

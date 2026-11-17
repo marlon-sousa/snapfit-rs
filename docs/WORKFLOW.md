@@ -45,7 +45,7 @@ Each stack builds on the one before it. Phase 1, stacks 1 to 4, is the core of `
 
 `v0.1.0` ships the synchronous singleton container only. Async containers, transient dependencies and custom builders were implemented early (Stacks 2 to 4) and are kept behind the `unstable` Cargo feature until their stacks (5, 6 and 8) settle the API. Planned features with no code generation (`dispatch`, `parent`, `introspection`) are compile errors. Items removed from the runtime crate for 0.1.0 are listed in [SPEC §0](SPEC.md#0-what-ships-in-010) so their stacks restore them.
 
-The QA gate builds the `unstable` feature in `target/unstable`, separately from the stable build, because Cargo unifies features within one build and the stable suite must prove the gate rejects unstable APIs.
+The QA gate runs the Gherkin suite once on the stable build, whose scenarios prove the gate rejects unstable APIs, and once with the `unstable` feature. Each run compiles the compile-fail fixtures against snapfit with its own features, so both builds share one target folder.
 
 ### Commit conventions
 * **Commit Messages:** Follow [Conventional Commits](https://www.conventionalcommits.org/):
