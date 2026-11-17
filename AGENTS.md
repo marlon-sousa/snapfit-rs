@@ -7,14 +7,14 @@ The manual for anyone, human or agent, changing snapfit. [docs/WORKFLOW.md](docs
 - [docs/SPEC.md](docs/SPEC.md): what the macros accept, generate and refuse, and what ships in 0.1.0. Code does what it says, no more and no less.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how the code is organised and written, before writing any.
 - [.claude/skills/](.claude/skills/): the procedures, such as having a change reviewed. Claude Code loads them on its own; another agent reads the one it needs.
-- The pull request or issue the work belongs to. Once a decision is agreed there, it binds the work.
+- The issue the work belongs to, and its pull request. Once a decision is agreed there, it binds the work.
 
 ## Rules
 
 1. **No code before its behaviour.** A change to what the macros accept, generate or refuse starts in docs/SPEC.md. If the code would need to do something SPEC.md does not say, stop and ask the maintainer.
 2. **Every behaviour has a test a user would recognise.** A behaviour added to or changed in SPEC.md comes with a Gherkin scenario under `tests/features/`, in the same pull request as the code. A refusal comes with a compile-fail fixture under `tests/fixtures/compile_fail/` whose scenario checks its message and the line it points at.
 3. **A fixed bug gets a regression test that fails without the fix**, and a Gherkin scenario, tagged `@regression`, when a user can meet the bug.
-4. **Unstable is opt-in, planned is refused.** An API whose shape is not settled ships only behind the `unstable` Cargo feature, with a stable fixture proving the stable build refuses it. A planned feature is a compile error that names it. Anything removed for a release is listed in SPEC.md, §0, so that its stack restores it.
+4. **Unstable is opt-in, planned is refused.** An API whose shape is not settled ships only behind the `unstable` Cargo feature, with a stable fixture proving the stable build refuses it. A planned feature is a compile error that names it. Anything removed for a release is listed in SPEC.md, §0, so that the work on its issue restores it.
 5. **Diagnostics are for people.** Every error the macros report is a sentence that reads well spoken by a screen reader, points at the field it is about, and is reported together with every other problem found, as docs/ARCHITECTURE.md, "Errors", says.
 6. **Generated names are promises.** Never change how a generated item is named or typed, such as `new()`, `init()` or `get_<field>()`, without the maintainer's agreement.
 7. **Small pull requests.** One thing each, stacked as docs/WORKFLOW.md describes, with Conventional Commits messages carrying the changelog trailers docs/WORKFLOW.md asks for.
@@ -22,12 +22,13 @@ The manual for anyone, human or agent, changing snapfit. [docs/WORKFLOW.md](docs
 9. **Mark agent comments.** A comment an agent writes on GitHub says it is an agent's.
 10. **Check a library before ruling it in or out.** Before saying that a crate can or cannot do something, read its source or its documentation at the version we use, including its extension points. The pull request says what was checked: the file and line, or the documentation page.
 11. **One question at a time.** A question for the maintainer is asked in plain prose, one decision at a time, with the option recommended and why.
+12. **Issues come first.** Every change starts from an agreed issue, and its pull request names it, as docs/WORKFLOW.md, section 10, says. A decision taken outside the issue, such as in a chat, is recorded on it at once.
 
 ## Reviewing a change
 
-Every pull request is reviewed by an independent reviewer before it is opened, one given the change, not its author's reasoning. A later push to an open pull request is reviewed the same way while its CI runs. An agent's `.claude/skills/review-change` says how to start and resume the reviewer. The reviewer is given this section in full, the documents under "What to read", the commits to review and the draft pull request description. For each item, it lists every place in the diff where the item applies, not only the first, and checks each against the rule it names.
+Every pull request is reviewed by an independent reviewer before it is opened, one given the change, not its author's reasoning. A later push to an open pull request is reviewed the same way while its CI runs. An agent's `.claude/skills/review-change` says how to start and resume the reviewer. The reviewer is given this section in full, the documents under "What to read", the issue the change belongs to, the commits to review and the draft pull request description. For each item, it lists every place in the diff where the item applies, not only the first, and checks each against the rule it names.
 
-1. Every behaviour the change adds or changes, against docs/SPEC.md, and against rules 1 to 4 above: its scenario, its fixture, its regression test, its gate.
+1. Every behaviour the change adds or changes, against docs/SPEC.md and its issue, and against rules 1 to 4 above: its scenario, its fixture, its regression test, its gate.
 2. Every diagnostic the change adds or changes, against rule 5 above and docs/ARCHITECTURE.md, "Errors": its words, the field it points at, and that it is reported with the other problems found, not instead of them.
 3. Every generated item the change adds or changes, against rule 6 above and docs/ARCHITECTURE.md, "Generated code": its name, its hygiene, and the expansion tests that pin it.
 4. `snapfit-macros/src/lib.rs` and `snapfit/src/lib.rs`, against docs/ARCHITECTURE.md, "Folders and files", rule 1: no new bare `pub` other than the macros and the runtime crate's agreed API.
@@ -39,7 +40,7 @@ Every pull request is reviewed by an independent reviewer before it is opened, o
 10. Every comment and doc comment, against docs/ARCHITECTURE.md, "Comments".
 11. Every crate the change adds, removes or uses in a new way, and every claim that a library can or cannot do something, against rule 10 above: it names the source it was checked against.
 12. Every statement of docs/SPEC.md, docs/ARCHITECTURE.md, docs/WORKFLOW.md and README.md the change makes untrue, which the change updates itself.
-13. The commit messages and the description, against rule 7 above and docs/WORKFLOW.md; for a layer of a stack, that its branch sits on the current tip of the layer below.
+13. The commit messages and the description, against rules 7 and 12 above and docs/WORKFLOW.md: that the description names the issue, and that the change does what the issue agreed, no more; for a layer of a stack, that its branch sits on the current tip of the layer below.
 14. Every change a user meets in the book, such as a diagnostic's words or the generated code, named in the description as a chapter of the site to update.
 15. The checks under "Building and testing", run at the reviewed revision, without changing the checkout the author works in.
 

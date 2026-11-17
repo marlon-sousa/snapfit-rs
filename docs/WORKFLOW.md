@@ -16,7 +16,7 @@
 
 | Role | Entity | Core Responsibilities |
 | :--- | :--- | :--- |
-| **Architect & Tech Lead** | **Human (You)** | • Final authority on API design, trade-offs, and feature acceptance.<br>• Approves stack scopes before implementation starts.<br>• Reviews and merges PRs. |
+| **Architect & Tech Lead** | **Human (You)** | • Agrees the issues every change starts from.<br>• Final authority on API design, trade-offs, and feature acceptance.<br>• Approves stack scopes before implementation starts.<br>• Reviews and merges PRs. |
 | **Implementer** | **Agent or contributor** | • Implements the change as [ARCHITECTURE.md](ARCHITECTURE.md) describes, following the rules of [AGENTS.md](../AGENTS.md).<br>• Writes the unit tests, Gherkin scenarios and fixtures the rules ask for.<br>• Runs `cargo xtask ci`. |
 | **Independent Code Reviewer** | **Reviewer agent** | • Started fresh for each change, given the change and not its author's reasoning.<br>• Works through every item of the checklist in [AGENTS.md](../AGENTS.md), "Reviewing a change".<br>• Returns findings, each blocking or not, and a verdict before human sign-off. |
 
@@ -28,22 +28,18 @@ To prevent blocking while keeping diffs small and reviewable (under about 300 li
 
 ### Roadmap
 
-Each stack builds on the one before it. Phase 1, stacks 1 to 4, is the core of `v0.1.0`; phase 2, stacks 5 to 10, adds the advanced capabilities.
+Stacks 1 to 4 built the core of `v0.1.0`:
 
 1. Workspace and domain model (PR #1).
 2. Graph engine and planner.
 3. Inbound and outbound adapters.
 4. Walking skeleton, with the first Gherkin scenario green: `v0.1.0`. The Snapfit Book and its site follow it.
-5. Async container boot.
-6. Transient lifecycles.
-7. Enum dispatch polymorphism.
-8. Companion builders, with `#[external]` and `before_init` hooks.
-9. Fork-and-rewire overrides.
-10. Child containers and scoping.
+
+What comes after it, such as async containers, transients, custom builders, enum dispatch, test overrides and child containers, is planned in the [open issues labelled `feature`](https://github.com/marlon-sousa/snapfit-rs/issues?q=is%3Aissue%20is%3Aopen%20label%3Afeature), as section 10 says.
 
 ### 0.1.0 scope
 
-`v0.1.0` ships the synchronous singleton container only. Async containers, transient dependencies and custom builders were implemented early (Stacks 2 to 4) and are kept behind the `unstable` Cargo feature until their stacks (5, 6 and 8) settle the API. Planned features with no code generation (`dispatch`, `parent`, `introspection`) are compile errors. Items removed from the runtime crate for 0.1.0 are listed in [SPEC §0](SPEC.md#0-what-ships-in-010) so their stacks restore them.
+`v0.1.0` ships the synchronous singleton container only. Async containers, transient dependencies and custom builders were implemented early (Stacks 2 to 4) and are kept behind the `unstable` Cargo feature until their issues settle the API. Planned features with no code generation (`dispatch`, `parent`, `introspection`) are compile errors. Items removed from the runtime crate for 0.1.0 are listed in [SPEC §0](SPEC.md#0-what-ships-in-010) so that the work on their issues restores them.
 
 The QA gate runs the Gherkin suite once on the stable build, whose scenarios prove the gate rejects unstable APIs, and once with the `unstable` feature. Each run compiles the compile-fail fixtures against snapfit with its own features, so both builds share one target folder.
 
@@ -64,6 +60,10 @@ The QA gate runs the Gherkin suite once on the stable build, whose scenarios pro
 
   The pull request workflow checks every commit of a pull request against this convention, with the `commit-messages` action of [itinera-dev/actions](https://github.com/itinera-dev/actions). Merge commits are not checked.
 
+### Naming the issue
+
+Every pull request names an open issue of this repository, as section 10 says: `Closes #N` when it finishes the issue, `Refs #N` when it does part of it. The layers of a stack each say `Refs #N`, and the top one also says `Closes #N` once it targets `main`: GitHub links a closing keyword only on a pull request into the default branch, so before that the check finds only `Refs #N`. A pull request never closes an issue of another repository, which GitHub would close the moment it merged, before that repository's own work.
+
 ---
 
 ## 4. Double-Loop BDD Strategy (Walking Skeleton)
@@ -80,8 +80,8 @@ Rather than waiting until the end to write integration tests, `snapfit` uses an 
 
 For every PR slice in the stack:
 
-1. **Implementation & Local Verification:** the implementer writes the code and its tests, and runs `cargo xtask ci`.
-2. **Independent Review:** before the pull request is opened, a reviewer agent reviews the commits against the checklist in [AGENTS.md](../AGENTS.md), "Reviewing a change"; `.claude/skills/review-change` says how Claude starts it. Findings are fixed, or rejected with a reason the reviewer accepts or the maintainer decides. Every later push is reviewed the same way.
+1. **Implementation & Local Verification:** starting from its agreed issue, the implementer writes the code and its tests, and runs `cargo xtask ci`.
+2. **Independent Review:** before the pull request is opened, a reviewer agent reviews the commits, given the issue they belong to, against the checklist in [AGENTS.md](../AGENTS.md), "Reviewing a change"; `.claude/skills/review-change` says how Claude starts it. Findings are fixed, or rejected with a reason the reviewer accepts or the maintainer decides. Every later push is reviewed the same way.
 3. **Automated CI:** GitHub Actions runs the checks of `cargo xtask ci`, the tests on Linux, macOS and Windows, as section 7 says.
 4. **Human Review & Sign-Off:** the pull request is reported ready, with the review's verdict, once both the review and the CI of its latest push have passed. The maintainer approves and merges, or advances the stack.
 
@@ -90,6 +90,7 @@ For every PR slice in the stack:
 ## 6. Definition of Done (DoD) per Stack Slice
 
 A slice is only ready for human merge when:
+- [ ] **Issue named:** the description names its open issue, with `Closes #N` or `Refs #N`.
 - [ ] **Clean Pre-Flight:** `cargo xtask ci` passes locally with 0 errors.
 - [ ] **Clean Compilation:** `cargo check --workspace --all-targets` passes with 0 errors.
 - [ ] **Zero Warnings:** `cargo clippy --workspace --all-targets -- -D warnings` passes with 0 warnings.
@@ -132,7 +133,7 @@ To eliminate environmental drift between local development and CI, all quality c
 Every action a workflow uses is pinned to a commit, with its version in a comment beside it.
 
 * **`.github/workflows/ci.yml`**, on every pull request, whatever its base, and every push to `main`. A branch is checked through its pull request, so a push to a branch with no pull request, or whose pull request has a merge conflict, runs no checks. It runs each mode of `cargo xtask ci` in a job of its own on Linux, the `test` mode on Linux, macOS and Windows, the `test` mode again with the minimum supported Rust, and `npm run verify` in `site/`, which builds the site and checks its pages, links, accessibility and layout.
-* **`.github/workflows/pull-request.yml`**, on every pull request, whatever its base: every commit message keeps the convention of section 3, and the description has no unticked checkbox. Ticking a checkbox runs only this workflow again.
+* **`.github/workflows/pull-request.yml`**, on every pull request, whatever its base: the description names an open issue of this repository, and neither the description nor a commit message closes an issue of another repository, with the `pr-has-issue` and `no-cross-repo-closing` actions of itinera-dev/actions; every commit message keeps the convention of section 3, and the description has no unticked checkbox. Ticking a checkbox runs only this workflow again.
 * **`.github/workflows/weekly.yml`**, each Monday: the `test` mode on Rust beta, so that a change in the next Rust that breaks snapfit, such as a compiler message a compile-fail fixture checks, is known before it is released.
 * **`.github/workflows/release.yml`**, on a tag `v<version>`: section 9.
 * **`.github/workflows/site.yml`**, run by hand with a release's version: publishes that release's README front page and book edition onto the `site` branch, as section 8 says.
@@ -177,3 +178,17 @@ A pull request that changes how releases are made runs the release tools and pac
 ### Publishing to crates.io
 
 crates.io's trusted publishing lets the workflow publish without a token, but it is set up on a crate that already exists there. So the first version, 0.1.0, is published by hand: after the gate passes, the maintainer runs `cargo publish --workspace --locked` at the tagged commit, from Linux or macOS, which publishes snapfit-macros, then snapfit. Each crate's licence files are links to the ones at the root, which a Windows checkout without symbolic links would pack as text. Until trusted publishing is set up for both crates, the crates.io job only runs `cargo publish --workspace --dry-run --locked`. A later pull request then makes the job publish, in a `crates-io` environment, with the `publish-crates` action of itinera-dev/actions, which publishes each crate whose version is not on crates.io yet.
+
+---
+
+## 10. Issues come first
+
+Every change starts as an issue, and is agreed there before any code is written: building the wrong thing is the expensive mistake, and the issue is the cheapest place to find it.
+
+* **A feature** says what is wanted and why, and what it must not break, such as a generated name. It can be short; the details are worked out in the issue.
+* **A bug** says what happened, what was expected, and the smallest container that shows it.
+* **Labels:** each issue carries one of `feature`, `bug`, `docs` or `process`.
+
+A decision the maintainer takes about an issue, wherever it is taken, such as in a chat, is recorded at once as a comment on the issue, headed "Decided so far (continued)", dated, saying that the maintainer decided it, and saying so when an agent wrote it. Once an issue is agreed, every decision taken in its comments is written into its body, which then binds the work. The comments stay as the history of how each decision was reached, and nothing in them may contradict the body.
+
+[SPEC.md](SPEC.md) describes the whole design and, in §0, what ships; the open `feature` issues hold what is planned and when. A feature's behaviour is written or settled in SPEC.md in the pull request that builds it, as [AGENTS.md](../AGENTS.md), rule 1, asks.
