@@ -46,7 +46,6 @@ Feature: Container Dependency Resolution
       | conflicting_lifecycle      | 8    | field 'config' cannot declare multiple lifecycle attributes                                                                        |
       | tuple_struct_container     | 7    | tuple structs are not supported by #[container]; use named fields                                                                  |
       | second_container_attribute | 8    | multiple #[container] attributes are not allowed                                                                                   |
-      | invalid_container_mode     | 7    | invalid container mode 'threaded': expected 'sync' or 'async'                                                                      |
       | sync_mode_with_async_dep   | 8    | container with mode = "sync" cannot contain async dependencies                                                                     |
 
   @v0_1_0
@@ -55,6 +54,23 @@ Feature: Container Dependency Resolution
     When the fixture is compiled
     Then compilation should fail with "cannot find derive macro `Container` in this scope"
     And the error should point at line 7 of the fixture
+
+  @v0_1_0 @regression
+  Scenario: A field without a lifecycle is offered only what the stable build accepts
+    Given an invalid container fixture "several_field_problems"
+    When the fixture is compiled
+    Then compilation should fail with "field 'config' has no snapfit attribute; add #[singleton] to have the container build it"
+    And the error should point at line 9 of the fixture
+    And the compiler output should not mention "#[transient]"
+    And the compiler output should not mention "#[dispatch]"
+
+  @v0_1_0 @regression
+  Scenario: An unknown container mode is offered only what the stable build accepts
+    Given an invalid container fixture "invalid_container_mode"
+    When the fixture is compiled
+    Then compilation should fail with "invalid container mode 'threaded': write mode = "sync", or leave mode out"
+    And the error should point at line 7 of the fixture
+    And the compiler output should not mention "async"
 
   @v0_1_0
   Scenario: Every problem in the dependency graph is reported in one compile, each at its field
@@ -72,7 +88,7 @@ Feature: Container Dependency Resolution
   Scenario: Every badly declared field is reported in one compile
     Given an invalid container fixture "several_field_problems"
     When the fixture is compiled
-    Then compilation should fail with "field 'config' must be annotated with #[singleton], #[transient], or #[dispatch]"
+    Then compilation should fail with "field 'config' has no snapfit attribute; add #[singleton] to have the container build it"
     And compilation should fail with "constructor "connect" on field 'db' must be written without quotes: constructor = connect"
     And the compiler should report 2 errors
     And the error should point at line 9 of the fixture
