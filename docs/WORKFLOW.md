@@ -164,7 +164,7 @@ snapfit and snapfit-macros share one version, `version` in the workspace's `Carg
 
 A release starts as a pull request, titled "Release <version>", whose commit `chore(release): release <version>`:
 
-1. raises the version in `Cargo.toml`, and in `Cargo.lock` with `cargo update --workspace`;
+1. raises `version` under `[workspace.package]` and the `version` requirements of snapfit and snapfit-macros under `[workspace.dependencies]` in `Cargo.toml`, and the versions in `Cargo.lock` with `cargo update --workspace`;
 2. writes the version's section at the top of [CHANGELOG.md](../CHANGELOG.md), starting from what `git cliff --unreleased --tag v<version> --strip all` prints, which is the heading `## [<version>]` and the entries of the commits since the last release;
 3. reconciles those entries, since a commit's entries cannot change once it merges: entries a later commit made untrue become one that says what the release holds, entries that say the same thing merge, and a change a user meets that carries no entry gets one.
 
@@ -187,4 +187,4 @@ A pull request that changes how releases are made runs the release tools and pac
 
 ### Publishing to crates.io
 
-crates.io's trusted publishing lets the workflow publish without a token, but it is set up on a crate that already exists there. So the first version, 0.1.0, is published by hand: after the gate passes, the maintainer runs `cargo publish --workspace --locked` at the tagged commit, which publishes snapfit-macros, then snapfit. Until trusted publishing is set up for both crates, the crates.io job only runs `cargo publish --workspace --dry-run --locked`. A later pull request then makes the job publish, in a `crates-io` environment, with the `publish-crates` action of itinera-dev/actions, which publishes each crate whose version is not on crates.io yet.
+crates.io's trusted publishing lets the workflow publish without a token, but it is set up on a crate that already exists there. So the first version, 0.1.0, is published by hand: after the gate passes, the maintainer runs `cargo publish --workspace --locked` at the tagged commit, from Linux or macOS, which publishes snapfit-macros, then snapfit. Each crate's licence files are links to the ones at the root, which a Windows checkout without symbolic links would pack as text. Until trusted publishing is set up for both crates, the crates.io job only runs `cargo publish --workspace --dry-run --locked`. A later pull request then makes the job publish, in a `crates-io` environment, with the `publish-crates` action of itinera-dev/actions, which publishes each crate whose version is not on crates.io yet.
