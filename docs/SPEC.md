@@ -26,6 +26,8 @@ This document describes the full design. Only part of it ships as a stable API i
 | Introspection (`introspection = true`, `dependency_graph()`) | Planned | §12 |
 | `#[external]` inputs and `before_init` computed fields | Planned | §2 |
 
+Each unstable and planned capability has an [open issue labelled `feature`](https://github.com/marlon-sousa/snapfit-rs/issues?q=is%3Aissue%20is%3Aopen%20label%3Afeature), which holds what is decided about it and what it must not break.
+
 Enable the unstable APIs with:
 
 ```toml
@@ -55,7 +57,7 @@ The book's `v0.1.0` edition teaches only the stable API. Its chapters on the uns
 
 ### Decided syntax for later versions
 
-* **Async containers get their own macro** (decided 2026-11-16, not implemented yet): `#[async_container]` replaces `#[container(mode = "async")]`, and `mode` is removed. Inside it, async dependencies are marked with the bare `async` flag (`#[singleton(deps = [config], async, constructor = connect)]`); everything else stays sync. `async` inside a plain `#[container]` becomes an error pointing to `#[async_container]`. Until then the unstable `mode = "async"` syntax keeps working.
+* **Async containers get their own macro** (decided 2026-11-16, not implemented yet, recorded on [#37](https://github.com/marlon-sousa/snapfit-rs/issues/37)): `#[async_container]` replaces `#[container(mode = "async")]`, and `mode` is removed. Inside it, async dependencies are marked with the bare `async` flag (`#[singleton(deps = [config], async, constructor = connect)]`); everything else stays sync. `async` inside a plain `#[container]` becomes an error pointing to `#[async_container]`. Until then the unstable `mode = "async"` syntax keeps working.
 
 ### Container shapes refused in 0.1.0
 
