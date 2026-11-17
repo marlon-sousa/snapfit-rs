@@ -5,6 +5,7 @@ members = [
     "snapfit-macros",
     "xtask",
     "tests",
+    "book",
 ]
 
 [workspace.package]
