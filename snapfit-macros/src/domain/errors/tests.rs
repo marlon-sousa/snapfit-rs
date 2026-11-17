@@ -1,33 +1,58 @@
 use super::*;
+use crate::test_support::{cycle, name};
 
-fn dep_name(s: &str) -> DependencyName {
-    DependencyName::new(s).unwrap()
+#[test]
+fn a_cycle_reads_as_a_sentence_without_arrows() {
+    let error = cycle("service_a", &["service_b", "service_c"]);
+
+    assert_eq!(
+        error.to_string(),
+        "dependency cycle: service_a depends on service_b, which depends on service_c, which depends on service_a"
+    );
 }
 
 #[test]
-fn test_domain_error_display() {
-    let cycle_err = DomainError::CycleDetected(vec![dep_name("a"), dep_name("b"), dep_name("a")]);
-    assert_eq!(
-        cycle_err.to_string(),
-        "dependency cycle detected: a -> b -> a"
-    );
+fn a_dependency_that_needs_itself_is_named_once() {
+    let error = cycle("service_a", &[]);
 
-    let missing_err = DomainError::MissingPrerequisites {
-        dependency: dep_name("db"),
-        missing: vec![dep_name("confog")],
-        available: vec![dep_name("config"), dep_name("user_service")],
-    };
     assert_eq!(
-        missing_err.to_string(),
+        error.to_string(),
+        "dependency cycle: service_a depends on itself"
+    );
+}
+
+#[test]
+fn an_unknown_prerequisite_names_what_the_container_can_wire() {
+    let error = DomainError::UnknownPrerequisites {
+        dependency: name("db"),
+        missing: vec![name("confog")],
+        available: vec![name("config"), name("user_service")],
+    };
+
+    assert_eq!(
+        error.to_string(),
         "unknown dependency 'confog' on field 'db'. You must choose between the dependencies the container can wire: [config, user_service]"
     );
+    assert_eq!(error.subject(), Some(&name("db")));
+}
 
-    let dup_err = DomainError::DuplicateDependency(dep_name("cache"));
-    assert_eq!(dup_err.to_string(), "duplicate dependency name: 'cache'");
+#[test]
+fn a_cycle_points_at_where_it_starts() {
+    assert_eq!(cycle("a", &["b"]).subject(), Some(&name("a")));
+}
 
-    let invalid_err = DomainError::InvalidConfiguration("mode cannot be empty".into());
-    assert_eq!(
-        invalid_err.to_string(),
-        "invalid configuration: mode cannot be empty"
-    );
+#[test]
+fn an_error_about_the_whole_container_has_no_subject() {
+    let error = DomainError::TupleStruct;
+
+    assert_eq!(error.subject(), None);
+}
+
+#[test]
+fn a_trait_object_without_a_builder_suggests_a_builder_named_after_its_field() {
+    let error = DomainError::TraitObjectWithoutBuilder {
+        dependency: name("cache"),
+    };
+
+    assert!(error.to_string().contains("builder = build_cache"));
 }

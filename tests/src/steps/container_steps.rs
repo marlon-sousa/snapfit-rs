@@ -2,16 +2,16 @@ use std::sync::Arc;
 
 use cucumber::{given, then, when};
 
-use crate::world::ContainerWorld;
+use crate::world::{ContainerWorld, ScenarioBlueprint};
 
 #[given("an AppContainer with leaf Config, Database, and UserService")]
 fn given_shared_singleton_container(world: &mut ContainerWorld) {
-    world.select_shared_singletons();
+    world.select(ScenarioBlueprint::SharedSingletons);
 }
 
 #[given("an AppContainer with \"read_db\" and \"write_db\" singletons of type Database")]
 fn given_multi_db_container(world: &mut ContainerWorld) {
-    world.select_multi_database();
+    world.select(ScenarioBlueprint::MultiDatabase);
 }
 
 #[when("the container is instantiated")]
@@ -117,4 +117,14 @@ fn then_read_and_write_db_have_different_addresses(world: &mut ContainerWorld) {
         Arc::as_ptr(&write_db),
         "Expected read_db and write_db to have different memory addresses"
     );
+}
+
+#[when("the container declaring service, db, config and clock in that order is instantiated")]
+fn when_ordered_container_instantiated(world: &mut ContainerWorld) {
+    world.instantiate_ordered();
+}
+
+#[then(expr = "its values should be built in the order {string}")]
+fn then_values_built_in_order(world: &mut ContainerWorld, order: String) {
+    assert_eq!(world.construction_order().join(", "), order);
 }

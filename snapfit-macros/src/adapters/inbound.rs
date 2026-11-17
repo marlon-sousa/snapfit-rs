@@ -1,3 +1,5 @@
+//! Adapter: reads the user's struct, through syn and darling, into a container declaration.
+
 mod darling_models;
 mod field_parser;
 mod type_inspector;
@@ -5,115 +7,147 @@ mod type_inspector;
 #[cfg(test)]
 mod tests;
 
-use derive_new::new;
 use proc_macro2::TokenStream;
 
-use crate::domain::{ContainerIR, ContainerName, DependencyIR, DomainError, TypeName};
-use crate::ports::ContainerParserPort;
+use crate::adapters::syntax::{ContainerSyntax, Declaration, FieldDeclaration, is_user_attribute};
+use crate::domain::{
+    AttributeProblem, ContainerDeclaration, ContainerName, DomainError, DomainErrors, Execution,
+    Introspection, MacroForm, TypeName, TypeParameters,
+};
 use darling_models::ContainerAttrMeta;
 
-#[derive(new, Debug, Default, Clone)]
-pub(crate) struct SynParserAdapter;
+/// `#[container(args)]` on `item`.
+pub(crate) fn parse_attribute(
+    args: TokenStream,
+    item: &syn::ItemStruct,
+) -> Result<Declaration, DomainErrors> {
+    let meta = container_meta(args, &item.attrs);
+    let parts = StructParts {
+        ident: &item.ident,
+        vis: &item.vis,
+        attrs: &item.attrs,
+        generics: &item.generics,
+    };
+    parse(MacroForm::Attribute, parts, meta, &item.fields)
+}
 
-impl SynParserAdapter {
-    pub(crate) fn parse_with_args(
-        &self,
-        args: TokenStream,
-        input: &syn::ItemStruct,
-    ) -> Result<ContainerIR, DomainError> {
-        let meta = Self::extract_container_meta(args, &input.attrs)?;
-        Self::build_container_ir(&input.ident, &input.fields, meta)
-    }
+/// `#[derive(Container)]` on `input`.
+pub(crate) fn parse_derive(input: &syn::DeriveInput) -> Result<Declaration, DomainErrors> {
+    let syn::Data::Struct(data) = &input.data else {
+        return Err(DomainError::NotAStruct.into());
+    };
+    let meta = container_meta(TokenStream::new(), &input.attrs);
+    let parts = StructParts {
+        ident: &input.ident,
+        vis: &input.vis,
+        attrs: &input.attrs,
+        generics: &input.generics,
+    };
+    parse(MacroForm::Derive, parts, meta, &data.fields)
+}
 
-    pub(crate) fn parse_derive_input(
-        &self,
-        input: &syn::DeriveInput,
-    ) -> Result<ContainerIR, DomainError> {
-        let syn::Data::Struct(data_struct) = &input.data else {
-            return Err(DomainError::InvalidConfiguration(
-                "#[container] can only be applied to a struct".to_string(),
-            ));
-        };
-        let meta = Self::extract_container_meta(TokenStream::new(), &input.attrs)?;
-        Self::build_container_ir(&input.ident, &data_struct.fields, meta)
-    }
+/// What the attribute and the derive both give, apart from the fields.
+struct StructParts<'a> {
+    ident: &'a syn::Ident,
+    vis: &'a syn::Visibility,
+    attrs: &'a [syn::Attribute],
+    generics: &'a syn::Generics,
+}
 
-    fn build_container_ir(
-        ident: &syn::Ident,
-        fields: &syn::Fields,
-        meta: ContainerAttrMeta,
-    ) -> Result<ContainerIR, DomainError> {
-        let name = ContainerName::new(ident.to_string())?;
-        let dependencies = Self::parse_struct_fields(fields)?;
-        let is_async = Self::resolve_async_mode(meta.mode.as_deref(), &dependencies)?;
-        let parent_type = meta.parent.map(|p| TypeName::new(p.0)).transpose()?;
+fn parse(
+    form: MacroForm,
+    parts: StructParts<'_>,
+    meta: Result<ContainerAttrMeta, DomainError>,
+    fields: &syn::Fields,
+) -> Result<Declaration, DomainErrors> {
+    let header = meta
+        .and_then(|meta| container_header(&parts, meta))
+        .map_err(DomainErrors::from);
+    let (mut container, dependencies) = DomainErrors::both(header, parse_fields(fields))?;
+    container.form = form;
+    container.dependencies = dependencies;
+    Ok(container)
+}
 
-        let mut container = ContainerIR::new(name);
-        container.is_async = is_async;
-        container.parent_type = parent_type;
-        container.introspection = meta.introspection;
-        container.dependencies = dependencies;
-        Ok(container)
-    }
+fn container_header(
+    parts: &StructParts<'_>,
+    meta: ContainerAttrMeta,
+) -> Result<Declaration, DomainError> {
+    let name = ContainerName::new(parts.ident.to_string())?;
+    let mut container = ContainerDeclaration::new(name, container_syntax(parts));
+    container.type_parameters = type_parameters(parts.generics);
+    container.mode = meta.mode.as_deref().map(execution_of).transpose()?;
+    container.parent = meta
+        .parent
+        .map(|parent| TypeName::new(parent.0))
+        .transpose()?;
+    container.introspection = if meta.introspection {
+        Introspection::On
+    } else {
+        Introspection::Off
+    };
+    Ok(container)
+}
 
-    fn extract_container_meta(
-        args: TokenStream,
-        attrs: &[syn::Attribute],
-    ) -> Result<ContainerAttrMeta, DomainError> {
-        let container_attrs: Vec<_> = attrs
+fn container_syntax(parts: &StructParts<'_>) -> ContainerSyntax {
+    ContainerSyntax {
+        ident: parts.ident.clone(),
+        vis: parts.vis.clone(),
+        attrs: parts
+            .attrs
             .iter()
-            .filter(|attr| attr.path().is_ident("container"))
-            .collect();
-
-        if container_attrs.len() > 1 || (!args.is_empty() && !container_attrs.is_empty()) {
-            return Err(DomainError::InvalidConfiguration(
-                "multiple #[container] attributes are not allowed".to_string(),
-            ));
-        }
-
-        if !args.is_empty() {
-            return ContainerAttrMeta::from_tokens(args);
-        }
-
-        container_attrs.into_iter().next().map_or_else(
-            || Ok(ContainerAttrMeta::default()),
-            ContainerAttrMeta::from_attribute,
-        )
-    }
-
-    fn parse_struct_fields(fields: &syn::Fields) -> Result<Vec<DependencyIR>, DomainError> {
-        match fields {
-            syn::Fields::Named(named) => {
-                named.named.iter().map(field_parser::parse_field).collect()
-            }
-            syn::Fields::Unit => Ok(Vec::new()),
-            syn::Fields::Unnamed(_) => Err(DomainError::InvalidConfiguration(
-                "tuple structs are not supported by #[container]; use named fields".to_string(),
-            )),
-        }
-    }
-
-    fn resolve_async_mode(
-        mode: Option<&str>,
-        dependencies: &[DependencyIR],
-    ) -> Result<bool, DomainError> {
-        let has_async_dep = dependencies.iter().any(|dep| dep.is_async);
-        match mode {
-            None => Ok(has_async_dep),
-            Some("async") => Ok(true),
-            Some("sync") if has_async_dep => Err(DomainError::InvalidConfiguration(
-                "container with mode = \"sync\" cannot contain async dependencies".to_string(),
-            )),
-            Some("sync") => Ok(false),
-            Some(other) => Err(DomainError::InvalidConfiguration(format!(
-                "invalid container mode '{other}': expected 'sync' or 'async'"
-            ))),
-        }
+            .filter(is_user_attribute)
+            .cloned()
+            .collect(),
     }
 }
 
-impl ContainerParserPort for SynParserAdapter {
-    fn parse_container(&self, input: &syn::ItemStruct) -> Result<ContainerIR, DomainError> {
-        self.parse_with_args(TokenStream::new(), input)
+fn type_parameters(generics: &syn::Generics) -> TypeParameters {
+    if generics.params.is_empty() && generics.where_clause.is_none() {
+        TypeParameters::None
+    } else {
+        TypeParameters::Declared
+    }
+}
+
+/// `mode = "..."`, read by the adapter so that its error names the mode
+/// without darling's location.
+fn execution_of(mode: &str) -> Result<Execution, DomainError> {
+    match mode {
+        "sync" => Ok(Execution::Sync),
+        "async" => Ok(Execution::Async),
+        other => Err(DomainError::ContainerAttribute {
+            problem: AttributeProblem::InvalidMode(other.to_string()),
+        }),
+    }
+}
+
+fn container_meta(
+    args: TokenStream,
+    attrs: &[syn::Attribute],
+) -> Result<ContainerAttrMeta, DomainError> {
+    let container_attrs: Vec<_> = attrs
+        .iter()
+        .filter(|attr| attr.path().is_ident("container"))
+        .collect();
+    match (args.is_empty(), container_attrs.as_slice()) {
+        (false, []) => ContainerAttrMeta::from_tokens(args).map_err(container_attribute),
+        (true, []) => Ok(ContainerAttrMeta::default()),
+        (true, [attr]) => ContainerAttrMeta::from_attribute(attr).map_err(container_attribute),
+        _ => Err(DomainError::MultipleContainerAttributes),
+    }
+}
+
+fn container_attribute(problem: AttributeProblem) -> DomainError {
+    DomainError::ContainerAttribute { problem }
+}
+
+fn parse_fields(fields: &syn::Fields) -> Result<Vec<FieldDeclaration>, DomainErrors> {
+    match fields {
+        syn::Fields::Named(named) => {
+            DomainErrors::collect(named.named.iter().map(field_parser::parse_field))
+        }
+        syn::Fields::Unit => Ok(Vec::new()),
+        syn::Fields::Unnamed(_) => Err(DomainError::TupleStruct.into()),
     }
 }

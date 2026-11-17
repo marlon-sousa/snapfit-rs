@@ -4,7 +4,7 @@ use syn::parse_quote;
 use super::*;
 
 #[test]
-fn test_container_attr_meta_parses_all_settings() {
+fn the_container_attribute_reads_every_setting() {
     let attr: syn::Attribute = parse_quote!(#[container(
         mode = "async",
         parent = AppContainer,
@@ -21,7 +21,7 @@ fn test_container_attr_meta_parses_all_settings() {
 }
 
 #[test]
-fn test_container_attr_meta_supports_string_parent_and_empty_tokens() {
+fn the_container_attribute_reads_a_quoted_parent_and_no_settings() {
     let empty = ContainerAttrMeta::from_tokens(quote!()).unwrap();
     assert_eq!(empty, ContainerAttrMeta::default());
 
@@ -30,25 +30,43 @@ fn test_container_attr_meta_supports_string_parent_and_empty_tokens() {
 }
 
 #[test]
-fn test_dependency_attr_meta_parses_async_keyword_and_bracket_deps() {
+fn a_dependency_attribute_reads_the_async_keyword_and_bracketed_deps() {
     let attr: syn::Attribute =
-        parse_quote!(#[singleton(deps = [config, db], async, constructor = "connect")]);
+        parse_quote!(#[singleton(deps = [config, db], async, constructor = connect)]);
     let meta = DependencyAttrMeta::from_attribute(&attr).unwrap();
 
-    assert_eq!(meta.deps.0, vec!["config", "db"]);
+    assert_eq!(
+        meta.deps.0,
+        vec![
+            PrerequisiteMeta::Sibling("config".into()),
+            PrerequisiteMeta::Sibling("db".into())
+        ]
+    );
     assert!(meta.is_async);
-    assert_eq!(meta.constructor.as_deref(), Some("connect"));
+    assert_eq!(
+        meta.constructor,
+        Some(FunctionNameMeta::Bare("connect".into()))
+    );
     assert_eq!(meta.builder, None);
 }
 
 #[test]
-fn test_dependency_attr_meta_parses_parent_call_and_builder() {
+fn a_dependency_attribute_reads_parent_deps_and_a_builder() {
     let attr: syn::Attribute =
-        parse_quote!(#[singleton(deps = [parent(db), session], builder = "build_logger")]);
+        parse_quote!(#[singleton(deps = [parent(db), session], builder = build_logger)]);
     let meta = DependencyAttrMeta::from_attribute(&attr).unwrap();
 
-    assert_eq!(meta.deps.0, vec!["parent(db)", "session"]);
-    assert_eq!(meta.builder.as_deref(), Some("build_logger"));
+    assert_eq!(
+        meta.deps.0,
+        vec![
+            PrerequisiteMeta::Parent("db".into()),
+            PrerequisiteMeta::Sibling("session".into())
+        ]
+    );
+    assert_eq!(
+        meta.builder,
+        Some(FunctionNameMeta::Bare("build_logger".into()))
+    );
 
     let bad_call: syn::Attribute = parse_quote!(#[singleton(deps = [other(db)])]);
     assert!(DependencyAttrMeta::from_attribute(&bad_call).is_err());

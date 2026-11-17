@@ -1,12 +1,30 @@
 use cucumber::World;
 
+use crate::codegen_containers::unit_struct_named_field::UnitStructNamedFieldContainer;
+use crate::codegen_containers::{
+    DerivedAfterContainer, DerivedBeforeContainer, DerivedContainer, TypedFieldsContainer,
+};
 use crate::compile_harness::{CompileOutcome, compile_fixture};
-use crate::containers::{AppContainer, multi_db};
+use crate::containers::{AppContainer, multi_db, ordered};
+#[cfg(feature = "unstable")]
+use crate::unstable_world::UnstableContainers;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ScenarioBlueprint {
     SharedSingletons,
     MultiDatabase,
+    TypedFields,
+    DerivesBeforeAttribute,
+    DerivesAfterAttribute,
+    UnitStructNamedField,
+    #[cfg(feature = "unstable")]
+    AsyncShop,
+    #[cfg(feature = "unstable")]
+    TransientShop,
+    #[cfg(feature = "unstable")]
+    BuilderShop,
+    #[cfg(feature = "unstable")]
+    LayeredShop,
 }
 
 #[derive(Default, World)]
@@ -14,17 +32,19 @@ pub struct ContainerWorld {
     blueprint: Option<ScenarioBlueprint>,
     app_container: Option<AppContainer>,
     multi_db_container: Option<multi_db::AppContainer>,
+    typed_fields_container: Option<TypedFieldsContainer>,
+    derived_container: Option<Box<dyn DerivedContainer>>,
+    unit_struct_named_field: Option<UnitStructNamedFieldContainer>,
     selected_fixture: Option<String>,
     compile_outcome: Option<CompileOutcome>,
+    construction_order: Vec<&'static str>,
+    #[cfg(feature = "unstable")]
+    unstable: UnstableContainers,
 }
 
 impl ContainerWorld {
-    pub fn select_shared_singletons(&mut self) {
-        self.blueprint = Some(ScenarioBlueprint::SharedSingletons);
-    }
-
-    pub fn select_multi_database(&mut self) {
-        self.blueprint = Some(ScenarioBlueprint::MultiDatabase);
+    pub fn select(&mut self, blueprint: ScenarioBlueprint) {
+        self.blueprint = Some(blueprint);
     }
 
     pub fn instantiate_selected(&mut self) {
@@ -39,7 +59,39 @@ impl ContainerWorld {
                 self.multi_db_container =
                     Some(<multi_db::AppContainer as snapfit::Container>::new());
             }
+            ScenarioBlueprint::TypedFields => {
+                self.typed_fields_container = Some(TypedFieldsContainer::new());
+            }
+            ScenarioBlueprint::DerivesBeforeAttribute => {
+                self.derived_container = Some(Box::new(DerivedBeforeContainer::new()));
+            }
+            ScenarioBlueprint::DerivesAfterAttribute => {
+                self.derived_container = Some(Box::new(DerivedAfterContainer::new()));
+            }
+            ScenarioBlueprint::UnitStructNamedField => {
+                self.unit_struct_named_field = Some(UnitStructNamedFieldContainer::new());
+            }
+            #[cfg(feature = "unstable")]
+            ScenarioBlueprint::AsyncShop => {
+                panic!("async containers are initialized with initialize_async_selected()")
+            }
+            #[cfg(feature = "unstable")]
+            ScenarioBlueprint::TransientShop => self.unstable.new_transient_shop(),
+            #[cfg(feature = "unstable")]
+            ScenarioBlueprint::BuilderShop => self.unstable.new_builder_shop(),
+            #[cfg(feature = "unstable")]
+            ScenarioBlueprint::LayeredShop => self.unstable.new_layered_shop(),
         }
+    }
+
+    #[cfg(feature = "unstable")]
+    pub async fn initialize_async_selected(&mut self) {
+        self.unstable.init_async_shop().await;
+    }
+
+    #[cfg(feature = "unstable")]
+    pub fn unstable(&self) -> &UnstableContainers {
+        &self.unstable
     }
 
     pub fn app_container(&self) -> &AppContainer {
@@ -52,6 +104,35 @@ impl ContainerWorld {
         self.multi_db_container
             .as_ref()
             .expect("multi_db::AppContainer must be instantiated before Then assertions")
+    }
+
+    pub fn typed_fields_container(&self) -> &TypedFieldsContainer {
+        self.typed_fields_container
+            .as_ref()
+            .expect("TypedFieldsContainer must be instantiated before Then assertions")
+    }
+
+    pub fn derived_container(&self) -> &dyn DerivedContainer {
+        self.derived_container
+            .as_deref()
+            .expect("a derived container must be instantiated before Then assertions")
+    }
+
+    pub fn unit_struct_named_field(&self) -> &UnitStructNamedFieldContainer {
+        self.unit_struct_named_field
+            .as_ref()
+            .expect("UnitStructNamedFieldContainer must be instantiated before Then assertions")
+    }
+
+    /// Builds the ordered container and keeps the order its values were built in.
+    pub fn instantiate_ordered(&mut self) {
+        ordered::take_built();
+        let _container = <ordered::OrderedContainer as snapfit::Container>::new();
+        self.construction_order = ordered::take_built();
+    }
+
+    pub fn construction_order(&self) -> &[&'static str] {
+        &self.construction_order
     }
 
     pub fn select_invalid_fixture(&mut self, fixture_name: String) {

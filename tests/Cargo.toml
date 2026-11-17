@@ -13,6 +13,11 @@ futures = { workspace = true }
 rayon = { workspace = true }
 snapfit = { workspace = true }
 
+[features]
+# Runs the `features/unstable` suite against snapfit's unstable APIs instead of
+# the stable suite. Use a separate target dir (see `cargo xtask test`).
+unstable = ["snapfit/unstable"]
+
 [[test]]
 name = "bdd"
 path = "src/bdd.rs"

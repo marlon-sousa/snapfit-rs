@@ -1,9 +1,11 @@
+//! Adapter: what the field's syn type says about building it, as facts for the domain.
+
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::parse::Parser;
 use syn::punctuated::Punctuated;
 
-use crate::domain::{DomainError, TraitDispatch};
+use crate::domain::{AttributeProblem, TypeShape};
 
 #[cfg(test)]
 mod tests;
@@ -26,58 +28,69 @@ pub(super) fn compact_type_tokens(tokens: TokenStream) -> String {
     text.trim().to_string()
 }
 
-pub(super) fn parse_dispatch_attribute(attr: &syn::Attribute) -> Result<Vec<String>, DomainError> {
+pub(super) fn parse_dispatch_attribute(
+    attr: &syn::Attribute,
+) -> Result<Vec<String>, AttributeProblem> {
     let syn::Meta::List(list) = &attr.meta else {
-        return Err(DomainError::InvalidConfiguration(
-            "#[dispatch(...)] requires a parenthesized list of implementation types".to_string(),
-        ));
+        return Err(AttributeProblem::DispatchWithoutList);
     };
     let parsed = Punctuated::<syn::Type, syn::Token![,]>::parse_terminated
         .parse2(list.tokens.clone())
-        .map_err(|err| DomainError::InvalidConfiguration(err.to_string()))?;
+        .map_err(|err| AttributeProblem::Unreadable(err.to_string()))?;
     let impls: Vec<String> = parsed
         .iter()
         .map(|ty| compact_type_tokens(quote!(#ty)))
         .collect();
-    (!impls.is_empty()).then_some(impls).ok_or_else(|| {
-        DomainError::InvalidConfiguration(
-            "#[dispatch(...)] requires at least one implementation type".to_string(),
-        )
-    })
+    (!impls.is_empty())
+        .then_some(impls)
+        .ok_or(AttributeProblem::DispatchWithoutImplementations)
 }
 
-pub(super) fn resolve_trait_dispatch(
-    ty: &syn::Type,
-    dispatch_impls: Option<Vec<String>>,
-) -> Result<TraitDispatch, DomainError> {
-    if let Some(impls) = dispatch_impls {
-        let trait_name = extract_trait_name(ty)?;
-        return Ok(TraitDispatch::Enum { trait_name, impls });
+/// What building a value of `ty` has to know: whether it holds a trait
+/// object, which has no constructor, or is an `Arc`.
+pub(super) fn type_shape(ty: &syn::Type) -> TypeShape {
+    match (find_trait_object(ty), arc_inner_type(ty)) {
+        (Some(_), _) => TypeShape::TraitObject,
+        (None, Some(_)) => TypeShape::Arc,
+        (None, None) => TypeShape::Value,
     }
-
-    Ok(
-        find_trait_object(ty).map_or(TraitDispatch::None, |trait_obj| TraitDispatch::Dyn {
-            trait_type: compact_type_tokens(quote!(#trait_obj)),
-        }),
-    )
 }
 
-fn extract_trait_name(ty: &syn::Type) -> Result<String, DomainError> {
-    if let Some(trait_obj) = find_trait_object(ty) {
-        return trait_obj
-            .bounds
-            .iter()
-            .find_map(extract_primary_trait_bound)
-            .ok_or_else(|| {
-                DomainError::InvalidConfiguration(
-                    "trait object in #[dispatch] must specify a primary trait bound".to_string(),
-                )
-            });
+/// `T` when `ty` is `Arc<T>`, `std::sync::Arc<T>`, `::std::sync::Arc<T>` or
+/// `alloc::sync::Arc<T>`.
+pub(super) fn arc_inner_type(ty: &syn::Type) -> Option<&syn::Type> {
+    let syn::Type::Path(type_path) = ty else {
+        return None;
+    };
+    if type_path.qself.is_some() {
+        return None;
     }
+    let segments: Vec<_> = type_path.path.segments.iter().collect();
+    let last = segments.last()?;
+    let is_arc_path = last.ident == "Arc"
+        && match segments.as_slice() {
+            [_] => type_path.path.leading_colon.is_none(),
+            [.., sync, _] => sync.ident == "sync",
+            [] => false,
+        };
+    let syn::PathArguments::AngleBracketed(args) = &last.arguments else {
+        return None;
+    };
+    match (is_arc_path, args.args.first(), args.args.len()) {
+        (true, Some(syn::GenericArgument::Type(inner)), 1) => Some(inner),
+        _ => None,
+    }
+}
 
-    Err(DomainError::InvalidConfiguration(
-        "#[dispatch(...)] field type must contain a 'dyn Trait' trait object".to_string(),
-    ))
+/// The trait a `#[dispatch(...)]` field's `dyn Trait` names, without its
+/// auto-trait bounds.
+pub(super) fn dispatched_trait(ty: &syn::Type) -> Result<String, AttributeProblem> {
+    find_trait_object(ty)
+        .ok_or(AttributeProblem::DispatchWithoutTraitObject)?
+        .bounds
+        .iter()
+        .find_map(extract_primary_trait_bound)
+        .ok_or(AttributeProblem::DispatchWithoutTrait)
 }
 
 fn extract_primary_trait_bound(bound: &syn::TypeParamBound) -> Option<String> {

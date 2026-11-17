@@ -9,8 +9,17 @@ authors.workspace = true
 repository.workspace = true
 readme.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
-derive-new = { workspace = true }
-derive_more = { workspace = true }
-thiserror = { workspace = true }
 snapfit-macros = { workspace = true }
+
+[features]
+# Opt in to APIs whose shape may still change before they are stabilised:
+# async containers (`mode = "async"`, `#[singleton(async)]`, `init().await`),
+# transient dependencies (`#[transient]`) and custom builders (`builder = "..."`).
+unstable = ["snapfit-macros/unstable"]
+
+[package.metadata.docs.rs]
+features = ["unstable"]
