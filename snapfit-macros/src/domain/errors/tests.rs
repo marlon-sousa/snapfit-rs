@@ -37,6 +37,20 @@ fn an_unknown_prerequisite_names_what_the_container_can_wire() {
 }
 
 #[test]
+fn several_unknown_prerequisites_are_named_in_the_plural() {
+    let error = DomainError::UnknownPrerequisites {
+        dependency: name("db"),
+        missing: vec![name("zeta"), name("alpha")],
+        available: vec![name("config")],
+    };
+
+    assert_eq!(
+        error.to_string(),
+        "unknown dependencies 'zeta, alpha' on field 'db'. You must choose between the dependencies the container can wire: [config]"
+    );
+}
+
+#[test]
 fn a_cycle_points_at_where_it_starts() {
     assert_eq!(cycle("a", &["b"]).subject(), Some(&name("a")));
 }

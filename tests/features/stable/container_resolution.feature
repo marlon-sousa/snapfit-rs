@@ -129,6 +129,13 @@ Feature: Container Dependency Resolution
     And the error should point at line 21 of the fixture
 
   @v0_1_0 @regression
+  Scenario: Several unknown dependencies of one field are named in the plural
+    Given an invalid container fixture "several_unknown_dependencies"
+    When the fixture is compiled
+    Then compilation should fail with "unknown dependencies 'zeta, alpha' on field 'db'. You must choose between the dependencies the container can wire: [config]"
+    And the error should point at line 12 of the fixture
+
+  @v0_1_0 @regression
   Scenario: deps written in parentheses is refused, saying to write square brackets
     Given an invalid container fixture "parenthesised_deps"
     When the fixture is compiled

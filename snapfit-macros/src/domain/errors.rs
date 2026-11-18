@@ -12,7 +12,7 @@ use crate::domain::names::{DependencyName, SetterName};
 
 pub(crate) use accumulated::DomainErrors;
 pub(crate) use parts::{AttributeProblem, Feature};
-use sentences::{cycle_sentence, join_names};
+use sentences::{cycle_sentence, dependencies_noun, join_names};
 
 #[cfg(test)]
 mod tests;
@@ -30,7 +30,8 @@ pub(crate) enum DomainError {
     },
 
     #[error(
-        "unknown dependency '{}' on field '{dependency}'. You must choose between the dependencies the container can wire: [{}]",
+        "unknown {} '{}' on field '{dependency}'. You must choose between the dependencies the container can wire: [{}]",
+        dependencies_noun(.missing),
         join_names(.missing),
         join_names(.available)
     )]

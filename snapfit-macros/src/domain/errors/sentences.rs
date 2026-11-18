@@ -24,3 +24,12 @@ pub(super) fn join_names(names: &[DependencyName]) -> String {
         .collect::<Vec<_>>()
         .join(", ")
 }
+
+/// "dependency" for one name and "dependencies" for several, so that a list
+/// of names is read with the word that agrees with it.
+pub(super) fn dependencies_noun(names: &[DependencyName]) -> &'static str {
+    match names {
+        [_] => "dependency",
+        _ => "dependencies",
+    }
+}
