@@ -1289,6 +1289,7 @@ dependencies = [
 name = "snapfit_book"
 version = "0.1.0-alpha.1"
 dependencies = [
+ "bon",
  "compile-outcomes",
  "snapfit",
 ]

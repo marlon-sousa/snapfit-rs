@@ -43,11 +43,11 @@ Shows what `book/examples/ch05_first_singleton.rs` prints to standard output, as
 
 ````markdown
 ```compile-error
-name: ch11_dependency_cycle
+name: ch12_dependency_cycle
 ```
 ````
 
-Shows a program that the Rust compiler refuses to compile (`book/compile-errors/ch11_dependency_cycle.rs`), followed by the compiler's diagnostic message as recorded in `book/compile-errors/ch11_dependency_cycle.txt`.
+Shows a program that the Rust compiler refuses to compile (`book/compile-errors/ch12_dependency_cycle.rs`), followed by the compiler's diagnostic message as recorded in `book/compile-errors/ch12_dependency_cycle.txt`.
 
 ## Verification directories
 

@@ -8,7 +8,7 @@ use super::sorted_files;
 const UNSTABLE_OR_PLANNED: &[&str] = &[
     "unstable",
     "transient",
-    "builder",
+    "builder =",
     "Builders",
     "async",
     ".await",

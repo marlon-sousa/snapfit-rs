@@ -66,9 +66,9 @@ Everything in that picture is written in `ShopContainer`, and nowhere else.
 1. **It writes the composition root.** It generates `ShopContainer::new()`, which calls each component's constructor once, passing it clones of the fields listed in its `deps`. It also generates one `get_<field>()` method per field, so you can ask for any component.
 2. **It works out the order.** `new()` builds every field after the fields it needs. You never order the lines yourself, so when `Database` needs something new, you add one name to one `deps` list.
 3. **It shares everything it builds.** Every field is built once, and its getter hands you a clone of it. For an `Arc` field, every clone points to the same value, which is why the program printed `true`. No component is quietly built again on each call.
-4. **It checks the graph when the program compiles.** A name in `deps` that isn't a field, or two fields that need each other, stop the build with an error at the field. [Chapter 11](11-mistakes-caught-by-the-compiler.md) shows each one.
-5. **It names components by field, not by type.** `deps = [stock, payments]` names fields, so two fields of the same type, such as a read replica and a primary database, are two different components ([Chapter 9](09-multiple-instances-of-the-same-type.md)).
-6. **It leaves the services alone.** `OrderService` asks for any `Arc<dyn PaymentGateway>`. Only the container says Stripe, by declaring `payments` as `Arc<StripeGateway>`, and Rust converts it when `new()` passes it in ([Chapter 10](10-choosing-an-implementation.md)). To switch providers, you change that field to another type that implements `PaymentGateway` and has a `connect` constructor taking the configuration. That is the whole change.
+4. **It checks the graph when the program compiles.** A name in `deps` that isn't a field, or two fields that need each other, stop the build with an error at the field. [Chapter 12](12-mistakes-caught-by-the-compiler.md) shows each one.
+5. **It names components by field, not by type.** `deps = [stock, payments]` names fields, so two fields of the same type, such as a read replica and a primary database, are two different components ([Chapter 9](09-multiple-instances-of-the-same-type.md)). When both go to the same constructor, a factory or a builder hands them over by name ([Chapter 10](10-passing-dependencies-by-name.md)).
+6. **It leaves the services alone.** `OrderService` asks for any `Arc<dyn PaymentGateway>`. Only the container says Stripe, by declaring `payments` as `Arc<StripeGateway>`, and Rust converts it when `new()` passes it in ([Chapter 11](11-choosing-an-implementation.md)). To switch providers, you change that field to another type that implements `PaymentGateway` and has a `connect` constructor taking the configuration. That is the whole change.
 7. **It writes plain Rust.** `new()` is the code you would have written in `AppState::build`, and a getter is a field access and a clone. Nothing is looked up while the program runs.
 
 ## Why not build it by hand, or use a locator?
@@ -90,19 +90,20 @@ Every problem we found in Part 1, and the chapter where you can see how `snapfit
 
 | Problem | How `snapfit` answers it | Where |
 | :--- | :--- | :--- |
-| Tight coupling | Services receive their dependencies; only the container names an implementation. | [Chapter 6](06-pure-domain-types.md), [Chapter 10](10-choosing-an-implementation.md) |
+| Tight coupling | Services receive their dependencies; only the container names an implementation. | [Chapter 6](06-pure-domain-types.md), [Chapter 11](11-choosing-an-implementation.md) |
 | Hard to test | A service is a plain struct: a test builds it with `new(...)` and fakes, without any container. | [Chapter 6](06-pure-domain-types.md) |
 | Duplicated resources | Every field is built once; for an `Arc` field, every getter call returns the same value. | [Chapter 5](05-installing-and-first-singleton.md) |
 | Mixed responsibilities | A service knows only its own arguments; the container knows how everything is built. | [Chapter 7](07-wiring-dependencies-and-constructors.md) |
-| A closed list | A new implementation is a new type named in one field; no service changes. | [Chapter 10](10-choosing-an-implementation.md) |
-| Spreading type parameters | The concrete type is named once, in a field's type, and services can take a trait object instead. | [Chapter 10](10-choosing-an-implementation.md) |
-| Someone still has to choose | The container chooses, once, in the types of its fields. | [Chapter 10](10-choosing-an-implementation.md) |
+| A closed list | A new implementation is a new type named in one field; no service changes. | [Chapter 11](11-choosing-an-implementation.md) |
+| Spreading type parameters | The concrete type is named once, in a field's type, and services can take a trait object instead. | [Chapter 11](11-choosing-an-implementation.md) |
+| Someone still has to choose | The container chooses, once, in the types of its fields. | [Chapter 11](11-choosing-an-implementation.md) |
 | Ordering by hand | `new()` works out the order from `deps`. | [Chapter 8](08-read-the-container-know-the-graph.md) |
 | Sharing by convention | There is one kind of field: built once, when the container is built. | [Chapter 5](05-installing-and-first-singleton.md) |
 | An invisible graph | The container struct is the graph, in one place. | [Chapter 8](08-read-the-container-know-the-graph.md) |
-| Run-time failures | Unknown names and cycles are compile errors. | [Chapter 11](11-mistakes-caught-by-the-compiler.md) |
+| Arguments by position | A factory receives its dependencies by name, and a builder takes them through setters named after them. | [Chapter 10](10-passing-dependencies-by-name.md) |
+| Run-time failures | Unknown names and cycles are compile errors. | [Chapter 12](12-mistakes-caught-by-the-compiler.md) |
 | One entry per type | Components are named by field. | [Chapter 9](09-multiple-instances-of-the-same-type.md) |
-| Hidden dependencies | Services never see the container, so they can't ask it for anything; each constructor lists what its service needs. | [Chapter 6](06-pure-domain-types.md), [Chapter 12](12-working-with-coding-agents.md) |
+| Hidden dependencies | Services never see the container, so they can't ask it for anything; each constructor lists what its service needs. | [Chapter 6](06-pure-domain-types.md), [Chapter 13](13-working-with-coding-agents.md) |
 
 ## Remember
 

@@ -7,28 +7,28 @@ More and more code is written together with AI coding agents. An agent works bes
 The shop wants to hold large orders for review before checkout. That's a new component, `FraudGuard`, which reads the limit from the configuration, and a change to `CheckoutService`, which asks the guard before approving an order. All three stay plain Rust:
 
 ```example
-name: ch12_agent_workflow
+name: ch13_agent_workflow
 region: domain_step
 ```
 
 Wiring the guard into the application is one new field in the container, and `guard` in the `deps` of `checkout`:
 
 ```example
-name: ch12_agent_workflow
+name: ch13_agent_workflow
 region: container
 ```
 
 Let's try a small order and a large one:
 
 ```example
-name: ch12_agent_workflow
+name: ch13_agent_workflow
 region: run
 ```
 
 It prints:
 
 ```output
-name: ch12_agent_workflow
+name: ch13_agent_workflow
 ```
 
 ## Two kinds of change, two places
@@ -50,6 +50,8 @@ You can copy this section into your project's `AGENTS.md`:
 1. **Zero Domain Pollution:** Domain structs, services, repositories, and controllers must remain 100% pure Rust with standard `pub fn new(...)` (or named) constructors. Never add `snapfit` attributes or framework traits to domain types.
 2. **Centralized Container Manifest:** Declare every singleton (`#[singleton]`) and dependency edge (`deps = [...]`) inside the `#[container]` struct.
 3. **Named Edges Over Wrapper Types:** When wiring multiple instances of the same type (such as `read_db` and `write_db`), declare separate named fields on the container rather than creating wrapper newtypes.
+4. **Same-Typed Dependencies by Name:** When a constructor takes two or more dependencies of the same type, build the field with `build = builder` or `build = factory`, never with positional `deps`, so a swapped pair cannot compile.
+5. **Logic Where It Belongs:** Logic about what a type is stays in its constructor or builder; logic about how the application is wired, such as choosing an implementation from configuration, goes in a factory next to the container.
 ```
 
 ## Which problem this solves

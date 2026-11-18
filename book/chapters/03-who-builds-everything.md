@@ -45,13 +45,15 @@ Our services are already written the right way. What is left to look at is the c
 
 ## Where it starts to hurt
 
-The compiler checks `AppState`, which is great: if we forget to pass something, the program doesn't build. But as the shop grows, three things start to hurt.
+The compiler checks `AppState`, which is great: if we forget to pass something, the program doesn't build. But as the shop grows, four things start to hurt.
 
 The first is the order. `build` has to open the database before it builds the stock service, because the stock service needs it. Today that is four lines and easy to see. When the database needs a configuration, and the configuration needs a secrets client, we reorder the lines ourselves, every time. It's like assembling a wardrobe without the instructions: you can do it, but you have to remember that the frame goes in before the doors. We order by hand.
 
 The second is sharing. The stock service is built once and shared. But look at `order_service()`: it builds a new `OrderService` every time it is called. From outside, both look the same, and only reading the code tells you which is which. What is shared and what is not is a convention that everybody has to remember.
 
 The third is the big picture. To learn what depends on what, you read every constructor call in `build`. Nothing shows the whole graph at once: it is there, but you can't see it.
+
+The fourth is quieter. Every constructor call in `build` passes its arguments by position. `OrderService::new` takes a stock service and then a gateway, and because those have different types, passing them the wrong way round doesn't compile. Now picture a constructor that takes two arguments of the same type, such as a database to read from and a database to write to. Swap them, and the compiler is perfectly happy, because both fit. It's like plugging the hot and the cold pipes of a shower into the wrong taps: they are the same size, everything connects, and you find out when you step in. The compiler checks types, not intentions.
 
 ## Another shape: the service locator
 
@@ -86,8 +88,9 @@ There is one more trap, and it's subtler. Once a service can reach the locator, 
 1. **Ordering by hand.** The composition root has to build every component after the ones it needs, and you keep that order yourself.
 2. **Sharing by convention.** Nothing in the code says which components are shared and which are built again each time; only reading it tells you.
 3. **An invisible graph.** What depends on what is spread over every constructor call, and nothing shows it in one place.
-4. **Run-time failures.** A service locator finds a missing or mistyped component only when the program asks for it, not when it compiles.
-5. **One entry per type.** A locator keyed by type keeps one component per type, so two databases need wrapper types to tell them apart.
-6. **Hidden dependencies.** A service that is handed the locator no longer says what it needs, and picks its own dependencies again.
+4. **Arguments by position.** Constructors receive their arguments in order, so two arguments of the same type can be swapped without the compiler noticing.
+5. **Run-time failures.** A service locator finds a missing or mistyped component only when the program asks for it, not when it compiles.
+6. **One entry per type.** A locator keyed by type keeps one component per type, so two databases need wrapper types to tell them apart.
+7. **Hidden dependencies.** A service that is handed the locator no longer says what it needs, and picks its own dependencies again.
 
 Building the composition root ourselves is the right idea. It is just tedious to write and easy to get wrong. The next chapter shows a composition root that you declare, and that the compiler writes and checks for you.
