@@ -31,17 +31,17 @@ jobs:
         run: |
           subjects=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PULL/commits" --paginate \
             --jq '.[] | select(.parents | length == 1) | .commit.message | sub("^\\s+"; "") | split("\n") | first')
-          files=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PULL/files" --paginate --jq '.[].filename')
+          files=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PULL/files" --paginate --jq '.[] | .filename, (.previous_filename // empty)')
           # Counted, never printed: a subject is the author's text, and a line
           # of the log starting with "::" would run as a workflow command.
           # grep -c exits 1 when it counts none; any other failure ends the step.
           others=$(printf '%s\n' "$subjects" | grep -c -v -E '^(test(\([^)]*\))?:|$)') || [ $? -eq 1 ]
-          manifests=$(printf '%s\n' "$files" | grep -c -E '(^|/)Cargo\.toml$') || [ $? -eq 1 ]
+          manifests=$(printf '%s\n' "$files" | grep -c -E '(^|/)Cargo\.(toml|lock)$') || [ $? -eq 1 ]
           if [ "$others" -gt 0 ] || [ "$manifests" -gt 0 ]; then
-            echo "Commits that are not tests: $others; Cargo.toml files changed: $manifests. So the description must name an issue."
+            echo "Commits that are not tests: $others; Cargo.toml or Cargo.lock files changed: $manifests. So the description must name an issue."
             echo "need-issue=true" >> "$GITHUB_OUTPUT"
           else
-            echo "Every commit is a test and no Cargo.toml changes, so no issue is needed."
+            echo "Every commit is a test and no Cargo.toml or Cargo.lock changes, so no issue is needed."
           fi
       - if: steps.commits.outputs.need-issue == 'true'
         uses: itinera-dev/actions/pr-has-issue@d49d88f6b15f4d4c344503e9e3304a449ee3ebe8 # v1.11.0
