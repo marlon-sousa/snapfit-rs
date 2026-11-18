@@ -115,12 +115,6 @@ fn a_labelled_dependency_reads_its_setter_and_its_field() {
     );
 }
 
-#[test]
-fn a_label_that_is_not_a_single_word_is_unreadable() {
-    let attr: syn::Attribute = parse_quote!(#[singleton(deps = [disk = a::b])]);
-
-    assert!(DependencyAttrMeta::from_attribute(&attr).is_err());
-}
 
 #[test]
 fn builder_reads_its_word_and_its_settings_as_written() {

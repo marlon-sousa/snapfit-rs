@@ -1,6 +1,7 @@
 //! Policy: what a declaration may not combine, whichever build of snapfit runs.
 
 use std::collections::HashSet;
+use std::iter;
 
 use crate::domain::{
     Construction, Constructor, ContainerDeclaration, DependencyDeclaration, DependencyName,
@@ -48,19 +49,15 @@ fn violations_of<F>(dependency: &DependencyDeclaration<F>) -> Vec<DomainError> {
 }
 
 fn setter_violations<F>(dependency: &DependencyDeclaration<F>) -> Vec<DomainError> {
-    let name = &dependency.name;
+    let name = iter::repeat(&dependency.name);
     match &dependency.construction {
-        Some(Construction::Builder(_)) => repeated_setters(&dependency.prerequisites)
-            .into_iter()
-            .map(|setter| DomainError::DuplicateSetter {
-                dependency: name.clone(),
-                setter,
-            })
+        Some(Construction::Builder(_)) => name
+            .zip(repeated_setters(&dependency.prerequisites))
+            .map(duplicate_setter)
             .collect(),
-        _ => dependency
-            .prerequisites
-            .iter()
-            .filter_map(|prerequisite| label_without_builder(name, prerequisite))
+        _ => name
+            .zip(&dependency.prerequisites)
+            .filter_map(label_without_builder)
             .collect(),
     }
 }
@@ -68,25 +65,45 @@ fn setter_violations<F>(dependency: &DependencyDeclaration<F>) -> Vec<DomainErro
 /// Each setter more than one prerequisite is passed to, once, in the order
 /// its second use comes.
 fn repeated_setters(prerequisites: &[Prerequisite]) -> Vec<SetterName> {
-    let mut seen = HashSet::new();
-    let mut reported = HashSet::new();
     prerequisites
         .iter()
         .map(Prerequisite::setter)
-        .filter(|setter| !seen.insert(setter.clone()) && reported.insert(setter.clone()))
-        .collect()
+        .fold(Setters::default(), Setters::with)
+        .repeated
+}
+
+/// The setters of a builder chain read so far.
+#[derive(Default)]
+struct Setters {
+    seen: HashSet<SetterName>,
+    repeated: Vec<SetterName>,
+}
+
+impl Setters {
+    fn with(mut self, setter: SetterName) -> Self {
+        if !self.seen.contains(&setter) {
+            self.seen.insert(setter);
+        } else if !self.repeated.contains(&setter) {
+            self.repeated.push(setter);
+        }
+        self
+    }
+}
+
+fn duplicate_setter((dependency, setter): (&DependencyName, SetterName)) -> DomainError {
+    DomainError::DuplicateSetter {
+        dependency: dependency.clone(),
+        setter,
+    }
 }
 
 fn label_without_builder(
-    dependency: &DependencyName,
-    prerequisite: &Prerequisite,
+    (dependency, prerequisite): (&DependencyName, &Prerequisite),
 ) -> Option<DomainError> {
-    prerequisite
-        .label
-        .clone()
-        .map(|label| DomainError::LabelWithoutBuilder {
-            dependency: dependency.clone(),
-            label,
-            field: prerequisite.field.clone(),
-        })
+    let label = prerequisite.label.clone()?;
+    Some(DomainError::LabelWithoutBuilder {
+        dependency: dependency.clone(),
+        label,
+        field: prerequisite.field.clone(),
+    })
 }

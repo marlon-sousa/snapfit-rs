@@ -23,10 +23,8 @@ fn every_kind_of_name_refuses_blank_text() {
 }
 
 #[test]
-fn a_name_keeps_its_text_as_another_kind() {
+fn a_dependency_names_the_setter_of_its_own_name() {
     let field = DependencyName::new("disk").unwrap();
 
-    let setter: SetterName = field.as_kind();
-
-    assert_eq!(setter.as_str(), "disk");
+    assert_eq!(field.as_setter().as_str(), "disk");
 }

@@ -1,4 +1,5 @@
 use super::*;
+use crate::test_support::labelled;
 
 #[test]
 fn a_declared_dependency_starts_as_a_synchronous_singleton_with_no_build_of_its_own() {
@@ -26,10 +27,8 @@ fn a_declared_container_leaves_its_mode_to_its_dependencies() {
 #[test]
 fn a_prerequisite_is_passed_to_the_setter_its_label_names_or_to_its_own() {
     let field = DependencyName::new("folder_files").unwrap();
-    let bare = Prerequisite::new(field.clone());
-    let mut labelled = Prerequisite::new(field);
-    labelled.label = Some(SetterName::new("disk").unwrap());
+    let bare = Prerequisite::new(field);
 
     assert_eq!(bare.setter().as_str(), "folder_files");
-    assert_eq!(labelled.setter().as_str(), "disk");
+    assert_eq!(labelled("folder_files", "disk").setter().as_str(), "disk");
 }

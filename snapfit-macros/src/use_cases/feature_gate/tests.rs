@@ -1,9 +1,8 @@
 use super::*;
 use crate::domain::{
-    BuilderMethods, Construction, Constructor, EnumDispatch, FunctionName, Introspection,
-    Lifecycle, TypeName,
+    Construction, Constructor, EnumDispatch, FunctionName, Introspection, Lifecycle, TypeName,
 };
-use crate::test_support::{container, dependency, prerequisites};
+use crate::test_support::{builder, container, dependency, prerequisites};
 
 fn features(errors: &[DomainError]) -> Vec<String> {
     errors.iter().map(ToString::to_string).collect()
@@ -121,13 +120,6 @@ fn an_async_factory_is_planned_on_every_build() {
             unstable("async dependency 'db'"),
         ]
     );
-}
-
-fn builder() -> Construction {
-    Construction::Builder(BuilderMethods::new(
-        FunctionName::new("builder").unwrap(),
-        FunctionName::new("build").unwrap(),
-    ))
 }
 
 #[test]

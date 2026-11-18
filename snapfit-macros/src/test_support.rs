@@ -1,8 +1,8 @@
 //! Test support: the names and declarations that the tests of several modules build.
 
 use crate::domain::{
-    ContainerDeclaration, ContainerName, DependencyDeclaration, DependencyName, DomainError,
-    Prerequisite,
+    BuilderMethods, Construction, ContainerDeclaration, ContainerName, DependencyDeclaration,
+    DependencyName, DomainError, FunctionName, Prerequisite, SetterName,
 };
 
 pub(crate) fn name(text: &str) -> DependencyName {
@@ -19,6 +19,27 @@ pub(crate) fn cycle(start: &str, through: &[&str]) -> DomainError {
 
 pub(crate) fn names(texts: &[&str]) -> Vec<DependencyName> {
     texts.iter().copied().map(name).collect()
+}
+
+/// `field` passed to the builder setter `label`, as `deps = [label = field]` says.
+pub(crate) fn labelled(field: &str, label: &str) -> Prerequisite {
+    Prerequisite {
+        field: name(field),
+        label: Some(SetterName::new(label).unwrap()),
+    }
+}
+
+/// The functions of `build = builder` with no settings.
+pub(crate) fn builder_methods() -> BuilderMethods {
+    BuilderMethods::new(
+        FunctionName::new("builder").unwrap(),
+        FunctionName::new("build").unwrap(),
+    )
+}
+
+/// `build = builder` with no settings.
+pub(crate) fn builder() -> Construction {
+    Construction::Builder(builder_methods())
 }
 
 /// Siblings written alone in `deps`, without labels.

@@ -66,6 +66,17 @@ pub(crate) type TypeName = Name<Type>;
 /// A method of a builder that takes one dependency.
 pub(crate) type SetterName = Name<Setter>;
 
+impl DependencyName {
+    /// The builder setter of the same name, which takes this dependency when
+    /// no label names another.
+    pub(crate) fn as_setter(&self) -> SetterName {
+        Name {
+            text: self.text.clone(),
+            kind: PhantomData,
+        }
+    }
+}
+
 impl<K: NameKind> Name<K> {
     pub(crate) fn new(text: impl Into<String>) -> Result<Self, DomainError> {
         let text = text.into();
@@ -80,14 +91,6 @@ impl<K: NameKind> Name<K> {
 
     pub(crate) fn as_str(&self) -> &str {
         &self.text
-    }
-
-    /// The same text naming another kind of thing, which is never blank either.
-    pub(crate) fn as_kind<L: NameKind>(&self) -> Name<L> {
-        Name {
-            text: self.text.clone(),
-            kind: PhantomData,
-        }
     }
 
     /// The name without the `r#` of a raw identifier, as generated names spell it.

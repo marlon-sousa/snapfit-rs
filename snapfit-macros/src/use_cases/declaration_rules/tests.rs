@@ -1,6 +1,6 @@
 use super::*;
-use crate::domain::{BuilderMethods, DependencyName, Execution, FunctionName, Lifecycle};
-use crate::test_support::{container, dependency};
+use crate::domain::{DependencyName, Execution, Lifecycle, SetterName};
+use crate::test_support::{builder, container, dependency, labelled};
 
 fn transient(name: &str, execution: Execution) -> DependencyDeclaration<()> {
     let mut dependency = dependency(name, &[]);
@@ -64,20 +64,6 @@ fn default_on_an_async_dependency_is_refused() {
             dependency: DependencyName::new("rates").unwrap()
         }]
     );
-}
-
-fn labelled(field: &str, label: &str) -> Prerequisite {
-    Prerequisite {
-        field: DependencyName::new(field).unwrap(),
-        label: Some(SetterName::new(label).unwrap()),
-    }
-}
-
-fn builder() -> Construction {
-    Construction::Builder(BuilderMethods::new(
-        FunctionName::new("builder").unwrap(),
-        FunctionName::new("build").unwrap(),
-    ))
 }
 
 #[test]

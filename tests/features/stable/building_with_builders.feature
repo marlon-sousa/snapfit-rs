@@ -45,3 +45,4 @@ Feature: Building a field with its type's builder
     Given an invalid container fixture "builder_missing_setter"
     When the fixture is compiled
     Then compilation should fail with "was not set"
+    And the error should point at line 22 of the fixture

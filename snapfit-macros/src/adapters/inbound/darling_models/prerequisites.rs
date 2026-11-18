@@ -80,7 +80,7 @@ impl PrerequisiteMeta {
                 name: name.to_string(),
             }),
             _ => Err(darling::Error::custom(
-                "expected 'setter = dependency', each a single identifier",
+                "a labelled dependency is written setter = field, each a single name, such as disk = folder_files",
             )),
         }
     }

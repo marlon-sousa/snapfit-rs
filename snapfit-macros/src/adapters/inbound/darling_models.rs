@@ -4,16 +4,16 @@ use darling::FromMeta;
 use darling::ast::NestedMeta;
 use proc_macro2::{Ident, TokenStream, TokenTree};
 use quote::quote;
-use syn::Token;
-use syn::punctuated::Punctuated;
 
 use super::type_inspector::compact_type_tokens;
 use crate::domain::AttributeProblem;
 
+mod build_meta;
 mod prerequisites;
 #[cfg(test)]
 mod tests;
 
+pub(super) use build_meta::{BuildMeta, FunctionNameMeta, single_word};
 pub(super) use prerequisites::{PrerequisiteList, PrerequisiteMeta};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, FromMeta)]
@@ -68,96 +68,6 @@ pub(super) struct DependencyAttrMeta {
     pub(super) is_async: bool,
     #[darling(default)]
     pub(super) build: Option<BuildMeta>,
-}
-
-/// The value of `build = ...` or `leaf_build = ...` as the user wrote it: a
-/// bare word, `constructor(...)`, or `builder(...)`, which is refused as
-/// planned whatever its arguments. Every other shape is turned into an error when it is read.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) enum BuildMeta {
-    Word(syn::Ident),
-    /// `builder(...)`: the word, for the span of its default functions, and
-    /// its settings as written.
-    Builder {
-        word: syn::Ident,
-        settings: Vec<syn::Expr>,
-    },
-    Constructor(FunctionNameMeta),
-    Quoted(String),
-    Invalid(String),
-}
-
-impl FromMeta for BuildMeta {
-    fn from_expr(expr: &syn::Expr) -> darling::Result<Self> {
-        Ok(match expr {
-            syn::Expr::Path(path) if path.qself.is_none() => path.path.get_ident().map_or_else(
-                || Self::Invalid(quote!(#path).to_string()),
-                |ident| Self::Word(ident.clone()),
-            ),
-            syn::Expr::Call(call) => Self::from_call(call),
-            syn::Expr::Lit(syn::ExprLit {
-                lit: syn::Lit::Str(text),
-                ..
-            }) => Self::Quoted(text.value()),
-            other => Self::Invalid(quote!(#other).to_string()),
-        })
-    }
-}
-
-impl BuildMeta {
-    /// `constructor(...)` or `builder(...)`; any other call is not a build.
-    fn from_call(call: &syn::ExprCall) -> Self {
-        match single_word(&call.func) {
-            Some(word) if word == "constructor" => {
-                Self::Constructor(FunctionNameMeta::from_arguments(&call.args))
-            }
-            Some(word) if word == "builder" => Self::Builder {
-                word: word.clone(),
-                settings: call.args.iter().cloned().collect(),
-            },
-            _ => Self::Invalid(quote!(#call).to_string()),
-        }
-    }
-}
-
-/// The expression as a single word, such as the function a call names.
-pub(super) fn single_word(func: &syn::Expr) -> Option<&syn::Ident> {
-    match func {
-        syn::Expr::Path(path) if path.qself.is_none() => path.path.get_ident(),
-        _ => None,
-    }
-}
-
-/// The argument of `constructor(...)`, with its span. Only one bare function
-/// name (`constructor(connect)`) is accepted.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) enum FunctionNameMeta {
-    Bare(syn::Ident),
-    Quoted(String),
-    Invalid(String),
-}
-
-impl FunctionNameMeta {
-    fn from_arguments(args: &Punctuated<syn::Expr, Token![,]>) -> Self {
-        match (args.first(), args.len()) {
-            (Some(argument), 1) => Self::from_argument(argument),
-            _ => Self::Invalid(quote!(#args).to_string()),
-        }
-    }
-
-    fn from_argument(expr: &syn::Expr) -> Self {
-        match expr {
-            syn::Expr::Path(path) if path.qself.is_none() => path.path.get_ident().map_or_else(
-                || Self::Invalid(quote!(#path).to_string()),
-                |ident| Self::Bare(ident.clone()),
-            ),
-            syn::Expr::Lit(syn::ExprLit {
-                lit: syn::Lit::Str(text),
-                ..
-            }) => Self::Quoted(text.value()),
-            other => Self::Invalid(quote!(#other).to_string()),
-        }
-    }
 }
 
 impl DependencyAttrMeta {

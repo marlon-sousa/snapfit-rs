@@ -175,7 +175,7 @@ fn a_container_without_factories_generates_no_factories_trait() {
 }
 
 #[test]
-fn a_builder_field_is_built_by_its_setters_and_a_misplaced_label_is_refused() {
+fn a_label_is_refused_on_a_field_not_built_by_a_builder_beside_one_that_is() {
     let built = expand_attribute(
         quote!(),
         quote! {

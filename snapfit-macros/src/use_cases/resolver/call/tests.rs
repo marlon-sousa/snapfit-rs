@@ -1,8 +1,6 @@
 use super::*;
-use crate::domain::{
-    BuilderMethods, Constructor, DependencyName, EnumDispatch, Execution, FunctionName,
-    Prerequisite, TypeName,
-};
+use crate::domain::{Constructor, DependencyName, EnumDispatch, Execution, Prerequisite, TypeName};
+use crate::test_support::{builder, builder_methods};
 
 fn dependency(shape: TypeShape, construction: Option<Construction>) -> DependencyDeclaration<()> {
     let mut dependency = DependencyDeclaration::new(DependencyName::new("store").unwrap(), ());
@@ -100,24 +98,17 @@ fn leaf_build_leaves_an_async_leaf_to_its_own_constructor() {
     );
 }
 
-fn builder() -> BuilderMethods {
-    BuilderMethods::new(
-        FunctionName::new("builder").unwrap(),
-        FunctionName::new("build").unwrap(),
-    )
-}
-
 #[test]
 fn a_builder_belongs_to_the_inner_type_of_an_arc_and_its_value_is_wrapped() {
     let call = call_for(
-        &dependency(TypeShape::Arc, Some(Construction::Builder(builder()))),
+        &dependency(TypeShape::Arc, Some(builder())),
         &Constructor::New,
     );
 
     assert_eq!(
         call,
         Ok(Call::Builder {
-            methods: builder(),
+            methods: builder_methods(),
             wrapping: Wrapping::Arc,
         })
     );
@@ -128,7 +119,7 @@ fn a_trait_object_built_by_a_builder_is_refused_pointing_to_a_factory() {
     let call = call_for(
         &dependency(
             TypeShape::TraitObject,
-            Some(Construction::Builder(builder())),
+            Some(builder()),
         ),
         &Constructor::New,
     );

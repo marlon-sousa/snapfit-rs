@@ -62,7 +62,7 @@ pub(crate) struct Prerequisite {
 impl Prerequisite {
     /// The builder setter that takes this value: its label, or the field's name.
     pub(crate) fn setter(&self) -> SetterName {
-        self.label.clone().unwrap_or_else(|| self.field.as_kind())
+        self.label.clone().unwrap_or_else(|| self.field.as_setter())
     }
 }
 

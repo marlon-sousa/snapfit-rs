@@ -152,7 +152,11 @@ fn written_function(function: &FunctionNameMeta) -> String {
 fn written_settings(settings: &[syn::Expr]) -> String {
     settings
         .iter()
-        .map(|setting| setting.to_token_stream().to_string())
+        .map(written_setting)
         .collect::<Vec<_>>()
         .join(", ")
+}
+
+fn written_setting(setting: &syn::Expr) -> String {
+    setting.to_token_stream().to_string()
 }

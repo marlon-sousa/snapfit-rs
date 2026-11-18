@@ -106,3 +106,16 @@ fn a_conditional_field_is_refused_together_with_its_attribute_errors() {
             .contains("cannot use #[cfg] or #[cfg_attr]")
     );
 }
+
+#[test]
+fn a_label_that_is_not_a_single_name_is_refused_with_how_to_write_one() {
+    let field: syn::Field = parse_quote! {
+        #[singleton(deps = [disk = files::folder], build = builder)]
+        writer: Arc<SiteWriter>
+    };
+
+    assert_eq!(
+        message(&field),
+        "field 'writer': a labelled dependency is written setter = field, each a single name, such as disk = folder_files at deps"
+    );
+}

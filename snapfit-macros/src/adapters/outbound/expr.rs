@@ -103,24 +103,21 @@ fn target(field: &FieldSyntax, wrapping: Wrapping) -> &syn::Type {
 
 /// `<T>::builder().disk(...).memory(...).build()`, each name with the user's
 /// own token: the setter's label or `deps` entry, and the start and finish of
-/// `builder(...)`, or the `builder` word for the ones left out.
+/// `builder(...)`, or the `builder` word for the ones left out. The chain
+/// itself is spanned at the finish, where a typestate builder reports a
+/// setter left out.
 fn builder_call(
     target: &syn::Type,
     methods: &BuilderMethods,
     field: &FieldSyntax,
     args: impl Iterator<Item = TokenStream>,
 ) -> TokenStream {
-    let (start, finish) = field.builder.as_ref().map_or_else(
-        || {
-            (
-                function_ident(&methods.start),
-                function_ident(&methods.finish),
-            )
-        },
-        |builder| (builder.start.clone(), builder.finish.clone()),
-    );
+    let (start, finish) = match &field.builder {
+        Some(builder) => (builder.start.clone(), builder.finish.clone()),
+        None => (function_ident(&methods.start), function_ident(&methods.finish)),
+    };
     let setters = &field.setters;
-    quote!(<#target>::#start()#(.#setters(#args))*.#finish())
+    quote_spanned!(finish.span()=> <#target>::#start()#(.#setters(#args))*.#finish())
 }
 
 /// `<T>::new(...)`, `<T as Default>::default()`, or `<T>::connect(...)` with

@@ -153,7 +153,7 @@ The settings are the arguments of the one `#[container(...)]` that declares the 
 | **`#[singleton(deps = [a, b])]`** | **Singleton (With Dependencies)** | Stored in container struct. Created at boot passing dependencies in order. |
 | **`#[transient]`** | **Transient** | **Stripped from struct memory storage.** Reconstructed on each `get_<name>()`. |
 | **`#[transient(deps = [a])]`** | **Transient (With Dependencies)** | **Stripped from struct memory storage.** Reconstructed on each `get_<name>()` passing `a`. |
-| **`#[singleton(deps = [...], build = ...)]`** | **Singleton (Built Another Way)** | Stored in container struct. Built once at boot by `Default::default()`, a named constructor, a factory, or a builder once implemented (§5). |
+| **`#[singleton(deps = [...], build = ...)]`** | **Singleton (Built Another Way)** | Stored in container struct. Built once at boot by `Default::default()`, a named constructor, a factory, or a builder (§5). |
 | **`#[singleton(deps = [...], build = factory)]`** | **Factory** | Stored in container struct. Built once at boot by the user's `build_<name>` method of the generated `<ContainerName>Factories` trait. |
 | **`#[dispatch(ImplA, ImplB)]`** | **Static Trait (Planned)** | Auto-generates `enum_dispatch` and **rewrites the struct field type** to the enum. |
 | **`#[external]`** | **External Input (Planned)** | Passed as a parameter to `new(...)` / `init(...)` and exposed as a wireable leaf node in the DAG. |
@@ -330,7 +330,7 @@ pub struct Shop {
 
 * **One setter per dependency:** `deps = [read_db, write_db]` calls `.read_db(...)` and `.write_db(...)`, each with a clone of the singleton, or a fresh transient (unstable).
 * **Labels rename a setter:** `deps = [disk = folder_files]` calls `.disk(...)` with `folder_files`. A label is accepted only with `build = builder`; on any other field it is refused at the field, because a constructor or a factory has no setters to name.
-* **Start and finish:** the chain starts with `Type::builder()` and ends with `.build()`, which must return the value itself. `build = builder(start = new_builder, finish = done)` names other functions for a builder that uses them; either can be given alone. Each takes a bare function name, like `constructor(...)`, and any other setting or value inside `builder(...)` is refused at the field.
+* **Start and finish:** the chain starts with `Type::builder()` and ends with `.build()`, which must return the value itself. `build = builder(start = new_builder, finish = done)` names other functions for a builder that uses them; either can be given alone. Each takes a bare function name, like `constructor(...)`, once; any other setting or value inside `builder(...)`, and a setting given twice, is refused at the field.
 * **Every name is the user's own token:** the setters, the start and the finish are written with the tokens of the attribute (the label, or the `deps` entry when there is none, and the `start`, `finish` or `builder` word), so that rustc's errors about them point inside the attribute and an editor completing there sees the builder's real methods.
 * **The compiler checks the rest:** an unknown or misspelt setter is rustc's own error. A missing or repeated setter is a compile error only with a typestate builder, such as those `bon` and `typed-builder` generate; a hand-written builder decides for itself what a missing setter means.
 * **One setter, one entry:** two `deps` entries that call the same setter, such as `[disk = folder_files, disk]`, are refused at the field, naming the setter.
