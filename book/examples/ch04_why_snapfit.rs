@@ -106,10 +106,10 @@ pub struct ShopContainer {
     #[singleton]
     config: Arc<ShopConfig>,
 
-    #[singleton(deps = [config], constructor = open)]
+    #[singleton(deps = [config], build = constructor(open))]
     db: Arc<Database>,
 
-    #[singleton(deps = [config], constructor = connect)]
+    #[singleton(deps = [config], build = constructor(connect))]
     payments: Arc<StripeGateway>,
 
     #[singleton(deps = [db])]

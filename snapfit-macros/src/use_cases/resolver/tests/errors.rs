@@ -102,7 +102,7 @@ fn a_duplicate_name_is_reported_and_the_first_declaration_kept() {
 }
 
 #[test]
-fn a_trait_object_without_a_builder_is_reported_beside_graph_errors() {
+fn a_trait_object_without_a_factory_is_reported_beside_graph_errors() {
     let mut store = dependency("store", &[]);
     store.shape = TypeShape::TraitObject;
 
@@ -110,7 +110,7 @@ fn a_trait_object_without_a_builder_is_reported_beside_graph_errors() {
 
     assert!(matches!(
         errors[0],
-        DomainError::TraitObjectNeedsConcreteType { .. }
+        DomainError::TraitObjectWithoutFactory { .. }
     ));
     assert!(matches!(errors[1], DomainError::DependencyCycle { .. }));
 }

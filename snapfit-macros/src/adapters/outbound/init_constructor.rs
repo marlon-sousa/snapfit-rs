@@ -3,7 +3,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 
-use super::expr::{ValueSource, construct, local_ident};
+use super::expr::{Site, ValueSource, construct, local_ident};
 use crate::adapters::syntax::{FieldSyntax, Plan};
 use crate::domain::{Execution, Step};
 
@@ -60,7 +60,11 @@ fn emit_async_init_impl(plan: &Plan) -> TokenStream {
 
 /// Binds every singleton in construction order, then assembles `Self`.
 fn emit_construction_body(plan: &Plan) -> TokenStream {
-    let bindings = plan.singletons().map(binding);
+    let site = Site {
+        container: &plan.syntax,
+        source: ValueSource::Locals,
+    };
+    let bindings = plan.singletons().map(|step| binding(step, site));
     let field_inits = plan.singletons().map(field_init);
 
     quote! {
@@ -72,10 +76,10 @@ fn emit_construction_body(plan: &Plan) -> TokenStream {
 }
 
 /// `let __snapfit_db: Arc<Database> = ...;`
-fn binding(step: &Step<FieldSyntax>) -> TokenStream {
+fn binding(step: &Step<FieldSyntax>, site: Site<'_>) -> TokenStream {
     let local = local_ident(&step.syntax.ident);
     let ty = &step.syntax.ty;
-    let value = construct(step, ValueSource::Locals);
+    let value = construct(step, site);
     quote!(let #local: #ty = #value;)
 }
 

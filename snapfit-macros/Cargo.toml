@@ -19,9 +19,10 @@ workspace = true
 proc-macro = true
 
 [dependencies]
-darling = "0.20"
+darling = "0.21.3"
 derive-new = { workspace = true }
 derive_more = { workspace = true }
+heck = "0.5"
 proc-macro2 = "1.0"
 quote = "1.0"
 strum = { workspace = true }
@@ -29,6 +30,6 @@ syn = { version = "2.0", features = ["full", "extra-traits"] }
 thiserror = { workspace = true }
 
 [features]
-# Enables APIs whose shape is not settled for 0.1.0: async containers,
-# transient dependencies and custom builders. Enable it through `snapfit`.
+# Enables APIs whose shape is not settled for 0.1.0: async containers and
+# transient dependencies. Enable it through `snapfit`.
 unstable = []

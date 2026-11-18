@@ -20,7 +20,7 @@ snapfit-macros = { workspace = true }
 
 [features]
 # Opt in to APIs whose shape may still change before they are stabilised:
-# async containers (`mode = "async"`, `#[singleton(async)]`, `init().await`),
-# transient dependencies (`#[transient]`) and custom builders (`builder = <fn>`).
+# async containers (`mode = "async"`, `#[singleton(async)]`, `init().await`)
+# and transient dependencies (`#[transient]`).
 # docs.rs documents the default build only, the stable API the book teaches.
 unstable = ["snapfit-macros/unstable"]

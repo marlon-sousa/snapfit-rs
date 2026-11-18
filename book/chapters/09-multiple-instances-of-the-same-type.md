@@ -39,6 +39,30 @@ Remember the service locator of [Chapter 3](03-who-builds-everything.md), which 
 2. **`deps` passes them in order.** Because `order_store` lists `deps = [read_db, write_db]`, `ShopContainer::new()` calls `CqrsOrderStore::new` with a clone of `read_db` first and a clone of `write_db` second.
 3. **Each one has its own getter.** The container generates `get_read_db()` and `get_write_db()`, both returning an `Arc<Database>`, each pointing to its own database.
 
+## What if we swap the names?
+
+Point 2 deserves a second look. `deps` passes the databases in the order it lists them, and both have the same type. So what happens if someone, one busy afternoon, writes the names the other way round? Let's try it:
+
+```example
+name: ch09_swapped_deps
+region: container
+```
+
+Let's run it:
+
+```example
+name: ch09_swapped_deps
+region: run
+```
+
+It compiles without a single warning, and it prints:
+
+```output
+name: ch09_swapped_deps
+```
+
+Reads now go to the primary, and writes go to the replica. That's the problem we called **arguments by position** in [Chapter 3](03-who-builds-everything.md). Naming components by field fixed the locator's problem, but a constructor still receives its arguments in order, and the compiler checks their types, not which one we meant. The next chapter shows two ways to pass dependencies by name, so that their order no longer matters.
+
 ## Which problem this solves
 
 1. **One entry per type** ([Chapter 3](03-who-builds-everything.md)): `read_db` and `write_db` have the same type and are still two components, because `snapfit` names components by field. No wrapper type is needed to tell them apart.
@@ -46,4 +70,4 @@ Remember the service locator of [Chapter 3](03-who-builds-everything.md), which 
 ## Remember
 
 1. A container can hold as many fields of the same type as your application needs.
-2. When a constructor takes several arguments of the same type, check the order of the names in `deps`: the compiler can't tell a swapped pair apart.
+2. When a constructor takes several arguments of the same type, the order of the names in `deps` is the only thing that tells them apart, and the compiler can't catch a swapped pair. [Chapter 10](10-passing-dependencies-by-name.md) passes them by name instead.

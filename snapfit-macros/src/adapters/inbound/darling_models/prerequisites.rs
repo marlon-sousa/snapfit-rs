@@ -6,6 +6,7 @@ use quote::quote;
 use strum::EnumIs;
 
 use super::super::type_inspector::compact_type_tokens;
+use super::single_word;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub(in crate::adapters::inbound) struct PrerequisiteList(
@@ -15,8 +16,15 @@ pub(in crate::adapters::inbound) struct PrerequisiteList(
 /// One entry of `deps = [...]`.
 #[derive(EnumIs, Debug, Clone, PartialEq, Eq)]
 pub(in crate::adapters::inbound) enum PrerequisiteMeta {
-    /// Another field of the same container.
-    Sibling(String),
+    /// Another field of the same container, with the word it is written as,
+    /// with its span, when it is one.
+    Sibling {
+        name: String,
+        word: Option<syn::Ident>,
+    },
+    /// `label = name`: another field of the same container, passed to the
+    /// builder setter `label`.
+    Labelled { label: syn::Ident, name: String },
     /// `parent(name)`, a dependency of the parent container.
     Parent(String),
 }
@@ -46,7 +54,34 @@ impl FromMeta for PrerequisiteList {
 impl PrerequisiteMeta {
     pub(in crate::adapters::inbound) fn into_name(self) -> String {
         match self {
-            Self::Sibling(name) | Self::Parent(name) => name,
+            Self::Sibling { name, .. } | Self::Labelled { name, .. } | Self::Parent(name) => name,
+        }
+    }
+
+    fn sibling(path: &syn::Path) -> Self {
+        Self::Sibling {
+            name: compact_type_tokens(quote!(#path)),
+            word: path.get_ident().cloned(),
+        }
+    }
+
+    fn quoted_sibling(lit: &syn::LitStr) -> Self {
+        Self::Sibling {
+            name: lit.value(),
+            word: lit.parse().ok(),
+        }
+    }
+
+    /// `label = name`, both single words.
+    fn labelled(label: Option<&syn::Ident>, name: Option<&syn::Ident>) -> darling::Result<Self> {
+        match (label, name) {
+            (Some(label), Some(name)) => Ok(Self::Labelled {
+                label: label.clone(),
+                name: name.to_string(),
+            }),
+            _ => Err(darling::Error::custom(
+                "a labelled dependency is written setter = field, each a single name, such as disk = folder_files",
+            )),
         }
     }
 }
@@ -54,13 +89,14 @@ impl PrerequisiteMeta {
 impl PrerequisiteList {
     fn parse_prereq_expr(expr: &syn::Expr) -> darling::Result<PrerequisiteMeta> {
         match expr {
-            syn::Expr::Path(path) => Ok(PrerequisiteMeta::Sibling(compact_type_tokens(
-                quote!(#path),
-            ))),
+            syn::Expr::Path(path) => Ok(PrerequisiteMeta::sibling(&path.path)),
             syn::Expr::Lit(syn::ExprLit {
                 lit: syn::Lit::Str(lit),
                 ..
-            }) => Ok(PrerequisiteMeta::Sibling(lit.value())),
+            }) => Ok(PrerequisiteMeta::quoted_sibling(lit)),
+            syn::Expr::Assign(assign) => {
+                PrerequisiteMeta::labelled(single_word(&assign.left), single_word(&assign.right))
+            }
             syn::Expr::Call(call) => Self::parse_parent_call(call),
             _ => Err(darling::Error::unexpected_expr_type(expr)),
         }
@@ -87,10 +123,11 @@ impl PrerequisiteList {
 
     fn parse_nested_prereq(item: &NestedMeta) -> darling::Result<PrerequisiteMeta> {
         match item {
-            NestedMeta::Meta(syn::Meta::Path(path)) => Ok(PrerequisiteMeta::Sibling(
-                compact_type_tokens(quote!(#path)),
-            )),
-            NestedMeta::Lit(syn::Lit::Str(lit)) => Ok(PrerequisiteMeta::Sibling(lit.value())),
+            NestedMeta::Meta(syn::Meta::Path(path)) => Ok(PrerequisiteMeta::sibling(path)),
+            NestedMeta::Meta(syn::Meta::NameValue(pair)) => {
+                PrerequisiteMeta::labelled(pair.path.get_ident(), single_word(&pair.value))
+            }
+            NestedMeta::Lit(syn::Lit::Str(lit)) => Ok(PrerequisiteMeta::quoted_sibling(lit)),
             _ => Err(darling::Error::unexpected_type("prerequisite identifier")),
         }
     }

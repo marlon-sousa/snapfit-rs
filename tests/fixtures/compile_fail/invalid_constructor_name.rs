@@ -9,6 +9,6 @@ pub struct AppContainer {
     #[singleton]
     config: Arc<Config>,
 
-    #[singleton(deps = [config], constructor = "connect()")]
+    #[singleton(deps = [config], build = constructor("connect()"))]
     db: Arc<Database>,
 }

@@ -16,7 +16,7 @@ pub(crate) fn plan_container<C, F>(
     refusals.extend(rule_violations(&container));
     let checked = DomainErrors::check(refusals);
     let execution = container_execution(&container);
-    let steps = resolve(container, gate);
+    let steps = resolve(container);
     let ((_, execution), steps) =
         DomainErrors::both(DomainErrors::both(checked, execution), steps)?;
     Ok(steps.into_plan(execution))

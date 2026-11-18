@@ -1,7 +1,8 @@
 //! Test support: the names and declarations that the tests of several modules build.
 
 use crate::domain::{
-    ContainerDeclaration, ContainerName, DependencyDeclaration, DependencyName, DomainError,
+    BuilderMethods, Construction, ContainerDeclaration, ContainerName, DependencyDeclaration,
+    DependencyName, DomainError, FunctionName, Prerequisite, SetterName,
 };
 
 pub(crate) fn name(text: &str) -> DependencyName {
@@ -20,6 +21,32 @@ pub(crate) fn names(texts: &[&str]) -> Vec<DependencyName> {
     texts.iter().copied().map(name).collect()
 }
 
+/// `field` passed to the builder setter `label`, as `deps = [label = field]` says.
+pub(crate) fn labelled(field: &str, label: &str) -> Prerequisite {
+    Prerequisite {
+        field: name(field),
+        label: Some(SetterName::new(label).unwrap()),
+    }
+}
+
+/// The functions of `build = builder` with no settings.
+pub(crate) fn builder_methods() -> BuilderMethods {
+    BuilderMethods::new(
+        FunctionName::new("builder").unwrap(),
+        FunctionName::new("build").unwrap(),
+    )
+}
+
+/// `build = builder` with no settings.
+pub(crate) fn builder() -> Construction {
+    Construction::Builder(builder_methods())
+}
+
+/// Siblings written alone in `deps`, without labels.
+pub(crate) fn prerequisites(texts: &[&str]) -> Vec<Prerequisite> {
+    names(texts).into_iter().map(Prerequisite::new).collect()
+}
+
 /// A singleton built with `new`, needing `prerequisites`.
 pub(crate) fn dependency(text: &str, prerequisites: &[&str]) -> DependencyDeclaration<()> {
     dependency_with(text, prerequisites, ())
@@ -31,7 +58,7 @@ pub(crate) fn dependency_with<F>(
     syntax: F,
 ) -> DependencyDeclaration<F> {
     let mut dependency = DependencyDeclaration::new(name(text), syntax);
-    dependency.prerequisites = names(prerequisites);
+    dependency.prerequisites = self::prerequisites(prerequisites);
     dependency
 }
 

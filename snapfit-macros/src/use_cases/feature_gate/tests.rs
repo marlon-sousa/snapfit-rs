@@ -1,6 +1,8 @@
 use super::*;
-use crate::domain::{Constructor, EnumDispatch, FunctionName, Introspection, Lifecycle, TypeName};
-use crate::test_support::{container, dependency};
+use crate::domain::{
+    Construction, Constructor, EnumDispatch, FunctionName, Introspection, Lifecycle, TypeName,
+};
+use crate::test_support::{builder, container, dependency, prerequisites};
 
 fn features(errors: &[DomainError]) -> Vec<String> {
     errors.iter().map(ToString::to_string).collect()
@@ -19,9 +21,10 @@ fn planned(feature: &str) -> String {
 #[test]
 fn stable_singletons_pass_both_gates() {
     let mut db = dependency("db", &[]);
-    db.prerequisites = vec![DependencyName::new("config").unwrap()];
-    db.construction =
-        Construction::Constructor(Constructor::Named(FunctionName::new("connect").unwrap()));
+    db.prerequisites = prerequisites(&["config"]);
+    db.construction = Some(Construction::Constructor(Constructor::Named(
+        FunctionName::new("connect").unwrap(),
+    )));
     let container = container(vec![dependency("config", &[]), db]);
 
     assert!(FeatureGate::Stable.refusals(&container).is_empty());
@@ -34,7 +37,6 @@ fn a_stable_build_reports_every_unstable_feature_in_declaration_order() {
     db.execution = Execution::Async;
     let mut cart = dependency("cart", &[]);
     cart.lifecycle = Lifecycle::Transient;
-    cart.construction = Construction::Builder(FunctionName::new("build_cart").unwrap());
     let mut async_mode = container(vec![db, cart]);
     async_mode.mode = Some(Execution::Async);
 
@@ -44,7 +46,6 @@ fn a_stable_build_reports_every_unstable_feature_in_declaration_order() {
             unstable("#[container(mode = \"async\")]"),
             unstable("async dependency 'db'"),
             unstable("transient dependency 'cart'"),
-            unstable("custom builder 'build_cart' on dependency 'cart'"),
         ]
     );
     assert!(FeatureGate::Unstable.refusals(&async_mode).is_empty());
@@ -98,5 +99,56 @@ fn a_generic_container_is_planned_and_named() {
     assert_eq!(
         features(&FeatureGate::Unstable.refusals(&generic)),
         [planned("generic parameters on container 'App'")]
+    );
+}
+
+#[test]
+fn an_async_factory_is_planned_on_every_build() {
+    let mut db = dependency("db", &[]);
+    db.execution = Execution::Async;
+    db.construction = Some(Construction::Factory);
+    let async_factory = container(vec![db]);
+
+    assert_eq!(
+        features(&FeatureGate::Unstable.refusals(&async_factory)),
+        [planned("build = factory on async dependency 'db'")]
+    );
+    assert_eq!(
+        features(&FeatureGate::Stable.refusals(&async_factory)),
+        [
+            planned("build = factory on async dependency 'db'"),
+            unstable("async dependency 'db'"),
+        ]
+    );
+}
+
+#[test]
+fn a_builder_passes_both_gates() {
+    let mut exporter = dependency("exporter", &[]);
+    exporter.construction = Some(builder());
+    let container = container(vec![exporter]);
+
+    for gate in [FeatureGate::Stable, FeatureGate::Unstable] {
+        assert!(gate.refusals(&container).is_empty(), "{gate:?}");
+    }
+}
+
+#[test]
+fn an_async_builder_is_planned_on_every_build() {
+    let mut exporter = dependency("exporter", &[]);
+    exporter.construction = Some(builder());
+    exporter.execution = Execution::Async;
+    let async_builder = container(vec![exporter]);
+
+    assert_eq!(
+        features(&FeatureGate::Unstable.refusals(&async_builder)),
+        [planned("build = builder on async dependency 'exporter'")]
+    );
+    assert_eq!(
+        features(&FeatureGate::Stable.refusals(&async_builder)),
+        [
+            planned("build = builder on async dependency 'exporter'"),
+            unstable("async dependency 'exporter'"),
+        ]
     );
 }

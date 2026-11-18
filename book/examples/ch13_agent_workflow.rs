@@ -1,5 +1,5 @@
 #![deny(warnings)]
-//! Chapter 12: adding a new domain capability touches only its struct and one container field.
+//! Chapter 13: adding a new domain capability touches only its struct and one container field.
 
 use snapfit::container;
 use std::sync::Arc;

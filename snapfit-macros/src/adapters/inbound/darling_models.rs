@@ -2,16 +2,18 @@
 
 use darling::FromMeta;
 use darling::ast::NestedMeta;
-use proc_macro2::{Ident, TokenStream, TokenTree};
+use proc_macro2::TokenStream;
 use quote::quote;
 
 use super::type_inspector::compact_type_tokens;
 use crate::domain::AttributeProblem;
 
+mod build_meta;
 mod prerequisites;
 #[cfg(test)]
 mod tests;
 
+pub(super) use build_meta::{BuildMeta, BuildWord, FunctionNameMeta, single_word};
 pub(super) use prerequisites::{PrerequisiteList, PrerequisiteMeta};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, FromMeta)]
@@ -24,6 +26,8 @@ pub(super) struct ContainerAttrMeta {
     pub(super) parent: Option<ParentTypeMeta>,
     #[darling(default)]
     pub(super) introspection: bool,
+    #[darling(default)]
+    pub(super) leaf_build: Option<BuildMeta>,
 }
 
 impl ContainerAttrMeta {
@@ -60,38 +64,10 @@ impl FromMeta for ParentTypeMeta {
 pub(super) struct DependencyAttrMeta {
     #[darling(default)]
     pub(super) deps: PrerequisiteList,
-    #[darling(default)]
+    #[darling(default, rename = "async")]
     pub(super) is_async: bool,
     #[darling(default)]
-    pub(super) constructor: Option<FunctionNameMeta>,
-    #[darling(default)]
-    pub(super) builder: Option<FunctionNameMeta>,
-}
-
-/// The value of `constructor = ...` or `builder = ...` as the user wrote it.
-/// Only a bare function name (`constructor = connect`) is accepted; the
-/// field parser turns the other shapes into errors that name the field.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) enum FunctionNameMeta {
-    Bare(String),
-    Quoted(String),
-    Invalid(String),
-}
-
-impl FromMeta for FunctionNameMeta {
-    fn from_expr(expr: &syn::Expr) -> darling::Result<Self> {
-        Ok(match expr {
-            syn::Expr::Path(path) if path.qself.is_none() => path.path.get_ident().map_or_else(
-                || Self::Invalid(quote!(#path).to_string()),
-                |ident| Self::Bare(ident.to_string()),
-            ),
-            syn::Expr::Lit(syn::ExprLit {
-                lit: syn::Lit::Str(text),
-                ..
-            }) => Self::Quoted(text.value()),
-            other => Self::Invalid(quote!(#other).to_string()),
-        })
-    }
+    pub(super) build: Option<BuildMeta>,
 }
 
 impl DependencyAttrMeta {
@@ -104,23 +80,8 @@ impl DependencyAttrMeta {
     }
 
     fn from_tokens(tokens: TokenStream) -> Result<Self, AttributeProblem> {
-        let normalized = normalize_async_keyword(tokens);
-        let nested = NestedMeta::parse_meta_list(normalized).map_err(unreadable)?;
+        let nested = NestedMeta::parse_meta_list(tokens).map_err(unreadable)?;
         Self::from_list(&nested).map_err(unreadable)
-    }
-}
-
-/// `async` is a keyword, which darling cannot read as a field name.
-fn normalize_async_keyword(tokens: TokenStream) -> TokenStream {
-    tokens.into_iter().map(async_as_is_async).collect()
-}
-
-fn async_as_is_async(tree: TokenTree) -> TokenTree {
-    match tree {
-        TokenTree::Ident(ident) if ident == "async" => {
-            TokenTree::Ident(Ident::new("is_async", ident.span()))
-        }
-        tree => tree,
     }
 }
 

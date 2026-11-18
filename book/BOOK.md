@@ -10,7 +10,7 @@ A reader finishes the book able to:
 
 1. explain the problems of services that build their own dependencies, and what dependency injection is;
 2. explain why `snapfit` keeps domain structs 100% free of framework macros and traits, and why declaring the dependency graph in a central container struct is safer than wiring by hand or runtime `TypeMap` service locators;
-3. wire singletons, named constructors, multiple instances of the same type, and a chosen implementation of a trait in a `#[container]`;
+3. wire singletons, named constructors, factories, builders, multiple instances of the same type, and a chosen implementation of a trait in a `#[container]`;
 4. read and fix the compile-time errors `snapfit` emits when a dependency graph has a cycle or a missing prerequisite.
 
 A coding agent reading the book gains a structural advantage: in a `snapfit` codebase, changing a business rule touches only its pure-Rust struct, and changing how components are wired touches only one `#[container]` struct. Context is never scattered across dozens of files.
@@ -84,15 +84,16 @@ Covers every stable feature of `v0.1.0`, one per chapter:
 
 5. **Installing Snapfit and your first singleton** (`05-installing-and-first-singleton.md`): Adding `snapfit` to `Cargo.toml`, declaring a leaf `#[singleton]`, instantiating the container with `new()`, and verifying pointer identity across `get_<name>()` calls (`ch05_first_singleton.rs`).
 6. **Pure domain types, one container** (`06-pure-domain-types.md`): Shows that domain structs need zero macros or traits — the exact same structs can be constructed directly in a unit test or wired by a `#[container]` (`ch06_pure_domain.rs`).
-7. **Wiring dependencies and custom constructors** (`07-wiring-dependencies-and-constructors.md`): Declaring prerequisites with `deps = [...]`, calling named constructors with `constructor = <fn>` (a bare function name) that receive their prerequisites, and storing `T: Clone` types directly without forced `Arc<T>` wrapping (`ch07_wiring_and_constructors.rs`).
+7. **Wiring dependencies and custom constructors** (`07-wiring-dependencies-and-constructors.md`): Declaring prerequisites with `deps = [...]`, building a field with `new`, `build = default` or a named constructor, `build = constructor(<fn>)`, building a container's leaves with `leaf_build = default`, and storing `T: Clone` types directly without forced `Arc<T>` wrapping (`ch07_wiring_and_constructors.rs` and `ch07_leaf_build.rs`).
 8. **Read the container, know the graph** (`08-read-the-container-know-the-graph.md`): Shows how `#[container]` serves as an executable architecture manifest, and how fields declared in any order are each built after the fields they need (`ch08_container_graph.rs`).
-9. **Multiple instances of the same type** (`09-multiple-instances-of-the-same-type.md`): Wiring `read_db` and `write_db` of the exact same `Arc<Database>` type by field name without wrapper newtypes (`ch09_multiple_instances.rs`).
-10. **Choosing an implementation** (`10-choosing-an-implementation.md`): Naming the implementation once, in a field's concrete type, for services that take a trait object or a type parameter, and a second container for tests (`ch10_choosing_an_implementation.rs`), with the error for a field typed as a trait object (`ch10_trait_object_field`).
+9. **Multiple instances of the same type** (`09-multiple-instances-of-the-same-type.md`): Wiring `read_db` and `write_db` of the exact same `Arc<Database>` type by field name without wrapper newtypes, and the swap that positional `deps` can't catch (`ch09_multiple_instances.rs` and `ch09_swapped_deps.rs`).
+10. **Passing dependencies by name** (`10-passing-dependencies-by-name.md`): `build = factory` and the generated `<Container>Factories` trait, `build = builder` with labels and `start`/`finish`, when to use which, and which logic belongs to a type and which to the wiring (`ch10_passing_dependencies_by_name.rs`).
+11. **Choosing an implementation** (`11-choosing-an-implementation.md`): Naming the implementation once, in a field's concrete type, for services that take a trait object or a type parameter, a second container for tests, and a trait-object field built by a factory that reads the configuration (`ch11_choosing_an_implementation.rs` and `ch11_configured_payments.rs`), with the error for a trait-object field without a factory (`ch11_trait_object_field`).
 
 ### Part 4: Compile-time guarantees and agents
 
-11. **Mistakes caught by the compiler** (`11-mistakes-caught-by-the-compiler.md`): Every graph and configuration mistake `snapfit` turns into a compile-time error, with the real program and recorded `rustc` diagnostic (`ch11_unknown_dependency`, `ch11_dependency_cycle`, `ch11_self_dependency_cycle`, `ch11_quoted_constructor`, `ch11_several_mistakes`, `ch11_tuple_struct_container`).
-12. **Working with coding agents** (`12-working-with-coding-agents.md`): Why separating pure domain modules from the central `#[container]` manifest prevents context bloat and wiring drift when working with AI coding agents, complete with a runnable example (`ch12_agent_workflow.rs`) and a copy-ready `AGENTS.md` rule block.
+12. **Mistakes caught by the compiler** (`12-mistakes-caught-by-the-compiler.md`): Every graph and configuration mistake `snapfit` turns into a compile-time error, with the real program and recorded `rustc` diagnostic (`ch12_unknown_dependency`, `ch12_dependency_cycle`, `ch12_self_dependency_cycle`, `ch12_quoted_constructor`, `ch12_several_mistakes`, `ch12_tuple_struct_container`).
+13. **Working with coding agents** (`13-working-with-coding-agents.md`): Why separating pure domain modules from the central `#[container]` manifest prevents context bloat and wiring drift when working with AI coding agents, complete with a runnable example (`ch13_agent_workflow.rs`) and a copy-ready `AGENTS.md` rule block.
 
 ### Appendices
 

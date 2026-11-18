@@ -1,13 +1,15 @@
+use crate::unstable_build_containers::DepotContainer;
 use crate::unstable_containers::{
-    AsyncShopContainer, BuilderShopContainer, LayeredShopContainer, TransientShopContainer,
+    AsyncShopContainer, LayeredShopContainer, TransientFactoryShopContainer, TransientShopContainer,
 };
 
 #[derive(Default)]
 pub struct UnstableContainers {
     async_shop: Option<AsyncShopContainer>,
     transient_shop: Option<TransientShopContainer>,
-    builder_shop: Option<BuilderShopContainer>,
+    transient_factory_shop: Option<TransientFactoryShopContainer>,
     layered_shop: Option<LayeredShopContainer>,
+    depot: Option<DepotContainer>,
 }
 
 impl UnstableContainers {
@@ -18,12 +20,19 @@ impl UnstableContainers {
         self.async_shop = Some(container);
     }
 
+    pub async fn init_depot(&mut self) {
+        let container = DepotContainer::init()
+            .await
+            .unwrap_or_else(|err| panic!("DepotContainer::init() failed: {err}"));
+        self.depot = Some(container);
+    }
+
     pub fn new_transient_shop(&mut self) {
         self.transient_shop = Some(TransientShopContainer::new());
     }
 
-    pub fn new_builder_shop(&mut self) {
-        self.builder_shop = Some(BuilderShopContainer::new());
+    pub fn new_transient_factory_shop(&mut self) {
+        self.transient_factory_shop = Some(TransientFactoryShopContainer::new());
     }
 
     pub fn new_layered_shop(&mut self) {
@@ -42,15 +51,21 @@ impl UnstableContainers {
             .expect("TransientShopContainer must be instantiated before Then assertions")
     }
 
-    pub fn builder_shop(&self) -> &BuilderShopContainer {
-        self.builder_shop
+    pub fn transient_factory_shop(&self) -> &TransientFactoryShopContainer {
+        self.transient_factory_shop
             .as_ref()
-            .expect("BuilderShopContainer must be instantiated before Then assertions")
+            .expect("TransientFactoryShopContainer must be instantiated before Then assertions")
     }
 
     pub fn layered_shop(&self) -> &LayeredShopContainer {
         self.layered_shop
             .as_ref()
             .expect("LayeredShopContainer must be instantiated before Then assertions")
+    }
+
+    pub fn depot(&self) -> &DepotContainer {
+        self.depot
+            .as_ref()
+            .expect("DepotContainer must be initialized before Then assertions")
     }
 }

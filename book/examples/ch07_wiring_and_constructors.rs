@@ -1,5 +1,5 @@
 #![deny(warnings)]
-//! Chapter 7: wiring prerequisites, named constructors, and Clone types without Arc.
+//! Chapter 7: wiring prerequisites, named constructors, `Default` types, and Clone types without Arc.
 
 use snapfit::container;
 use std::sync::Arc;
@@ -14,6 +14,11 @@ impl TaxRateTable {
     pub fn new() -> Self {
         Self { percentage: 10 }
     }
+}
+
+#[derive(Clone, Default)]
+pub struct DiscountCodes {
+    pub codes: Vec<String>,
 }
 
 pub struct CatalogDb {
@@ -55,10 +60,13 @@ pub struct ShopContainer {
     #[singleton]
     tax: TaxRateTable,
 
-    #[singleton(deps = [tax], constructor = from_tax_table)]
+    #[singleton(build = default)]
+    discounts: DiscountCodes,
+
+    #[singleton(deps = [tax], build = constructor(from_tax_table))]
     db: Arc<CatalogDb>,
 
-    #[singleton(deps = [db], constructor = for_catalog)]
+    #[singleton(deps = [db], build = constructor(for_catalog))]
     shipping: Arc<ShippingClient>,
 }
 // ANCHOR_END: container
@@ -69,5 +77,6 @@ fn main() {
     println!("tax rate: {}%", container.get_tax().percentage);
     println!("database dsn: {}", container.get_db().dsn());
     println!("shipping endpoint: {}", container.get_shipping().endpoint());
+    println!("discount codes: {}", container.get_discounts().codes.len());
 }
 // ANCHOR_END: run

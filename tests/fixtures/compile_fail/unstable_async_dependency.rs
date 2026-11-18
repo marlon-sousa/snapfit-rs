@@ -5,6 +5,6 @@ pub struct Database;
 
 #[container]
 pub struct AsyncDependencyContainer {
-    #[singleton(async, constructor = connect)]
+    #[singleton(async, build = constructor(connect))]
     db: Arc<Database>,
 }

@@ -1,11 +1,17 @@
 #![deny(warnings)]
 
+mod build_containers;
+mod build_world;
+mod builder_containers;
 mod codegen_containers;
 mod containers;
+mod factory_containers;
 mod fixture_outcomes;
 mod services;
 mod stale_library;
 mod steps;
+#[cfg(feature = "unstable")]
+mod unstable_build_containers;
 #[cfg(feature = "unstable")]
 mod unstable_containers;
 #[cfg(feature = "unstable")]

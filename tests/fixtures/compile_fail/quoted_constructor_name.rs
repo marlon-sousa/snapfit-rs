@@ -5,6 +5,6 @@ pub struct Database;
 
 #[container]
 pub struct AppContainer {
-    #[singleton(constructor = "connect")]
+    #[singleton(build = constructor("connect"))]
     db: Arc<Database>,
 }

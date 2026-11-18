@@ -5,7 +5,7 @@ use super::*;
 use crate::domain::{
     Construction, Constructor, EnumDispatch, Execution, FunctionName, Lifecycle, TypeShape,
 };
-use crate::test_support::names;
+use crate::test_support::{names, prerequisites};
 
 #[test]
 fn every_setting_and_field_is_read_into_the_declaration() {
@@ -14,10 +14,10 @@ fn every_setting_and_field_is_read_into_the_declaration() {
             #[singleton]
             config: Arc<Config>,
 
-            #[singleton(deps = [config], async, constructor = connect)]
+            #[singleton(deps = [config], async, build = constructor(connect))]
             db: Arc<Database>,
 
-            #[singleton(deps = [config, db, parent(audit)], builder = build_auth)]
+            #[singleton(deps = [config, db, parent(audit)], build = factory)]
             auth: Arc<AuthService>,
 
             #[transient(deps = [db])]
@@ -47,20 +47,19 @@ fn every_setting_and_field_is_read_into_the_declaration() {
         panic!("five dependencies");
     };
     assert_eq!(config.shape, TypeShape::Arc);
-    assert_eq!(config.construction, Construction::default());
+    assert_eq!(config.construction, None);
 
     assert_eq!(db.execution, Execution::Async);
     assert_eq!(
         db.construction,
-        Construction::Constructor(Constructor::Named(FunctionName::new("connect").unwrap()))
+        Some(Construction::Constructor(Constructor::Named(
+            FunctionName::new("connect").unwrap()
+        )))
     );
-    assert_eq!(db.prerequisites, names(&["config"]));
+    assert_eq!(db.prerequisites, prerequisites(&["config"]));
 
-    assert_eq!(
-        auth.construction,
-        Construction::Builder(FunctionName::new("build_auth").unwrap())
-    );
-    assert_eq!(auth.prerequisites, names(&["config", "db"]));
+    assert_eq!(auth.construction, Some(Construction::Factory));
+    assert_eq!(auth.prerequisites, prerequisites(&["config", "db"]));
     assert_eq!(auth.parent_prerequisites, names(&["audit"]));
 
     assert_eq!(controller.lifecycle, Lifecycle::Transient);

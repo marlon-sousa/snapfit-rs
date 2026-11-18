@@ -7,7 +7,7 @@
 use derive_new::new;
 use strum::EnumIs;
 
-use crate::domain::names::{ContainerName, DependencyName, FunctionName, TypeName};
+use crate::domain::names::{ContainerName, DependencyName, FunctionName, SetterName, TypeName};
 
 #[cfg(test)]
 mod tests;
@@ -29,23 +29,49 @@ pub(crate) enum Execution {
     Async,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(EnumIs, Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Construction {
     /// An associated function of the dependency's type.
     Constructor(Constructor),
-    /// An associated function of the container.
-    Builder(FunctionName),
+    /// The `build_<field>` method the user writes in the container's factories trait.
+    Factory,
+    /// The type's builder, with one setter per prerequisite.
+    Builder(BuilderMethods),
 }
 
-impl Default for Construction {
-    fn default() -> Self {
-        Self::Constructor(Constructor::New)
+/// The functions a builder chain starts and finishes with.
+#[derive(new, Debug, Clone, PartialEq, Eq)]
+pub(crate) struct BuilderMethods {
+    /// The type's associated function that returns its builder.
+    pub(crate) start: FunctionName,
+    /// The builder's method that returns the value.
+    pub(crate) finish: FunctionName,
+}
+
+/// One sibling entry of `deps = [...]`.
+#[derive(new, Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Prerequisite {
+    /// The container's field the value comes from.
+    pub(crate) field: DependencyName,
+    /// `disk` in `disk = folder_files`: the builder setter that takes it, when
+    /// it is not the field's own name.
+    #[new(default)]
+    pub(crate) label: Option<SetterName>,
+}
+
+impl Prerequisite {
+    /// The builder setter that takes this value: its label, or the field's name.
+    pub(crate) fn setter(&self) -> SetterName {
+        self.label.clone().unwrap_or_else(|| self.field.as_setter())
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub(crate) enum Constructor {
+    #[default]
     New,
+    /// `Default::default()`, which takes no prerequisites.
+    Default,
     Named(FunctionName),
 }
 
@@ -90,13 +116,15 @@ pub(crate) struct DependencyDeclaration<F> {
     pub(crate) lifecycle: Lifecycle,
     #[new(default)]
     pub(crate) execution: Execution,
+    /// `build = ...`, absent when the field writes none.
     #[new(default)]
-    pub(crate) construction: Construction,
+    pub(crate) construction: Option<Construction>,
     #[new(default)]
     pub(crate) shape: TypeShape,
-    /// Siblings passed to the constructor or builder, in order.
+    /// The siblings the field is built from: passed to a constructor in order,
+    /// by name to a factory, and each to its own setter of a builder.
     #[new(default)]
-    pub(crate) prerequisites: Vec<DependencyName>,
+    pub(crate) prerequisites: Vec<Prerequisite>,
     /// `parent(name)` entries of `deps`, which name a parent container's dependency.
     #[new(default)]
     pub(crate) parent_prerequisites: Vec<DependencyName>,
@@ -117,6 +145,9 @@ pub(crate) struct ContainerDeclaration<C, F> {
     pub(crate) parent: Option<TypeName>,
     #[new(default)]
     pub(crate) introspection: Introspection,
+    /// `leaf_build = ...`: how a field with no `deps` and no `build` of its own is built.
+    #[new(default)]
+    pub(crate) leaf_constructor: Constructor,
     /// In the order the fields are declared.
     #[new(default)]
     pub(crate) dependencies: Vec<DependencyDeclaration<F>>,

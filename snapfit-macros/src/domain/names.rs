@@ -27,6 +27,9 @@ pub(crate) struct Function;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct Type;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct Setter;
+
 impl NameKind for Dependency {
     const LABEL: &'static str = "dependency name";
 }
@@ -43,6 +46,10 @@ impl NameKind for Type {
     const LABEL: &'static str = "type name";
 }
 
+impl NameKind for Setter {
+    const LABEL: &'static str = "setter name";
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Display)]
 #[display("{text}")]
 pub(crate) struct Name<K> {
@@ -53,9 +60,22 @@ pub(crate) struct Name<K> {
 /// A container field, which is also the dependency it declares.
 pub(crate) type DependencyName = Name<Dependency>;
 pub(crate) type ContainerName = Name<Container>;
-/// A constructor or builder function, without its path.
+/// A constructor function, without its path.
 pub(crate) type FunctionName = Name<Function>;
 pub(crate) type TypeName = Name<Type>;
+/// A method of a builder that takes one dependency.
+pub(crate) type SetterName = Name<Setter>;
+
+impl DependencyName {
+    /// The builder setter of the same name, which takes this dependency when
+    /// no label names another.
+    pub(crate) fn as_setter(&self) -> SetterName {
+        Name {
+            text: self.text.clone(),
+            kind: PhantomData,
+        }
+    }
+}
 
 impl<K: NameKind> Name<K> {
     pub(crate) fn new(text: impl Into<String>) -> Result<Self, DomainError> {
@@ -71,5 +91,10 @@ impl<K: NameKind> Name<K> {
 
     pub(crate) fn as_str(&self) -> &str {
         &self.text
+    }
+
+    /// The name without the `r#` of a raw identifier, as generated names spell it.
+    pub(crate) fn without_raw_prefix(&self) -> &str {
+        self.text.strip_prefix("r#").unwrap_or(&self.text)
     }
 }

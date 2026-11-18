@@ -138,3 +138,63 @@ fn input_that_is_not_a_struct_gets_syn_s_own_error() {
 
     assert_eq!(compile_errors(&tokens).len(), 1);
 }
+
+#[test]
+fn a_factory_field_adds_the_factories_trait_and_new_calls_it() {
+    let code = compact(expand_attribute(
+        quote!(),
+        quote! {
+            pub struct Shop {
+                #[singleton]
+                config: Arc<Config>,
+                #[singleton(deps = [config], build = factory)]
+                payments: Arc<dyn PaymentGateway>,
+            }
+        },
+        FeatureGate::Stable,
+    ));
+
+    assert!(code.contains("pubtraitShopFactories{"), "{code}");
+    assert!(code.contains("fnbuild_payments(inputs:ShopPaymentsInputs)->Arc<dynPaymentGateway>;"));
+    assert!(code.contains("pubstructShopPaymentsInputs{"));
+    assert!(code.contains(
+        "let__snapfit_payments:Arc<dynPaymentGateway>=<SelfasShopFactories>::build_payments(ShopPaymentsInputs{config:__snapfit_config.clone()});"
+    ));
+}
+
+#[test]
+fn a_container_without_factories_generates_no_factories_trait() {
+    let code = compact(expand_attribute(
+        quote!(),
+        app_container(),
+        FeatureGate::Stable,
+    ));
+
+    assert!(!code.contains("Factories"));
+    assert!(!code.contains("Inputs"));
+}
+
+#[test]
+fn a_label_is_refused_on_a_field_not_built_by_a_builder_beside_one_that_is() {
+    let built = expand_attribute(
+        quote!(),
+        quote! {
+            pub struct Site {
+                #[singleton]
+                folder_files: Arc<FolderFiles>,
+                #[singleton(deps = [disk = folder_files], build = builder)]
+                writer: Arc<SiteWriter>,
+                #[singleton(deps = [disk = folder_files])]
+                reader: Arc<SiteReader>,
+            }
+        },
+        FeatureGate::Stable,
+    );
+
+    assert_eq!(
+        compile_errors(&built),
+        [
+            "the dependency 'disk = folder_files' of field 'reader' has a label, which names a builder setter; write folder_files alone, or build the field with build = builder"
+        ]
+    );
+}

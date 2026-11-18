@@ -31,7 +31,7 @@ fn a_sync_container_gets_new_default_and_the_container_impl() {
 fn an_async_container_gets_init_returning_a_result() {
     let plan = plan_for(parse_quote! {
         struct App {
-            #[singleton(async, constructor = connect)]
+            #[singleton(async, build = constructor(connect))]
             db: Arc<Database>,
         }
     });

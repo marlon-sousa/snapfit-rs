@@ -1,5 +1,5 @@
 #![deny(warnings)]
-//! Chapter 10: the container chooses the implementation; the services only name a trait.
+//! Chapter 11: the container chooses the implementation; the services only name a trait.
 
 use snapfit::container;
 use std::sync::Arc;

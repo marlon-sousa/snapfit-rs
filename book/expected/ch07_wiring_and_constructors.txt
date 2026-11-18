@@ -1,3 +1,4 @@
 tax rate: 10%
 database dsn: postgres://shop?tax=10
 shipping endpoint: https://ship.example.com?source=postgres://shop?tax=10
+discount codes: 0

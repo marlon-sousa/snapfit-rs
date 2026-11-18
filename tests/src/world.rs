@@ -1,6 +1,7 @@
 use compile_outcomes::Outcome;
 use cucumber::World;
 
+use crate::build_world::BuildContainers;
 use crate::codegen_containers::unit_struct_named_field::UnitStructNamedFieldContainer;
 use crate::codegen_containers::{
     DerivedAfterContainer, DerivedBeforeContainer, DerivedContainer, TypedFieldsContainer,
@@ -24,7 +25,7 @@ pub enum ScenarioBlueprint {
     #[cfg(feature = "unstable")]
     TransientShop,
     #[cfg(feature = "unstable")]
-    BuilderShop,
+    TransientFactoryShop,
     #[cfg(feature = "unstable")]
     LayeredShop,
 }
@@ -42,6 +43,7 @@ pub struct ContainerWorld {
     stale_library: Option<StaleLibrary>,
     construction_order: Vec<&'static str>,
     checkout_container: Option<checkout::CheckoutContainer>,
+    pub built: BuildContainers,
     #[cfg(feature = "unstable")]
     unstable: UnstableContainers,
 }
@@ -82,7 +84,7 @@ impl ContainerWorld {
             #[cfg(feature = "unstable")]
             ScenarioBlueprint::TransientShop => self.unstable.new_transient_shop(),
             #[cfg(feature = "unstable")]
-            ScenarioBlueprint::BuilderShop => self.unstable.new_builder_shop(),
+            ScenarioBlueprint::TransientFactoryShop => self.unstable.new_transient_factory_shop(),
             #[cfg(feature = "unstable")]
             ScenarioBlueprint::LayeredShop => self.unstable.new_layered_shop(),
         }
@@ -91,6 +93,11 @@ impl ContainerWorld {
     #[cfg(feature = "unstable")]
     pub async fn initialize_async_selected(&mut self) {
         self.unstable.init_async_shop().await;
+    }
+
+    #[cfg(feature = "unstable")]
+    pub async fn initialize_depot(&mut self) {
+        self.unstable.init_depot().await;
     }
 
     #[cfg(feature = "unstable")]

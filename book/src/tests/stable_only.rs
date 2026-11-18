@@ -4,11 +4,12 @@ use std::path::{Path, PathBuf};
 
 use super::sorted_files;
 
-/// Words that only an unstable or planned API of docs/SPEC.md §0 uses.
+/// Words that only an unstable, planned or removed API of docs/SPEC.md §0 uses.
 const UNSTABLE_OR_PLANNED: &[&str] = &[
     "unstable",
     "transient",
-    "builder",
+    "builder =",
+    "builder().with_",
     "Builders",
     "async",
     ".await",

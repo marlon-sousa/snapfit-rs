@@ -26,12 +26,13 @@
 7. [Wiring dependencies and custom constructors](07-wiring-dependencies-and-constructors.md)
 8. [Read the container, know the graph](08-read-the-container-know-the-graph.md)
 9. [Multiple instances of the same type](09-multiple-instances-of-the-same-type.md)
-10. [Choosing an implementation](10-choosing-an-implementation.md)
+10. [Passing dependencies by name](10-passing-dependencies-by-name.md)
+11. [Choosing an implementation](11-choosing-an-implementation.md)
 
 ## Part 4: Compile-time guarantees and agents
 
-11. [Mistakes caught by the compiler](11-mistakes-caught-by-the-compiler.md)
-12. [Working with coding agents](12-working-with-coding-agents.md)
+12. [Mistakes caught by the compiler](12-mistakes-caught-by-the-compiler.md)
+13. [Working with coding agents](13-working-with-coding-agents.md)
 
 ## Appendices
 

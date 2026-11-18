@@ -9,7 +9,7 @@ Think of a building inspector who checks the plans before anyone moves in, rathe
 Say `db` lists `deps = [confog]` instead of `config`. The build stops, and the message lists the names the container does know:
 
 ```compile-error
-name: ch11_unknown_dependency
+name: ch12_unknown_dependency
 ```
 
 ## Two components that need each other
@@ -17,7 +17,7 @@ name: ch11_unknown_dependency
 Now `orders` needs `inventory`, and `inventory` needs `orders`. Neither can be built first. This circle is what the compiler calls a dependency cycle. The message describes it in a sentence, and points at the first field in it:
 
 ```compile-error
-name: ch11_dependency_cycle
+name: ch12_dependency_cycle
 ```
 
 ## A component that needs itself
@@ -25,15 +25,15 @@ name: ch11_dependency_cycle
 The smallest circle there is: `ledger` lists itself in `deps = [ledger]`:
 
 ```compile-error
-name: ch11_self_dependency_cycle
+name: ch12_self_dependency_cycle
 ```
 
 ## A constructor name in quotes
 
-`constructor = <fn>` takes the function's name as Rust, not as text. If you write it in quotes, the message shows you what to write instead:
+`build = constructor(<fn>)` takes the function's name as Rust, not as text. If you write it in quotes, the message shows you what to write instead:
 
 ```compile-error
-name: ch11_quoted_constructor
+name: ch12_quoted_constructor
 ```
 
 ## Several mistakes at once
@@ -41,7 +41,7 @@ name: ch11_quoted_constructor
 `snapfit` doesn't stop at the first problem. Every unknown name and every circle is its own error, at its own field, in the same `cargo build`, so you can fix them all in one go. Here `db` names a field that doesn't exist, and `orders` and `stock` need each other:
 
 ```compile-error
-name: ch11_several_mistakes
+name: ch12_several_mistakes
 ```
 
 ## A tuple struct
@@ -49,7 +49,7 @@ name: ch11_several_mistakes
 `snapfit` knows components by their field names, and uses those names for the getters. A tuple struct has no field names, so it is refused:
 
 ```compile-error
-name: ch11_tuple_struct_container
+name: ch12_tuple_struct_container
 ```
 
 ## How the checks run

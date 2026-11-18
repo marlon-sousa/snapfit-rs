@@ -16,8 +16,8 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use crate::domain::{
-    ContainerDeclaration, DependencyDeclaration, DependencyName, DomainError, DomainErrors,
-    FeatureGate, Step,
+    Constructor, ContainerDeclaration, DependencyDeclaration, DependencyName, DomainError,
+    DomainErrors, Step,
 };
 
 /// Orders and links the steps, or reports every problem the graph of
@@ -25,18 +25,17 @@ use crate::domain::{
 ///
 /// Dependencies are visited in declaration order, each after its
 /// prerequisites, so the construction order follows the fields wherever the
-/// graph allows it. A trait-object field without a builder is told what
-/// `gate` lets it do instead.
+/// graph allows it.
 pub(crate) fn resolve<C, F>(
     declaration: ContainerDeclaration<C, F>,
-    gate: FeatureGate,
 ) -> Result<ResolvedSteps<C, F>, DomainErrors> {
     let ContainerDeclaration {
         syntax,
         dependencies,
+        leaf_constructor,
         ..
     } = declaration;
-    let mut resolver = Resolver::new(dependencies, gate);
+    let mut resolver = Resolver::new(dependencies, leaf_constructor);
     for name in resolver.declared.clone() {
         resolver.visit(&name);
     }
@@ -54,11 +53,12 @@ struct Resolver<F> {
     failed: HashSet<DependencyName>,
     construction_order: Vec<Placed<F>>,
     errors: Vec<DomainError>,
-    gate: FeatureGate,
+    /// How a field with no `deps` and no `build` of its own is built.
+    leaf: Constructor,
 }
 
 impl<F> Resolver<F> {
-    fn new(dependencies: Vec<DependencyDeclaration<F>>, gate: FeatureGate) -> Self {
+    fn new(dependencies: Vec<DependencyDeclaration<F>>, leaf: Constructor) -> Self {
         let mut resolver = Self {
             declared: Vec::with_capacity(dependencies.len()),
             pending: HashMap::with_capacity(dependencies.len()),
@@ -67,7 +67,7 @@ impl<F> Resolver<F> {
             failed: HashSet::new(),
             construction_order: Vec::with_capacity(dependencies.len()),
             errors: Vec::new(),
-            gate,
+            leaf,
         };
         for dependency in dependencies {
             resolver.declare(dependency);
@@ -121,7 +121,7 @@ impl<F> Resolver<F> {
         });
         let prerequisites = self.prerequisites_of(&declaration);
         self.path.pop();
-        let call = call::call_for(&declaration, self.gate);
+        let call = call::call_for(&declaration, &self.leaf);
         match (prerequisites, call) {
             (Some(prerequisites), Ok(call)) => {
                 let DependencyDeclaration {
@@ -151,7 +151,7 @@ impl<F> Resolver<F> {
         let outcomes: Vec<_> = dependency
             .prerequisites
             .iter()
-            .map(|prerequisite| self.visit(prerequisite))
+            .map(|prerequisite| self.visit(&prerequisite.field))
             .collect();
         let missing: Vec<_> = dependency
             .prerequisites

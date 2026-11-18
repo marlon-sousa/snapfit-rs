@@ -12,7 +12,9 @@ mod tests;
 /// Keeps the attributes, docs, visibility and field order as written. A
 /// transient is built on demand and needs no storage.
 pub(super) fn emit_struct_definition(plan: &Plan) -> TokenStream {
-    let ContainerSyntax { ident, vis, attrs } = &plan.syntax;
+    let ContainerSyntax {
+        ident, vis, attrs, ..
+    } = &plan.syntax;
     let fields = plan
         .declaration_order
         .iter()

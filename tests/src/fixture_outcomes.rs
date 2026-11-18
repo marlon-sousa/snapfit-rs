@@ -31,6 +31,7 @@ fn compilation() -> Compilation {
     Compilation::new(Edition::E2024, work_dir)
         .snippets_in(from_manifest_dir("fixtures/compile_fail"))
         .dependency(snapfit())
+        .dependency(Dependency::version("bon", "=3.9.3"))
         .lockfile(from_manifest_dir("../Cargo.lock"))
 }
 

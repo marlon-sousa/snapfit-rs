@@ -2,7 +2,7 @@
 
 use std::rc::Rc;
 
-use crate::domain::{DependencyDeclaration, DependencyName, Step};
+use crate::domain::{DependencyDeclaration, DependencyName, Prerequisite, Step};
 
 /// What visiting one name found.
 pub(super) enum Outcome<F> {
@@ -40,10 +40,10 @@ pub(super) struct Placed<F> {
     pub(super) step: Rc<Step<F>>,
 }
 
-pub(super) fn is_unknown<F>(pair: &(&DependencyName, &Outcome<F>)) -> bool {
+pub(super) fn is_unknown<F>(pair: &(&Prerequisite, &Outcome<F>)) -> bool {
     matches!(pair.1, Outcome::Unknown)
 }
 
-pub(super) fn name_of_outcome<F>(pair: (&DependencyName, &Outcome<F>)) -> DependencyName {
-    pair.0.clone()
+pub(super) fn name_of_outcome<F>(pair: (&Prerequisite, &Outcome<F>)) -> DependencyName {
+    pair.0.field.clone()
 }

@@ -46,10 +46,10 @@ impl CqrsOrderStore {
 // ANCHOR: container
 #[container]
 pub struct ShopContainer {
-    #[singleton(constructor = replica)]
+    #[singleton(build = constructor(replica))]
     read_db: Arc<Database>,
 
-    #[singleton(constructor = primary)]
+    #[singleton(build = constructor(primary))]
     write_db: Arc<Database>,
 
     #[singleton(deps = [read_db, write_db])]

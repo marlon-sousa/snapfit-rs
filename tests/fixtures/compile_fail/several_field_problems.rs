@@ -8,6 +8,6 @@ pub struct Database;
 pub struct BrokenContainer {
     config: Arc<Config>,
 
-    #[singleton(constructor = "connect")]
+    #[singleton(build = constructor("connect"))]
     db: Arc<Database>,
 }
