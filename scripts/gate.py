@@ -139,7 +139,7 @@ def checks() -> dict[str, list[Step]]:
             command(["cargo", "test", "--workspace", "--all-targets", "--locked"]),
             command(["cargo", "test", "-p", "snapfit_bdd", "--features", "unstable", "--locked"]),
         ],
-        # docs.rs documents snapfit with the `unstable` feature.
+        # The default build is what docs.rs documents; the unstable build must document cleanly too.
         "doc": [
             command(doc, doc_env),
             command(doc + ["--all-features"], doc_env),

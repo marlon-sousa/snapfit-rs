@@ -48,7 +48,7 @@ Most Rust applications eventually face three unsatisfying choices for wiring com
 <!-- snapfit:releases -->
 
 <!-- github-only -->
-* **Current Version:** `0.1.0`. Read the book sources in [`book/chapters/`](book/chapters/README.md) or run every book example with `cargo xtask book-check`.
+* **Current Version:** `0.1.0-alpha.1`, a pre-release on GitHub only. Read the book sources in [`book/chapters/`](book/chapters/README.md) or run every book example with `cargo xtask book-check`.
 <!-- end github-only -->
 
 ---
