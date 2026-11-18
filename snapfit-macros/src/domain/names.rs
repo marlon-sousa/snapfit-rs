@@ -53,7 +53,7 @@ pub(crate) struct Name<K> {
 /// A container field, which is also the dependency it declares.
 pub(crate) type DependencyName = Name<Dependency>;
 pub(crate) type ContainerName = Name<Container>;
-/// A constructor or builder function, without its path.
+/// A constructor function, without its path.
 pub(crate) type FunctionName = Name<Function>;
 pub(crate) type TypeName = Name<Type>;
 

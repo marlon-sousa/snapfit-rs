@@ -12,7 +12,7 @@ fn message(field: &syn::Field) -> String {
 #[test]
 fn a_singleton_reads_its_prerequisites_execution_and_constructor() {
     let field: syn::Field = parse_quote! {
-        #[singleton(deps = [config], async, constructor = connect)]
+        #[singleton(deps = [config], async, build = constructor(connect))]
         db: std::sync::Arc<Database>
     };
 
@@ -27,27 +27,12 @@ fn a_singleton_reads_its_prerequisites_execution_and_constructor() {
     assert_eq!(dependency.execution, Execution::Async);
     assert_eq!(
         dependency.construction,
-        Construction::Constructor(Constructor::Named(FunctionName::new("connect").unwrap()))
+        Some(Construction::Constructor(Constructor::Named(
+            FunctionName::new("connect").unwrap()
+        )))
     );
     assert_eq!(dependency.shape, TypeShape::Arc);
     assert_eq!(dependency.dispatch, None);
-}
-
-#[test]
-fn a_transient_reads_its_builder() {
-    let field: syn::Field = parse_quote! {
-        #[transient(deps = [config, db], builder = build_controller)]
-        controller: UserController
-    };
-
-    let dependency = parse_field(&field).unwrap();
-
-    assert_eq!(dependency.lifecycle, Lifecycle::Transient);
-    assert_eq!(
-        dependency.construction,
-        Construction::Builder(FunctionName::new("build_controller").unwrap())
-    );
-    assert_eq!(dependency.shape, TypeShape::Value);
 }
 
 #[test]
@@ -94,12 +79,12 @@ fn attributes_that_cannot_be_read_together_are_refused() {
             "field 'config' cannot declare multiple lifecycle attributes",
         ),
         (
-            parse_quote!(#[singleton(constructor = connect, builder = build_db)] db: Arc<Database>),
-            "dependency 'db' cannot specify both 'constructor' and 'builder'",
+            parse_quote!(#[singleton(build = constructor(open, connect))] db: Arc<Database>),
+            "constructor 'open , connect' on field 'db' must be a function name, such as build = constructor(connect)",
         ),
         (
-            parse_quote!(#[singleton(constructor = "   ")] db: Arc<Database>),
-            "constructor '   ' on field 'db' must be a function name, such as constructor = connect",
+            parse_quote!(#[singleton(build = constructor("   "))] db: Arc<Database>),
+            "constructor '   ' on field 'db' must be a function name, such as build = constructor(connect)",
         ),
     ];
     for (field, expected) in cases {
@@ -128,38 +113,4 @@ fn a_conditional_field_is_refused_together_with_its_attribute_errors() {
             .to_string()
             .contains("cannot use #[cfg] or #[cfg_attr]")
     );
-}
-
-#[test]
-fn a_function_name_must_be_written_bare() {
-    let quoted: syn::Field = parse_quote! {
-        #[singleton(constructor = "connect")]
-        db: Arc<Database>
-    };
-    assert_eq!(
-        message(&quoted),
-        "constructor \"connect\" on field 'db' must be written without quotes: constructor = connect"
-    );
-
-    let cases: [(syn::Field, &str); 3] = [
-        (
-            parse_quote!(#[singleton(constructor = "connect()")] db: Arc<Database>),
-            "connect()",
-        ),
-        (
-            parse_quote!(#[singleton(constructor = connect())] db: Arc<Database>),
-            "connect ()",
-        ),
-        (
-            parse_quote!(#[singleton(builder = Db::build)] db: Arc<Database>),
-            "Db :: build",
-        ),
-    ];
-    for (field, shown) in cases {
-        let message = message(&field);
-        assert!(
-            message.contains(&format!("'{shown}' on field 'db' must be a function name")),
-            "{message}"
-        );
-    }
 }

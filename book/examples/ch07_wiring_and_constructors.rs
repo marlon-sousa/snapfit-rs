@@ -55,10 +55,10 @@ pub struct ShopContainer {
     #[singleton]
     tax: TaxRateTable,
 
-    #[singleton(deps = [tax], constructor = from_tax_table)]
+    #[singleton(deps = [tax], build = constructor(from_tax_table))]
     db: Arc<CatalogDb>,
 
-    #[singleton(deps = [db], constructor = for_catalog)]
+    #[singleton(deps = [db], build = constructor(for_catalog))]
     shipping: Arc<ShippingClient>,
 }
 // ANCHOR_END: container

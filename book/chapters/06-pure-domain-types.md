@@ -57,4 +57,4 @@ This is the lamp with a plug from [Chapter 1](01-a-service-that-builds-its-own-d
 
 1. A domain struct wired by `snapfit` looks exactly like one written without it.
 2. A unit test of one service calls `Service::new(...)` directly, without building the container.
-3. Without `constructor = <fn>`, `#[singleton]` calls `<Type>::new(...)`.
+3. Without a `build` setting, `#[singleton]` calls `<Type>::new(...)`.

@@ -12,13 +12,14 @@ This document describes the full design. Only part of it ships as a stable API i
 | :--- | :--- | :--- |
 | `#[container]` with `#[singleton]` fields | Stable | §2, §3, §4 |
 | `deps = [...]` named edges, multiple instances of one type | Stable | §2, §5.A |
-| `constructor = <fn>` (a bare function name, `constructor = connect`) | Stable | §5.A |
+| `build = default` and `build = constructor(<fn>)` (a bare function name, `build = constructor(connect)`) | Stable | §5.A |
+| `#[container(leaf_build = ...)]` for fields with no `deps` | Stable | §2, §5 |
+| Factories: `build = factory` and the generated `<ContainerName>Factories` trait | Stable | §5.B |
+| Builders: `build = builder`, dependency labels and `builder(start = ..., finish = ...)` | Planned | §5.C |
 | Compile-time missing-dependency and cycle detection | Stable | §6 |
 | `Container` trait, `new()`, `Default` | Stable | §2 |
 | Async containers: `mode = "async"`, `#[singleton(async)]`, `init().await` (sequential) | Unstable | §8 |
 | `#[transient]` dependencies | Unstable | §4 |
-| `builder = <fn>` (associated function on the container) | Unstable | §5.B |
-| `<ContainerName>Builders` companion trait | Planned | §5.B |
 | Concurrent async boot (`join!` over independent async singletons) | Planned | §8 |
 | `#[dispatch(...)]` static trait dispatch | Planned | §7 |
 | Test overrides (`builder().with_*()` / `fork_with()`) | Planned | §9 |
@@ -48,6 +49,9 @@ These items existed before 0.1.0 but nothing generated or used them, so they wer
 
 * **`#[derive(Container)]`**: removed before 0.1.0 ([#32](https://github.com/marlon-sousa/snapfit-rs/issues/32)), so that a container has one way to be declared. A derive can only add code next to the struct, never rewrite it, so it could never take a transient, a dispatched field or a parent, each of which leaves the struct changed; on the stable build it generated the same code as `#[container]`. `#[derive(Container)]` is now the compiler's own "cannot find derive macro" error. The `Container` trait stays. Adding a derive form back later would break no one, but it needs a reason `#[container]` cannot meet.
 
+* **`constructor = <fn>`**, stable in 0.1.0-alpha.1: replaced by `build = constructor(<fn>)` (§5), so that every way of building a field is a value of one setting and two of them cannot be written on one field. `constructor` is now a setting `#[singleton]` does not know. Nothing is to be restored.
+* **`builder = <fn>`**, which was unstable: replaced by factories ([#40](https://github.com/marlon-sousa/snapfit-rs/issues/40)), which build the same dependencies from inputs passed by name instead of by position, and which ship as stable. `builder` is now a setting `#[singleton]` does not know, and the `<ContainerName>Builders` companion trait once planned for it is dropped. Nothing is to be restored.
+
 ### Held back from The Snapfit Book (to restore later)
 
 The book's `v0.1.0` edition teaches only the stable API. Its chapters on the unstable APIs are kept, with their examples and expected output, in `book/unreleased/`, and return to Part 3 when those APIs are stabilised:
@@ -57,7 +61,7 @@ The book's `v0.1.0` edition teaches only the stable API. Its chapters on the uns
 
 ### Decided syntax for later versions
 
-* **Async containers get their own macro** (decided 2026-11-16, not implemented yet, recorded on [#37](https://github.com/marlon-sousa/snapfit-rs/issues/37)): `#[async_container]` replaces `#[container(mode = "async")]`, and `mode` is removed. Inside it, async dependencies are marked with the bare `async` flag (`#[singleton(deps = [config], async, constructor = connect)]`); everything else stays sync. `async` inside a plain `#[container]` becomes an error pointing to `#[async_container]`. Until then the unstable `mode = "async"` syntax keeps working.
+* **Async containers get their own macro** (decided 2026-11-16, not implemented yet, recorded on [#37](https://github.com/marlon-sousa/snapfit-rs/issues/37)): `#[async_container]` replaces `#[container(mode = "async")]`, and `mode` is removed. Inside it, async dependencies are marked with the bare `async` flag (`#[singleton(deps = [config], async, build = constructor(connect))]`); everything else stays sync. `async` inside a plain `#[container]` becomes an error pointing to `#[async_container]`. Until then the unstable `mode = "async"` syntax keeps working.
 
 ### Container shapes refused in 0.1.0
 
@@ -65,8 +69,10 @@ These are compile errors that point at the offending field or container, instead
 
 * **Generic containers** (`struct Repo<T>`): planned; the generated `impl` blocks and getters need a design for bounds first.
 * **`#[cfg]` / `#[cfg_attr]` on a dependency field**: conditional dependencies would change the graph per build, so they are refused.
-* **Trait-object fields** (`Arc<dyn PaymentGateway>`) without `builder = <fn>`: a trait object has no constructor to call. On the stable build the error tells the user to make the field's type an `Arc` of the concrete type that implements the trait (`Arc<StripeGateway>`), whatever wrapper held the trait object; a constructor that takes `Arc<dyn PaymentGateway>` still accepts that field, because Rust converts the `Arc` where the generated code passes it. On the `unstable` build the error suggests a builder named after the field (`builder = build_payments`) instead. `#[dispatch(...)]` is another way once implemented.
-* **`constructor` or `builder` values that are not a plain function name** (`"connect()"`, `"Db::connect"`).
+* **Trait-object fields** (`Arc<dyn PaymentGateway>`) without `build = factory`: a trait object has no constructor to call. The error, the same on both builds, tells the user to build the field with a factory (§5.B), whatever wrapper held the trait object. Holding the concrete type (`Arc<StripeGateway>`) still works, and a constructor that takes `Arc<dyn PaymentGateway>` accepts that field, because Rust converts the `Arc` where the generated code passes it. `#[dispatch(...)]` is another way once implemented.
+* **`build` values that are not a way of building** (§5), and **`constructor(...)` values that are not a plain function name** (`"connect()"`, `Db::connect`).
+* **`build = default` with `deps`**: `Default::default()` takes nothing, so the field's `deps` would never be passed.
+* **`build = factory` on an async dependency** (unstable): planned, refused as not implemented yet, because a factory that awaits needs an async trait method, designed with `#[async_container]` ([#37](https://github.com/marlon-sousa/snapfit-rs/issues/37)).
 
 ---
 
@@ -114,8 +120,8 @@ pub struct AppContainer {
     #[transient(deps = [db])]
     user_controller: UserController,
 
-    // 5. Custom builder (when constructor isn't standard ::new)
-    #[singleton(deps = [config, db], builder = build_auth)]
+    // 5. Factory (built by a function the user writes, §5.B)
+    #[singleton(deps = [config, db], build = factory)]
     auth: Arc<AuthService>,
 
     // 6. Static polymorphism (Planned): Macro rewrites field to generated enum!
@@ -130,6 +136,7 @@ pub struct AppContainer {
 | :--- | :--- | :--- | :--- |
 | **`mode`** | `"async"`, `"sync"` | `"sync"` *(or auto `"async"` if any field is `async`)* | Controls whether the container produces `pub async fn init() -> Result<Self, ...>` or synchronous `pub fn new() -> Self`. |
 | **`parent`** | Type Identifier | None | Marks this container as a Child Scope copying/inheriting singletons from a parent container. |
+| **`leaf_build`** | `default`, `constructor(<fn>)` | `constructor(new)` | How every field with no `deps` and no `build` of its own is built (§5). |
 | **`introspection`** | `bool` | `false` | When `true`, generates `.dependency_graph()` and runtime inspection methods for BDD testing or runtime visualization. |
 
 The settings are the arguments of the one `#[container(...)]` that declares the struct. A second `#[container]` on the same struct, in either order, is refused with `multiple #[container] attributes are not allowed`, pointing at the container's name.
@@ -142,7 +149,8 @@ The settings are the arguments of the one `#[container(...)]` that declares the 
 | **`#[singleton(deps = [a, b])]`** | **Singleton (With Dependencies)** | Stored in container struct. Created at boot passing dependencies in order. |
 | **`#[transient]`** | **Transient** | **Stripped from struct memory storage.** Reconstructed on each `get_<name>()`. |
 | **`#[transient(deps = [a])]`** | **Transient (With Dependencies)** | **Stripped from struct memory storage.** Reconstructed on each `get_<name>()` passing `a`. |
-| **`#[singleton(deps = [...], builder = <fn>)]`** | **Custom Builder** | Calls companion trait `<ContainerName>Builders` method for custom construction. |
+| **`#[singleton(deps = [...], build = ...)]`** | **Singleton (Built Another Way)** | Stored in container struct. Built once at boot by `Default::default()`, a named constructor, a factory or a builder (§5). |
+| **`#[singleton(deps = [...], build = factory)]`** | **Factory** | Stored in container struct. Built once at boot by the user's `build_<name>` method of the generated `<ContainerName>Factories` trait. |
 | **`#[dispatch(ImplA, ImplB)]`** | **Static Trait (Planned)** | Auto-generates `enum_dispatch` and **rewrites the struct field type** to the enum. |
 | **`#[external]`** | **External Input (Planned)** | Passed as a parameter to `new(...)` / `init(...)` and exposed as a wireable leaf node in the DAG. |
 | *(Unannotated field)* | **Pre-Init Computed (Planned)** | Populated via an optional `before_init` hook prior to DAG wiring and exposed as a wireable node in the DAG. |
@@ -189,11 +197,27 @@ The `#[container]` attribute macro actively shapes the memory layout of the gene
 
 ---
 
-## 5. Dependency Wiring & Companion Builders Trait
+## 5. Dependency Wiring & Factories
 
 `snapfit` eliminates invasive domain macros entirely. Container wiring is declared centrally in the container definition, keeping all service structs 100% pure Rust.
 
-### A. Standard Constructors (`::new`)
+Each field is built one way, which its `build` setting chooses. The value is a bare word, never a string, so that an editor can complete it:
+
+| The field says | snapfit calls | How `deps` is passed | Where |
+| :--- | :--- | :--- | :--- |
+| no `build` | `Type::new(...)` | by position, in the order `deps` lists them | §5.A |
+| `build = default` | `<Type as Default>::default()` | no `deps` are allowed | §5.A |
+| `build = constructor(connect)` | `Type::connect(...)` | by position | §5.A |
+| `build = factory` | `<Container as <ContainerName>Factories>::build_<field>(inputs)` | by name, through the inputs struct | §5.B |
+| `build = builder` | `Type::builder().<dep>(...)....build()` | by name, one setter each | §5.C |
+
+`Type` is the field's type, or `T` when the field holds `Arc<T>`, in which case the value is wrapped in `Arc::new`. A word that is none of these, such as `build = factroy`, is refused at the field, naming the ways the build accepts and suggesting `build = constructor(factroy)`. A quoted value, such as `build = "factory"`, is refused with the same value unquoted.
+
+A container can say once how its leaves are built: `#[container(leaf_build = default)]` builds every field that has no `deps` and no `build` of its own as if it said `build = default`, which suits a project whose leaf types all derive `Default`. `leaf_build` takes the values a leaf can take, `default` or `constructor(<fn>)`; leaving it out is `constructor(new)`, the behaviour above. A field's own `build` always wins, a field with `deps` is never affected, and every field still needs its `#[singleton]`. Any other value, such as `leaf_build = factory`, is refused at the container's name.
+
+Where the user names a function, as in `build = constructor(connect)`, the generated code calls it with the user's own token, keeping its position, so that an editor completing or hovering inside the attribute sees the type's real functions.
+
+### A. Standard Constructors (`::new`, `default`, `constructor(...)`)
 For standard structs implementing `new(...)`, prerequisites are declared via `deps = [...]` and mapped in sequence:
 
 ```rust
@@ -213,44 +237,98 @@ pub struct AppContainer {
 }
 ```
 
-### B. Custom Builders via Companion Trait (`<ContainerName>Builders`)
-When a dependency requires custom construction (such as unpacking config fields, calling a non-`new` constructor, or configuring an external client):
+A type whose constructor has another name is built with `build = constructor(<fn>)`, which takes the same `deps` in the same order, and a leaf whose type only implements `Default` with `build = default`:
 
-1. Declare the builder method name:
+```rust
+#[container]
+pub struct AppContainer {
+    // Calls TaxRateTable::default()
+    #[singleton(build = default)]
+    tax_rates: Arc<TaxRateTable>,
+
+    // Calls Database::connect(config.clone())
+    #[singleton(deps = [config], build = constructor(connect))]
+    db: Arc<Database>,
+}
+```
+
+### B. Factories via the Generated Trait (`<ContainerName>Factories`)
+Some dependencies need a hand-written way of being built: a constructor whose arguments are not the dependencies themselves, two dependencies of the same type that must not be swapped, or a field that holds a trait object (`Arc<dyn OrderStore>`), which has no constructor at all. A factory is that hand-written way. The container calls it instead of `Type::new(...)`.
+
+1. Mark the field with `build = factory`:
    ```rust
    #[container]
-   pub struct AppContainer {
+   pub struct Shop {
        #[singleton]
        config: Arc<Config>,
 
        #[singleton(deps = [config])]
-       db: Arc<Database>,
+       read_db: Arc<Database>,
 
-       // Custom builder declared on the field:
-       #[singleton(deps = [config, db], builder = build_auth)]
-       auth: Arc<AuthService>,
+       #[singleton(deps = [config])]
+       write_db: Arc<Database>,
+
+       #[singleton(deps = [read_db, write_db], build = factory)]
+       order_store: Arc<dyn OrderStore>,
    }
    ```
 
-2. The `#[container]` macro auto-generates a companion trait with the exact signature:
+2. `#[container]` generates one trait for the container, `<ContainerName>Factories`, with one method for each factory field, and one inputs struct for each of those methods:
    ```rust
-   pub trait AppContainerBuilders {
-       fn build_auth(config: &Config, db: Arc<Database>) -> Arc<AuthService>;
+   pub trait ShopFactories {
+       fn build_order_store(inputs: ShopOrderStoreInputs) -> Arc<dyn OrderStore>;
+   }
+
+   pub struct ShopOrderStoreInputs {
+       pub read_db: Arc<Database>,
+       pub write_db: Arc<Database>,
    }
    ```
 
-3. Implement the companion trait on your container:
+3. Implement the trait on the container, taking the inputs by name:
    ```rust
-   impl AppContainerBuilders for AppContainer {
-       fn build_auth(config: &Config, db: Arc<Database>) -> Arc<AuthService> {
-           AuthService::from_vault(config.vault_url(), db)
+   impl ShopFactories for Shop {
+       fn build_order_store(inputs: ShopOrderStoreInputs) -> Arc<dyn OrderStore> {
+           let ShopOrderStoreInputs { read_db, write_db } = inputs;
+           Arc::new(SqlOrderStore::new(read_db, write_db))
        }
    }
    ```
 
-* **IDE Auto-Scaffolding:** In `rust-analyzer` or any LSP-enabled editor, typing `impl AppContainerBuilders for AppContainer {}` provides an immediate "Implement missing members" code action that generates the exact function stub with correct types.
-* **Conditional Generation:** If no fields in the container declare `builder = <fn>`, the companion trait is omitted entirely to prevent dead code or unused trait warnings.
-* **Absolute Zero Domain Pollution:** Services, repositories, and controllers remain 100% pure standard Rust with zero framework dependencies.
+* **Names:** the trait is `<ContainerName>Factories`. Each method is `build_<field>`, an associated function with no `self`, because the container does not exist yet while it is being built, and it returns the field's type exactly as declared. Each inputs struct is `<ContainerName><Field>Inputs`, the field's name in PascalCase (`order_store` gives `ShopOrderStoreInputs`).
+* **Inputs by name:** the inputs struct has one `pub` field for each `deps` entry, with that dependency's name and the type of its container field, holding a clone of the singleton, or a fresh value of a transient (unstable). The method always takes the struct, even when the field has no `deps`, so that adding a dependency never changes its signature. The inputs are passed by name, not by position, because Rust does not check parameter names in a trait impl: a method whose two `Arc<Database>` parameters were swapped would compile. With a struct, a misspelt, missing or swapped name is a compile error.
+* **The graph stays in `deps`:** a factory receives only what its `deps` names, so the construction order, the unknown-dependency and the cycle checks of §6 apply to it as to any field.
+* **Visibility:** the trait and the inputs structs have the container's visibility.
+* **Conditional Generation:** if no field of the container says `build = factory`, neither the trait nor any inputs struct is generated.
+* **The compiler checks the rest:** forgetting the `impl`, leaving out a method, or returning the wrong type is rustc's own error about the trait. A missing `impl` is reported at the factory field.
+* **Transients (unstable):** a `#[transient(build = factory)]` field is built by its factory on every `get_<name>()`, which receives `&self`'s singletons as its inputs.
+* **IDE Auto-Scaffolding:** in `rust-analyzer` or any LSP-enabled editor, typing `impl ShopFactories for Shop {}` offers an "Implement missing members" code action that writes each method's signature.
+* **Absolute Zero Domain Pollution:** services, repositories and controllers remain plain Rust with no framework dependencies.
+
+### C. Builders (`build = builder`, planned)
+Many types are built through a builder, such as the ones `bon` and `typed-builder` generate. `build = builder` calls the type's builder, with one setter for each dependency, so the dependencies are passed by name and their order never matters:
+
+```rust
+#[container]
+pub struct Shop {
+    #[singleton]
+    folder_files: Arc<FolderFiles>,
+
+    #[singleton]
+    memory_files: Arc<MemoryFiles>,
+
+    // Calls Exporter::builder().disk(folder_files.clone()).memory(memory_files.clone()).build()
+    #[singleton(deps = [disk = folder_files, memory = memory_files], build = builder)]
+    exporter: Arc<Exporter>,
+}
+```
+
+* **One setter per dependency:** `deps = [read_db, write_db]` calls `.read_db(...)` and `.write_db(...)`, each with a clone of the singleton, or a fresh transient (unstable).
+* **Labels rename a setter:** `deps = [disk = folder_files]` calls `.disk(...)` with `folder_files`. A label is accepted only with `build = builder`; on any other field it is refused at the field, because a constructor or a factory has no setters to name.
+* **Start and finish:** the chain starts with `Type::builder()` and ends with `.build()`, which must return the value itself. `builder(start = new_builder, finish = done)` names other functions for a builder that uses them.
+* **The compiler checks the rest:** a missing, unknown or misspelt setter is the builder crate's own compile error.
+
+Until this is implemented, `build = builder` is refused as planned, naming the field.
 
 ---
 
@@ -273,7 +351,7 @@ error: dependency cycle: service_a depends on service_b, which depends on servic
 A field that needs only itself reads `dependency cycle: service_a depends on itself`.
 
 4. **Every problem at once:** The macro reports every problem it finds in one compile, each as its own error pointing at the field it is about (its snapfit attribute, or its name when it has none), or at the container's name when no field is at fault. Problems found while reading the fields, such as a missing `#[singleton]` or a quoted function name, are reported together; once every field reads, the unknown dependencies, cycles, refused features and other rules of the declaration are reported together. The struct is kept as written, without snapfit's attributes, so that the compiler adds no follow-on errors about a missing type.
-5. **Only what the build accepts:** snapfit's own advice on what to write offers only what the build in use accepts, and never a planned feature. On the stable build it offers no unstable feature: a field with no snapfit attribute reads `field 'config' has no snapfit attribute; add #[singleton] to have the container build it`, and an unknown mode reads `invalid container mode 'threaded': write mode = "sync", or leave mode out`, the same on both builds. The `unstable` build may name the unstable features it accepts, as its trait-object error suggests a builder (§0). A feature the user wrote is still named when it is refused, such as `#[dispatch(...)]` being planned. One exception is not snapfit's own advice: for a misspelt setting, darling, which reads the attributes, suggests the closest name it knows, such as "Did you mean `builder`?", which can be an unstable or planned setting.
+5. **Only what the build accepts:** snapfit's own advice on what to write offers only what the build in use accepts, and never a planned feature. On the stable build it offers no unstable feature: a field with no snapfit attribute reads `field 'config' has no snapfit attribute; add #[singleton] to have the container build it`, and an unknown mode reads `invalid container mode 'threaded': write mode = "sync", or leave mode out`, the same on both builds. A feature the user wrote is still named when it is refused, such as `#[dispatch(...)]` being planned. One exception is not snapfit's own advice: for a misspelt setting, darling, which reads the attributes, suggests the closest name it knows, such as "Did you mean `build`?", which could in principle be an unstable or planned setting.
 
 ---
 
@@ -323,7 +401,7 @@ pub struct AppContainer {
 ```
 * **Performance:** 100% static dispatch, compiler-inlined calls, zero `dyn Any`, zero `vtable`.
 * **Trait Annotation Contract:** Because Rust procedural macros operate syntactically and cannot inspect external trait method definitions, static dispatch leverages `enum_dispatch` (which requires `#[enum_dispatch]` on the trait).
-* **When dynamic dispatch is desired (Zero Trait Macros):** Omit `#[dispatch]` and use `Arc<dyn Database + Send + Sync>` directly, built by a `builder = <fn>`. This requires zero annotations on the trait definition and supports dynamic plugin architectures. Builders are unstable in 0.1.0, so on the stable build the field holds the concrete type and a constructor takes the trait object instead (§0, "Container shapes refused in 0.1.0").
+* **When dynamic dispatch is desired (Zero Trait Macros):** Omit `#[dispatch]` and use `Arc<dyn Database + Send + Sync>` directly, built by a factory (`build = factory`, §5.B). This requires zero annotations on the trait definition and supports dynamic plugin architectures.
 
 ---
 
@@ -344,11 +422,11 @@ pub struct AppContainer {
     config: Arc<Config>,
 
     // Asynchronous constructor: Database::connect(config).await
-    #[singleton(deps = [config], async, constructor = connect)]
+    #[singleton(deps = [config], async, build = constructor(connect))]
     db: Arc<Database>,
 
     // Asynchronous constructor: PaymentGateway::init(config).await
-    #[singleton(deps = [config], async, constructor = init)]
+    #[singleton(deps = [config], async, build = constructor(init))]
     payment: Arc<PaymentGateway>,
 
     // Synchronous dependency depending on async db

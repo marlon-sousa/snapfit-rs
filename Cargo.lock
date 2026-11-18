@@ -1230,6 +1230,7 @@ dependencies = [
  "darling",
  "derive-new",
  "derive_more 2.1.1",
+ "heck 0.5.0",
  "proc-macro2",
  "quote",
  "strum",

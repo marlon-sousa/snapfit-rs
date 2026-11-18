@@ -98,7 +98,7 @@ pub struct AppContainer {
     config: Arc<Config>,
 
     // Named constructor: calls Database::connect(config)
-    #[singleton(deps = [config], constructor = connect)]
+    #[singleton(deps = [config], build = constructor(connect))]
     db: Arc<Database>,
 
     // Calls UserService::new(db)
@@ -122,7 +122,9 @@ fn main() {
 * **Compile-time graph checks:** unknown dependencies and cycles, such as `service_a` depending on `service_b` which depends on `service_a`, fail `cargo build`, each reported at its field and all of them in one compile. Fields are visited in the order they are declared, and the fields each one needs are built before it.
 * **Typed getters:** `get_<name>()` returns the declared type with no `dyn Any` and no forced `Arc<T>` (any `T: Clone` works).
 * **Named edges:** two dependencies of the same type (`read_db` and `write_db`) are wired by field name, without wrapper newtypes.
-* **Named constructors:** `constructor = connect` calls `Type::connect(...)` instead of `Type::new(...)`.
+* **Named constructors:** `build = constructor(connect)` calls `Type::connect(...)` instead of `Type::new(...)`.
+* **Defaults:** `build = default` calls `Default::default()` for a type that only implements `Default`, and `#[container(leaf_build = default)]` does it for every field without `deps` or a `build` of its own.
+* **Factories:** `build = factory` has the container call a `build_<name>` method you write in the generated `<Container>Factories` trait, which receives the field's `deps` by name in one struct; it builds trait-object fields and anything a plain constructor cannot.
 
 <!-- github-only -->
 ### Unstable APIs (`features = ["unstable"]`)
@@ -131,7 +133,6 @@ These work today but their API may still change, so they need the `unstable` fea
 
 * **Async containers:** `#[container(mode = "async")]`, `#[singleton(async, ...)]` and `AppContainer::init().await`, with synchronous getters afterwards.
 * **Transient dependencies:** `#[transient]` fields are not stored and are built fresh on every `get_<name>()`.
-* **Custom builders:** `builder = build_auth` calls an associated function you write on the container.
 
 ### Planned
 

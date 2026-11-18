@@ -1,5 +1,6 @@
 //! Adapter: reads the user's struct, through syn and darling, into a container declaration.
 
+mod build_setting;
 mod darling_models;
 mod field_parser;
 mod type_inspector;
@@ -48,6 +49,7 @@ fn container_header(
     } else {
         Introspection::Off
     };
+    container.leaf_constructor = build_setting::leaf_constructor(meta.leaf_build)?;
     Ok(container)
 }
 

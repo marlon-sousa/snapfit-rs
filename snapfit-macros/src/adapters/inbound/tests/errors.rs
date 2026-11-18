@@ -11,7 +11,7 @@ fn messages(errors: DomainErrors) -> Vec<String> {
 fn every_bad_field_is_reported_at_once() {
     let input: syn::ItemStruct = parse_quote! {
         struct Repo<T> {
-            #[singleton(constructor = "connect")]
+            #[singleton(build = constructor("connect"))]
             db: Arc<Database>,
             config: Arc<Config>,
             #[cfg(test)]
@@ -25,7 +25,7 @@ fn every_bad_field_is_reported_at_once() {
     assert_eq!(
         errors,
         [
-            "constructor \"connect\" on field 'db' must be written without quotes: constructor = connect",
+            "constructor \"connect\" on field 'db' must be written without quotes: build = constructor(connect)",
             "field 'config' has no snapfit attribute; add #[singleton] to have the container build it",
             "field 'metrics' cannot use #[cfg] or #[cfg_attr]; conditional dependencies are not supported",
         ]

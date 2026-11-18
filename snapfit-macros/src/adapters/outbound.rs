@@ -2,6 +2,7 @@
 
 mod diagnostics;
 mod expr;
+mod factories;
 mod getters;
 mod init_constructor;
 mod struct_def;
@@ -29,13 +30,16 @@ pub(crate) fn emit_container(plan: &Plan) -> TokenStream {
     }
 }
 
-/// The constructor, the `Default` and `Container` impls, and the getters.
+/// The constructor, the `Default` and `Container` impls, the getters, and the
+/// factories trait with its inputs structs.
 fn emit_impls(plan: &Plan) -> TokenStream {
     let init_impl = init_constructor::emit_init_impl(plan);
     let getters = getters::emit_getters_impl(plan);
+    let factories = factories::emit_factories(plan);
 
     quote! {
         #init_impl
         #getters
+        #factories
     }
 }

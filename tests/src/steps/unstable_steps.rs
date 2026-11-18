@@ -59,16 +59,23 @@ fn then_carts_share_config(world: &mut ContainerWorld) {
     assert!(Arc::ptr_eq(&config, &container.get_cart().config_ref()));
 }
 
-#[given(expr = "a container whose auth service is made by the builder {string}")]
-fn given_builder_container(world: &mut ContainerWorld, builder: String) {
-    assert_eq!(builder, "build_auth");
-    world.select(ScenarioBlueprint::BuilderShop);
+#[given("a container whose transient auth session is built by a factory from the shop config")]
+fn given_transient_factory_container(world: &mut ContainerWorld) {
+    world.select(ScenarioBlueprint::TransientFactoryShop);
 }
 
-#[then("the auth service should be configured by the builder with the shop config")]
-fn then_auth_built_by_builder(world: &mut ContainerWorld) {
-    let container = world.unstable().builder_shop();
-    assert_eq!(container.get_auth().realm, "Northwind-auth");
+#[then("every auth session should be built again by the factory from the container's shop config")]
+fn then_sessions_built_by_factory(world: &mut ContainerWorld) {
+    let container = world.unstable().transient_factory_shop();
+    let first = container.get_session();
+    let second = container.get_session();
+    assert_ne!(
+        first.id, second.id,
+        "Expected a fresh AuthSession on every get"
+    );
+    assert_eq!(first.realm, "Northwind-auth");
+    assert!(Arc::ptr_eq(&first.config, &container.get_config()));
+    assert!(Arc::ptr_eq(&second.config, &container.get_config()));
 }
 
 #[given("a container where a transient price list feeds a transient quote and a singleton catalog")]
@@ -95,7 +102,7 @@ fn then_catalog_keeps_its_price_list(world: &mut ContainerWorld) {
     assert_ne!(catalog.prices.id, container.get_prices().id);
 }
 
-#[then(expr = "the trait-object notifier made by its builder should send through {string}")]
+#[then(expr = "the trait-object notifier made by its factory should send through {string}")]
 fn then_notifier_uses_channel(world: &mut ContainerWorld, channel: String) {
     let container = world.unstable().layered_shop();
     assert_eq!(container.get_notifier().channel(), channel);

@@ -4,6 +4,8 @@ use darling::FromMeta;
 use darling::ast::NestedMeta;
 use proc_macro2::{Ident, TokenStream, TokenTree};
 use quote::quote;
+use syn::Token;
+use syn::punctuated::Punctuated;
 
 use super::type_inspector::compact_type_tokens;
 use crate::domain::AttributeProblem;
@@ -24,6 +26,8 @@ pub(super) struct ContainerAttrMeta {
     pub(super) parent: Option<ParentTypeMeta>,
     #[darling(default)]
     pub(super) introspection: bool,
+    #[darling(default)]
+    pub(super) leaf_build: Option<BuildMeta>,
 }
 
 impl ContainerAttrMeta {
@@ -63,34 +67,73 @@ pub(super) struct DependencyAttrMeta {
     #[darling(default)]
     pub(super) is_async: bool,
     #[darling(default)]
-    pub(super) constructor: Option<FunctionNameMeta>,
-    #[darling(default)]
-    pub(super) builder: Option<FunctionNameMeta>,
+    pub(super) build: Option<BuildMeta>,
 }
 
-/// The value of `constructor = ...` or `builder = ...` as the user wrote it.
-/// Only a bare function name (`constructor = connect`) is accepted; the
-/// field parser turns the other shapes into errors that name the field.
+/// The value of `build = ...` as the user wrote it: a bare word, or
+/// `constructor(...)`. The field parser turns every other shape into an
+/// error that names the field.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) enum FunctionNameMeta {
-    Bare(String),
+pub(super) enum BuildMeta {
+    Word(syn::Ident),
+    Constructor(FunctionNameMeta),
     Quoted(String),
     Invalid(String),
 }
 
-impl FromMeta for FunctionNameMeta {
+impl FromMeta for BuildMeta {
     fn from_expr(expr: &syn::Expr) -> darling::Result<Self> {
         Ok(match expr {
             syn::Expr::Path(path) if path.qself.is_none() => path.path.get_ident().map_or_else(
                 || Self::Invalid(quote!(#path).to_string()),
-                |ident| Self::Bare(ident.to_string()),
+                |ident| Self::Word(ident.clone()),
             ),
+            syn::Expr::Call(call) if is_constructor(&call.func) => {
+                Self::Constructor(FunctionNameMeta::from_arguments(&call.args))
+            }
             syn::Expr::Lit(syn::ExprLit {
                 lit: syn::Lit::Str(text),
                 ..
             }) => Self::Quoted(text.value()),
             other => Self::Invalid(quote!(#other).to_string()),
         })
+    }
+}
+
+fn is_constructor(func: &syn::Expr) -> bool {
+    matches!(func, syn::Expr::Path(path) if path.path.is_ident("constructor"))
+}
+
+/// The argument of `constructor(...)`, kept with its span so that the
+/// generated call points back at it. Only one bare function name
+/// (`constructor(connect)`) is accepted.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) enum FunctionNameMeta {
+    Bare(syn::Ident),
+    Quoted(String),
+    Invalid(String),
+}
+
+impl FunctionNameMeta {
+    fn from_arguments(args: &Punctuated<syn::Expr, Token![,]>) -> Self {
+        match args.iter().collect::<Vec<_>>().as_slice() {
+            [argument] => Self::from_argument(argument),
+            _ => Self::Invalid(quote!(#args).to_string()),
+        }
+    }
+
+    fn from_argument(expr: &syn::Expr) -> Self {
+        match expr {
+            syn::Expr::Path(path) if path.qself.is_none() => path.path.get_ident().map_or_else(
+                || Self::Invalid(quote!(#path).to_string()),
+                |ident| Self::Bare(ident.clone()),
+            ),
+            syn::Expr::Lit(syn::ExprLit {
+                lit: syn::Lit::Str(text),
+                ..
+            }) => Self::Quoted(text.value()),
+            other => Self::Invalid(quote!(#other).to_string()),
+        }
     }
 }
 

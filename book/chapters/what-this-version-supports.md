@@ -13,7 +13,7 @@ This edition of **The Snapfit Book** covers `snapfit` **`0.1.0`**. It needs Rust
 | **Plain domain types** | Services, repositories and controllers need no attribute, trait or import of `snapfit` ([Chapter 6](06-pure-domain-types.md)). |
 | **Shared components** | Every field of a `#[container]` is built once, and its getter returns a clone of it, which for an `Arc<T>` field is the same value; fields can be `Arc<T>`, wrapped for you, or any `T: Clone` ([Chapter 5](05-installing-and-first-singleton.md), [Chapter 7](07-wiring-dependencies-and-constructors.md)). |
 | **Dependencies by name** | `deps = [...]` lists the fields a component needs, passed to its constructor in that order ([Chapter 7](07-wiring-dependencies-and-constructors.md)). |
-| **Named constructors** | `constructor = <fn>` calls a constructor other than `new` ([Chapter 7](07-wiring-dependencies-and-constructors.md)). |
+| **Named constructors** | `build = constructor(<fn>)` calls a constructor other than `new` ([Chapter 7](07-wiring-dependencies-and-constructors.md)). |
 | **Construction order worked out when compiling** | Fields can be declared in any order; each is built after the fields it needs ([Chapter 8](08-read-the-container-know-the-graph.md)). |
 | **Several components of one type** | Fields are told apart by name, without wrapper types ([Chapter 9](09-multiple-instances-of-the-same-type.md)). |
 | **Choosing an implementation** | A field's concrete type is the choice; services can take a trait object or a type parameter ([Chapter 10](10-choosing-an-implementation.md)). |

@@ -1,15 +1,12 @@
 use super::*;
 
 #[test]
-fn a_declared_dependency_starts_as_a_synchronous_singleton_built_with_new() {
+fn a_declared_dependency_starts_as_a_synchronous_singleton_with_no_build_of_its_own() {
     let dependency = DependencyDeclaration::new(DependencyName::new("db").unwrap(), ());
 
     assert_eq!(dependency.lifecycle, Lifecycle::Singleton);
     assert_eq!(dependency.execution, Execution::Sync);
-    assert_eq!(
-        dependency.construction,
-        Construction::Constructor(Constructor::New)
-    );
+    assert_eq!(dependency.construction, None);
     assert_eq!(dependency.shape, TypeShape::Value);
     assert!(dependency.prerequisites.is_empty());
     assert!(dependency.dispatch.is_none());

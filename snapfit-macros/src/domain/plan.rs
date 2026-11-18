@@ -6,7 +6,7 @@ use derive_new::new;
 use strum::EnumIs;
 
 use crate::domain::declaration::{Constructor, Execution, Lifecycle};
-use crate::domain::names::{DependencyName, FunctionName};
+use crate::domain::names::DependencyName;
 
 #[cfg(test)]
 mod tests;
@@ -18,13 +18,14 @@ pub(crate) enum Wrapping {
     Arc,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(EnumIs, Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Call {
     Constructor {
         constructor: Constructor,
         wrapping: Wrapping,
     },
-    Builder(FunctionName),
+    /// The field's `build_<field>` method of the container's factories trait.
+    Factory,
 }
 
 #[derive(new, Debug, PartialEq, Eq)]

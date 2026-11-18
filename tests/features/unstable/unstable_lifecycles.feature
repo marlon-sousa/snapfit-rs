@@ -1,7 +1,7 @@
 Feature: Unstable lifecycles behind the `unstable` feature
 
   As a Rust developer who opted in to snapfit's unstable APIs
-  I want async containers, transient dependencies and custom builders to keep working
+  I want async containers and transient dependencies to keep working
   So that I can try them before their API is stabilised
 
   @unstable
@@ -19,18 +19,18 @@ Feature: Unstable lifecycles behind the `unstable` feature
     And both carts should reference the container's shop config
 
   @unstable
-  Scenario: A custom builder on the container constructs its dependency
-    Given a container whose auth service is made by the builder "build_auth"
+  Scenario: A transient factory builds a fresh value on every get from the container's singletons
+    Given a container whose transient auth session is built by a factory from the shop config
     When the container is instantiated
-    Then the auth service should be configured by the builder with the shop config
+    Then every auth session should be built again by the factory from the container's shop config
 
   @unstable @regression
-  Scenario: Transients can feed other transients and singletons, and builders can make trait objects
+  Scenario: Transients can feed other transients and singletons, and factories can make trait objects
     Given a container where a transient price list feeds a transient quote and a singleton catalog
     When the container is instantiated
     Then every quote should get its own fresh price list
     And the catalog should keep the price list it was built with
-    And the trait-object notifier made by its builder should send through "email:northwind"
+    And the trait-object notifier made by its factory should send through "email:northwind"
 
   @unstable
   Scenario Outline: Planned container features stay refused with the unstable feature enabled
@@ -45,10 +45,12 @@ Feature: Unstable lifecycles behind the `unstable` feature
       | planned_introspection    | 7    | #[container(introspection = true)]      |
       | planned_dispatch         | 10   | #[dispatch(...)] on dependency 'store'  |
       | generic_container        | 4    | generic parameters on container 'Repo'  |
+      | planned_async_factory    | 8    | build = factory on async dependency 'db' |
+      | planned_builder          | 8    | build = builder on dependency 'exporter' |
 
   @unstable @regression
-  Scenario: A trait-object field without a builder is told the builder the unstable build accepts
-    Given an invalid container fixture "trait_object_without_builder"
+  Scenario: A trait-object field without a factory is told to build it in one, as on the stable build
+    Given an invalid container fixture "trait_object_without_factory"
     When the fixture is compiled
-    Then compilation should fail with "field 'store' has a trait-object type, which has no constructor; build it with a builder such as builder = build_store (unstable feature)"
+    Then compilation should fail with "field 'store' has a trait-object type, which has no constructor; add build = factory to the field and build it in the build_store method of the container's factories trait"
     And the error should point at line 8 of the fixture

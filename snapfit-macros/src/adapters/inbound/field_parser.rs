@@ -14,7 +14,8 @@ mod rules;
 #[cfg(test)]
 mod tests;
 
-use rules::{attribute_error, construction_of, ensure_unconditional};
+use super::build_setting::field_construction;
+use rules::{attribute_error, ensure_unconditional};
 
 /// The declaration, or every problem the field's attributes have.
 pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, DomainErrors> {
@@ -29,13 +30,12 @@ pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, Domain
         (None, Some(_)) => (Lifecycle::Singleton, DependencyAttrMeta::default()),
         (None, None) => return Err(unannotated(&name).into()),
     };
-    let construction =
-        construction_of(&name, meta.constructor, meta.builder).map_err(DomainErrors::from);
+    let construction = field_construction(&name, meta.build).map_err(DomainErrors::from);
     let prerequisites = prerequisites_of(&name, meta.deps.0).map_err(DomainErrors::from);
-    let (construction, (prerequisites, parent_prerequisites)) =
+    let ((construction, constructor), (prerequisites, parent_prerequisites)) =
         DomainErrors::both(construction, prerequisites)?;
 
-    let mut dependency = DependencyDeclaration::new(name, field_syntax(field, ident));
+    let mut dependency = DependencyDeclaration::new(name, field_syntax(field, ident, constructor));
     dependency.lifecycle = lifecycle;
     dependency.execution = if meta.is_async {
         Execution::Async
@@ -55,9 +55,14 @@ fn field_name(field: &syn::Field) -> Result<(DependencyName, syn::Ident), Domain
     Ok((DependencyName::new(ident.to_string())?, ident))
 }
 
-fn field_syntax(field: &syn::Field, ident: syn::Ident) -> FieldSyntax {
+fn field_syntax(
+    field: &syn::Field,
+    ident: syn::Ident,
+    constructor: Option<syn::Ident>,
+) -> FieldSyntax {
     FieldSyntax {
         ident,
+        constructor,
         ty: field.ty.clone(),
         arc_inner: arc_inner_type(&field.ty).unwrap_or(&field.ty).clone(),
         vis: field.vis.clone(),

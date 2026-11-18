@@ -47,7 +47,7 @@ pub struct AsyncShopContainer {
     #[singleton]
     config: Arc<ShopConfig>,
 
-    #[singleton(deps = [config], async, constructor = connect)]
+    #[singleton(deps = [config], async, build = constructor(connect))]
     gateway: Arc<PaymentGateway>,
 
     #[singleton(deps = [gateway])]
@@ -83,24 +83,32 @@ pub struct TransientShopContainer {
     cart: Cart,
 }
 
-pub struct AuthService {
+static NEXT_SESSION_ID: AtomicU32 = AtomicU32::new(1);
+
+pub struct AuthSession {
+    pub id: u32,
     pub realm: String,
+    pub config: Arc<ShopConfig>,
 }
 
+/// A transient built by its factory on every get.
 #[container]
-pub struct BuilderShopContainer {
+pub struct TransientFactoryShopContainer {
     #[singleton]
     config: Arc<ShopConfig>,
 
-    #[singleton(deps = [config], builder = build_auth)]
-    auth: Arc<AuthService>,
+    #[transient(deps = [config], build = factory)]
+    session: AuthSession,
 }
 
-impl BuilderShopContainer {
-    fn build_auth(config: Arc<ShopConfig>) -> Arc<AuthService> {
-        Arc::new(AuthService {
+impl TransientFactoryShopContainerFactories for TransientFactoryShopContainer {
+    fn build_session(inputs: TransientFactoryShopContainerSessionInputs) -> AuthSession {
+        let TransientFactoryShopContainerSessionInputs { config } = inputs;
+        AuthSession {
+            id: NEXT_SESSION_ID.fetch_add(1, Ordering::Relaxed),
             realm: format!("{}-auth", config.store_name),
-        })
+            config,
+        }
     }
 }
 
@@ -153,7 +161,7 @@ impl Notifier for EmailNotifier {
 }
 
 /// A transient that feeds another transient and a singleton, plus a
-/// trait-object singleton that only a builder can make.
+/// trait-object singleton that only a factory can make.
 #[container]
 pub struct LayeredShopContainer {
     #[singleton]
@@ -168,14 +176,14 @@ pub struct LayeredShopContainer {
     #[singleton(deps = [prices])]
     catalog: Arc<Catalog>,
 
-    #[singleton(deps = [config], builder = build_notifier)]
+    #[singleton(deps = [config], build = factory)]
     notifier: Arc<dyn Notifier>,
 }
 
-impl LayeredShopContainer {
-    fn build_notifier(config: Arc<ShopConfig>) -> Arc<dyn Notifier> {
+impl LayeredShopContainerFactories for LayeredShopContainer {
+    fn build_notifier(inputs: LayeredShopContainerNotifierInputs) -> Arc<dyn Notifier> {
         Arc::new(EmailNotifier {
-            sender: config.store_name.to_lowercase(),
+            sender: inputs.config.store_name.to_lowercase(),
         })
     }
 }

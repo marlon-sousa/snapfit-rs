@@ -29,23 +29,22 @@ pub(crate) enum Execution {
     Async,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(EnumIs, Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Construction {
     /// An associated function of the dependency's type.
     Constructor(Constructor),
-    /// An associated function of the container.
-    Builder(FunctionName),
+    /// The `build_<field>` method the user writes in the container's factories trait.
+    Factory,
+    /// The type's builder, with one setter per prerequisite.
+    Builder,
 }
 
-impl Default for Construction {
-    fn default() -> Self {
-        Self::Constructor(Constructor::New)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub(crate) enum Constructor {
+    #[default]
     New,
+    /// `Default::default()`, which takes no prerequisites.
+    Default,
     Named(FunctionName),
 }
 
@@ -90,8 +89,9 @@ pub(crate) struct DependencyDeclaration<F> {
     pub(crate) lifecycle: Lifecycle,
     #[new(default)]
     pub(crate) execution: Execution,
+    /// `build = ...`, absent when the field writes none.
     #[new(default)]
-    pub(crate) construction: Construction,
+    pub(crate) construction: Option<Construction>,
     #[new(default)]
     pub(crate) shape: TypeShape,
     /// Siblings passed to the constructor or builder, in order.
@@ -117,6 +117,9 @@ pub(crate) struct ContainerDeclaration<C, F> {
     pub(crate) parent: Option<TypeName>,
     #[new(default)]
     pub(crate) introspection: Introspection,
+    /// `leaf_build = ...`: how a field with no `deps` and no `build` of its own is built.
+    #[new(default)]
+    pub(crate) leaf_constructor: Constructor,
     /// In the order the fields are declared.
     #[new(default)]
     pub(crate) dependencies: Vec<DependencyDeclaration<F>>,

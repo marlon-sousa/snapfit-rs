@@ -89,7 +89,7 @@ Feature: Container Dependency Resolution
     Given an invalid container fixture "several_field_problems"
     When the fixture is compiled
     Then compilation should fail with "field 'config' has no snapfit attribute; add #[singleton] to have the container build it"
-    And compilation should fail with "constructor "connect" on field 'db' must be written without quotes: constructor = connect"
+    And compilation should fail with "constructor "connect" on field 'db' must be written without quotes: build = constructor(connect)"
     And the compiler should report 2 errors
     And the error should point at line 9 of the fixture
     And the error should point at line 11 of the fixture
@@ -106,7 +106,6 @@ Feature: Container Dependency Resolution
       | unstable_async_container  | 7    | #[container(mode = "async")]                      |
       | unstable_async_dependency | 8    | async dependency 'db'                             |
       | unstable_transient        | 12   | transient dependency 'cart'                       |
-      | unstable_builder          | 12   | custom builder 'build_auth' on dependency 'auth'  |
 
   @v0_1_0
   Scenario Outline: Planned container features are refused until they are implemented
@@ -119,5 +118,6 @@ Feature: Container Dependency Resolution
       | fixture                  | line | expected_error                          |
       | planned_parent_container | 7    | #[container(parent = ...)]              |
       | planned_introspection    | 7    | #[container(introspection = true)]      |
+      | planned_builder          | 8    | build = builder on dependency 'exporter' |
       | planned_dispatch         | 10   | #[dispatch(...)] on dependency 'store'  |
       | generic_container        | 4    | generic parameters on container 'Repo'  |

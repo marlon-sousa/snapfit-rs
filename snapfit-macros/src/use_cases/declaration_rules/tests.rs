@@ -34,3 +34,20 @@ fn an_async_transient_is_refused() {
         }]
     );
 }
+
+#[test]
+fn default_is_refused_with_deps_and_accepted_without() {
+    let built_by_default = |deps: &[&str]| {
+        let mut rates = dependency("rates", deps);
+        rates.construction = Some(Construction::Constructor(Constructor::Default));
+        rates
+    };
+
+    assert!(rule_violations(&container(vec![built_by_default(&[])])).is_empty());
+    assert_eq!(
+        rule_violations(&container(vec![built_by_default(&["config"])])),
+        [DomainError::DefaultWithDependencies {
+            dependency: DependencyName::new("rates").unwrap()
+        }]
+    );
+}

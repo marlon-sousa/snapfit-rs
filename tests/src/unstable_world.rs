@@ -1,12 +1,12 @@
 use crate::unstable_containers::{
-    AsyncShopContainer, BuilderShopContainer, LayeredShopContainer, TransientShopContainer,
+    AsyncShopContainer, LayeredShopContainer, TransientFactoryShopContainer, TransientShopContainer,
 };
 
 #[derive(Default)]
 pub struct UnstableContainers {
     async_shop: Option<AsyncShopContainer>,
     transient_shop: Option<TransientShopContainer>,
-    builder_shop: Option<BuilderShopContainer>,
+    transient_factory_shop: Option<TransientFactoryShopContainer>,
     layered_shop: Option<LayeredShopContainer>,
 }
 
@@ -22,8 +22,8 @@ impl UnstableContainers {
         self.transient_shop = Some(TransientShopContainer::new());
     }
 
-    pub fn new_builder_shop(&mut self) {
-        self.builder_shop = Some(BuilderShopContainer::new());
+    pub fn new_transient_factory_shop(&mut self) {
+        self.transient_factory_shop = Some(TransientFactoryShopContainer::new());
     }
 
     pub fn new_layered_shop(&mut self) {
@@ -42,10 +42,10 @@ impl UnstableContainers {
             .expect("TransientShopContainer must be instantiated before Then assertions")
     }
 
-    pub fn builder_shop(&self) -> &BuilderShopContainer {
-        self.builder_shop
+    pub fn transient_factory_shop(&self) -> &TransientFactoryShopContainer {
+        self.transient_factory_shop
             .as_ref()
-            .expect("BuilderShopContainer must be instantiated before Then assertions")
+            .expect("TransientFactoryShopContainer must be instantiated before Then assertions")
     }
 
     pub fn layered_shop(&self) -> &LayeredShopContainer {

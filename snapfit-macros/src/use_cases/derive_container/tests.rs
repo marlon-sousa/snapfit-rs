@@ -62,7 +62,7 @@ fn refusals_mode_errors_and_graph_errors_are_reported_together() {
 }
 
 #[test]
-fn each_build_refuses_a_trait_object_with_the_advice_it_can_follow() {
+fn both_builds_refuse_a_trait_object_without_a_factory_with_the_same_advice() {
     let mut store = dependency("store", &[]);
     store.shape = TypeShape::TraitObject;
     let refusal = |gate| {
@@ -72,12 +72,13 @@ fn each_build_refuses_a_trait_object_with_the_advice_it_can_follow() {
             .collect::<Vec<_>>()
     };
 
-    assert!(matches!(
-        refusal(FeatureGate::Stable)[..],
-        [DomainError::TraitObjectNeedsConcreteType { .. }]
-    ));
-    assert!(matches!(
-        refusal(FeatureGate::Unstable)[..],
-        [DomainError::TraitObjectWithoutBuilder { .. }]
-    ));
+    for gate in [FeatureGate::Stable, FeatureGate::Unstable] {
+        assert!(
+            matches!(
+                refusal(gate)[..],
+                [DomainError::TraitObjectWithoutFactory { .. }]
+            ),
+            "{gate:?}"
+        );
+    }
 }

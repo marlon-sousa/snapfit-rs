@@ -22,6 +22,6 @@ pub struct ShopContainer {
     #[singleton]
     config: Arc<ShopConfig>,
 
-    #[singleton(deps = [config], constructor = "connect")]
+    #[singleton(deps = [config], build = constructor("connect"))]
     payments: Arc<PaymentGateway>,
 }

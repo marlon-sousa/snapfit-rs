@@ -3,13 +3,15 @@
 
 mod accumulated;
 mod parts;
+mod sentences;
 
 use thiserror::Error;
 
 use crate::domain::names::DependencyName;
 
 pub(crate) use accumulated::DomainErrors;
-pub(crate) use parts::{AttributeProblem, Feature, FunctionRole};
+pub(crate) use parts::{AttributeProblem, Feature};
+use sentences::{cycle_sentence, join_names};
 
 #[cfg(test)]
 mod tests;
@@ -19,7 +21,7 @@ pub(crate) enum DomainError {
     #[error("a {label} cannot be blank")]
     BlankName { label: &'static str },
 
-    #[error("dependency cycle: {}", Self::cycle_sentence(.start, .through))]
+    #[error("dependency cycle: {}", cycle_sentence(.start, .through))]
     DependencyCycle {
         start: DependencyName,
         /// The dependencies between `start` and its return to `start`.
@@ -71,24 +73,58 @@ pub(crate) enum DomainError {
     )]
     ConditionalField { dependency: DependencyName },
 
-    #[error("dependency '{dependency}' cannot specify both 'constructor' and 'builder'")]
-    ConstructorAndBuilder { dependency: DependencyName },
-
     #[error(
-        "{role} \"{written}\" on field '{dependency}' must be written without quotes: {role} = {written}"
+        "build = {written} on field '{dependency}' is not a way to build a field; write build = default, build = factory, or build = constructor({written}) to call a function of that name"
     )]
-    QuotedFunctionName {
+    UnknownBuild {
         dependency: DependencyName,
-        role: FunctionRole,
         written: String,
     },
 
     #[error(
-        "{role} '{written}' on field '{dependency}' must be a function name, such as {role} = connect"
+        "build \"{written}\" on field '{dependency}' must be written without quotes, such as build = factory"
+    )]
+    QuotedBuild {
+        dependency: DependencyName,
+        written: String,
+    },
+
+    #[error(
+        "build = {written} on field '{dependency}' is not a way to build a field; write build = default, build = factory, or build = constructor(connect)"
+    )]
+    NotABuild {
+        dependency: DependencyName,
+        written: String,
+    },
+
+    #[error(
+        "build = constructor on field '{dependency}' needs the function's name, such as build = constructor(connect)"
+    )]
+    ConstructorWithoutName { dependency: DependencyName },
+
+    #[error(
+        "leaf_build = {written} cannot build the container's fields that have no deps; write leaf_build = default, or leaf_build = constructor(open) to call a function of that name"
+    )]
+    InvalidLeafBuild { written: String },
+
+    #[error(
+        "field '{dependency}' is built with build = default, which takes no dependencies; remove its deps, or build it another way"
+    )]
+    DefaultWithDependencies { dependency: DependencyName },
+
+    #[error(
+        "constructor \"{written}\" on field '{dependency}' must be written without quotes: build = constructor({written})"
+    )]
+    QuotedFunctionName {
+        dependency: DependencyName,
+        written: String,
+    },
+
+    #[error(
+        "constructor '{written}' on field '{dependency}' must be a function name, such as build = constructor(connect)"
     )]
     NotAFunctionName {
         dependency: DependencyName,
-        role: FunctionRole,
         written: String,
     },
 
@@ -101,14 +137,9 @@ pub(crate) enum DomainError {
     AsyncTransient { dependency: DependencyName },
 
     #[error(
-        "field '{dependency}' has a trait-object type, which has no constructor; make the field's type an Arc of the concrete type that implements the trait; a constructor that takes the trait object in an Arc still accepts the field, because Rust converts the Arc where it is passed"
+        "field '{dependency}' has a trait-object type, which has no constructor; add build = factory to the field and build it in the build_{dependency} method of the container's factories trait"
     )]
-    TraitObjectNeedsConcreteType { dependency: DependencyName },
-
-    #[error(
-        "field '{dependency}' has a trait-object type, which has no constructor; build it with a builder such as builder = build_{dependency} (unstable feature)"
-    )]
-    TraitObjectWithoutBuilder { dependency: DependencyName },
+    TraitObjectWithoutFactory { dependency: DependencyName },
 
     #[error(
         "{feature} is unstable in this version of snapfit; enable the `unstable` feature of the `snapfit` crate to use it"
@@ -131,43 +162,24 @@ impl DomainError {
             | Self::MultipleLifecycles { dependency }
             | Self::MultipleDispatches { dependency }
             | Self::ConditionalField { dependency }
-            | Self::ConstructorAndBuilder { dependency }
+            | Self::UnknownBuild { dependency, .. }
+            | Self::QuotedBuild { dependency, .. }
+            | Self::NotABuild { dependency, .. }
+            | Self::ConstructorWithoutName { dependency }
+            | Self::DefaultWithDependencies { dependency }
             | Self::QuotedFunctionName { dependency, .. }
             | Self::NotAFunctionName { dependency, .. }
             | Self::AsyncDependencyInSyncContainer { dependency }
             | Self::AsyncTransient { dependency }
-            | Self::TraitObjectNeedsConcreteType { dependency }
-            | Self::TraitObjectWithoutBuilder { dependency } => Some(dependency),
+            | Self::TraitObjectWithoutFactory { dependency } => Some(dependency),
             Self::RequiresUnstable { feature } | Self::NotYetImplemented { feature } => {
                 feature.dependency()
             }
             Self::BlankName { .. }
             | Self::TupleStruct
             | Self::MultipleContainerAttributes
+            | Self::InvalidLeafBuild { .. }
             | Self::ContainerAttribute { .. } => None,
         }
     }
-
-    /// "a depends on b, which depends on c, which depends on a", or "a depends
-    /// on itself", so that no arrow has to be read aloud.
-    fn cycle_sentence(start: &DependencyName, through: &[DependencyName]) -> String {
-        let Some((first, rest)) = through.split_first() else {
-            return format!("{start} depends on itself");
-        };
-        rest.iter()
-            .chain([start])
-            .fold(format!("{start} depends on {first}"), add_link)
-    }
-}
-
-fn add_link(sentence: String, name: &DependencyName) -> String {
-    format!("{sentence}, which depends on {name}")
-}
-
-fn join_names(names: &[DependencyName]) -> String {
-    names
-        .iter()
-        .map(DependencyName::as_str)
-        .collect::<Vec<_>>()
-        .join(", ")
 }

@@ -6,7 +6,13 @@ use crate::test_support::compact;
 
 fn built(item: syn::ItemStruct, name: &str, source: ValueSource) -> String {
     let plan = plan_for(item);
-    compact(construct(step(&plan, name), source))
+    compact(construct(
+        step(&plan, name),
+        Site {
+            container: &plan.syntax.ident,
+            source,
+        },
+    ))
 }
 
 #[test]
@@ -64,24 +70,62 @@ fn a_nested_transient_is_built_fresh_for_each_argument() {
 }
 
 #[test]
-fn an_async_constructor_is_awaited_and_a_builder_is_called_on_self() {
+fn an_async_constructor_is_awaited() {
     let item: syn::ItemStruct = parse_quote! {
         struct App {
             #[singleton]
             config: Arc<Config>,
-            #[singleton(deps = [config], async, constructor = connect)]
+            #[singleton(deps = [config], async, build = constructor(connect))]
             db: Arc<Database>,
-            #[singleton(deps = [config, db], builder = build_auth)]
-            auth: Arc<AuthService>,
         }
     };
 
     assert_eq!(
-        built(item.clone(), "db", ValueSource::Locals),
+        built(item, "db", ValueSource::Locals),
         "::std::sync::Arc::new(<Database>::connect(__snapfit_config.clone()).await?)"
     );
+}
+
+#[test]
+fn a_factory_is_called_through_its_trait_with_its_inputs_by_name() {
+    let item: syn::ItemStruct = parse_quote! {
+        struct Shop {
+            #[singleton]
+            read_db: Arc<Database>,
+            #[transient]
+            clock: Clock,
+            #[singleton(deps = [clock, read_db], build = factory)]
+            orders: Arc<dyn OrderStore>,
+        }
+    };
+
     assert_eq!(
-        built(item, "auth", ValueSource::Locals),
-        "Self::build_auth(__snapfit_config.clone(),__snapfit_db.clone())"
+        built(item.clone(), "orders", ValueSource::Locals),
+        "<SelfasShopFactories>::build_orders(ShopOrdersInputs{clock:<Clock>::new(),read_db:__snapfit_read_db.clone()})"
+    );
+    assert_eq!(
+        built(item, "orders", ValueSource::SelfFields),
+        "<SelfasShopFactories>::build_orders(ShopOrdersInputs{clock:<Clock>::new(),read_db:self.read_db.clone()})"
+    );
+}
+
+#[test]
+fn default_calls_the_default_trait_and_wraps_an_arc() {
+    let item: syn::ItemStruct = parse_quote! {
+        struct Shop {
+            #[singleton(build = default)]
+            rates: Arc<TaxRates>,
+            #[singleton(build = default)]
+            clock: Clock,
+        }
+    };
+
+    assert_eq!(
+        built(item.clone(), "rates", ValueSource::Locals),
+        "::std::sync::Arc::new(<TaxRatesas::std::default::Default>::default())"
+    );
+    assert_eq!(
+        built(item, "clock", ValueSource::Locals),
+        "<Clockas::std::default::Default>::default()"
     );
 }

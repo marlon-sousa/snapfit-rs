@@ -2,7 +2,7 @@
 
 use derive_more::Display;
 
-use crate::domain::names::{ContainerName, DependencyName, FunctionName};
+use crate::domain::names::{ContainerName, DependencyName};
 
 /// A feature this build of snapfit refuses, as its diagnostic names it.
 #[derive(Debug, Clone, PartialEq, Eq, Display)]
@@ -26,11 +26,10 @@ pub(crate) enum Feature {
     AsyncDependency { dependency: DependencyName },
     #[display("transient dependency '{dependency}'")]
     Transient { dependency: DependencyName },
-    #[display("custom builder '{builder}' on dependency '{dependency}'")]
-    Builder {
-        builder: FunctionName,
-        dependency: DependencyName,
-    },
+    #[display("build = factory on async dependency '{dependency}'")]
+    AsyncFactory { dependency: DependencyName },
+    #[display("build = builder on dependency '{dependency}'")]
+    Builder { dependency: DependencyName },
 }
 
 impl Feature {
@@ -40,22 +39,14 @@ impl Feature {
             | Self::ParentDependency { dependency, .. }
             | Self::AsyncDependency { dependency }
             | Self::Transient { dependency }
-            | Self::Builder { dependency, .. } => Some(dependency),
+            | Self::AsyncFactory { dependency }
+            | Self::Builder { dependency } => Some(dependency),
             Self::ParentContainer
             | Self::Introspection
             | Self::GenericContainer { .. }
             | Self::AsyncMode => None,
         }
     }
-}
-
-/// Which setting names a function.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
-pub(crate) enum FunctionRole {
-    #[display("constructor")]
-    Constructor,
-    #[display("builder")]
-    Builder,
 }
 
 /// What is wrong with an attribute's arguments, apart from which attribute.

@@ -32,7 +32,7 @@ fn the_container_attribute_reads_a_quoted_parent_and_no_settings() {
 #[test]
 fn a_dependency_attribute_reads_the_async_keyword_and_bracketed_deps() {
     let attr: syn::Attribute =
-        parse_quote!(#[singleton(deps = [config, db], async, constructor = connect)]);
+        parse_quote!(#[singleton(deps = [config, db], async, build = constructor(connect))]);
     let meta = DependencyAttrMeta::from_attribute(&attr).unwrap();
 
     assert_eq!(
@@ -44,16 +44,17 @@ fn a_dependency_attribute_reads_the_async_keyword_and_bracketed_deps() {
     );
     assert!(meta.is_async);
     assert_eq!(
-        meta.constructor,
-        Some(FunctionNameMeta::Bare("connect".into()))
+        meta.build,
+        Some(BuildMeta::Constructor(FunctionNameMeta::Bare(
+            quote::format_ident!("connect")
+        )))
     );
-    assert_eq!(meta.builder, None);
 }
 
 #[test]
-fn a_dependency_attribute_reads_parent_deps_and_a_builder() {
+fn a_dependency_attribute_reads_parent_deps_and_a_factory() {
     let attr: syn::Attribute =
-        parse_quote!(#[singleton(deps = [parent(db), session], builder = build_logger)]);
+        parse_quote!(#[singleton(deps = [parent(db), session], build = factory)]);
     let meta = DependencyAttrMeta::from_attribute(&attr).unwrap();
 
     assert_eq!(
@@ -64,10 +65,36 @@ fn a_dependency_attribute_reads_parent_deps_and_a_builder() {
         ]
     );
     assert_eq!(
-        meta.builder,
-        Some(FunctionNameMeta::Bare("build_logger".into()))
+        meta.build,
+        Some(BuildMeta::Word(quote::format_ident!("factory")))
     );
 
     let bad_call: syn::Attribute = parse_quote!(#[singleton(deps = [other(db)])]);
     assert!(DependencyAttrMeta::from_attribute(&bad_call).is_err());
+}
+
+#[test]
+fn a_build_value_keeps_every_shape_the_user_can_write() {
+    let cases: [(syn::Attribute, BuildMeta); 4] = [
+        (
+            parse_quote!(#[singleton(build = default)]),
+            BuildMeta::Word(quote::format_ident!("default")),
+        ),
+        (
+            parse_quote!(#[singleton(build = constructor("connect"))]),
+            BuildMeta::Constructor(FunctionNameMeta::Quoted("connect".into())),
+        ),
+        (
+            parse_quote!(#[singleton(build = "factory")]),
+            BuildMeta::Quoted("factory".into()),
+        ),
+        (
+            parse_quote!(#[singleton(build = Db::connect)]),
+            BuildMeta::Invalid("Db :: connect".into()),
+        ),
+    ];
+    for (attr, expected) in cases {
+        let meta = DependencyAttrMeta::from_attribute(&attr).unwrap();
+        assert_eq!(meta.build, Some(expected));
+    }
 }

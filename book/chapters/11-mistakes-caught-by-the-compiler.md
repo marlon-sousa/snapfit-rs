@@ -30,7 +30,7 @@ name: ch11_self_dependency_cycle
 
 ## A constructor name in quotes
 
-`constructor = <fn>` takes the function's name as Rust, not as text. If you write it in quotes, the message shows you what to write instead:
+`build = constructor(<fn>)` takes the function's name as Rust, not as text. If you write it in quotes, the message shows you what to write instead:
 
 ```compile-error
 name: ch11_quoted_constructor

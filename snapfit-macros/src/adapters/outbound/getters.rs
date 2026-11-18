@@ -4,7 +4,7 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::ext::IdentExt;
 
-use super::expr::{ValueSource, construct};
+use super::expr::{Site, ValueSource, construct};
 use crate::adapters::syntax::{FieldSyntax, Plan};
 use crate::domain::Step;
 
@@ -13,7 +13,14 @@ mod tests;
 
 pub(super) fn emit_getters_impl(plan: &Plan) -> TokenStream {
     let container_ident = &plan.syntax.ident;
-    let getters = plan.declaration_order.iter().map(|step| emit_getter(step));
+    let site = Site {
+        container: container_ident,
+        source: ValueSource::SelfFields,
+    };
+    let getters = plan
+        .declaration_order
+        .iter()
+        .map(|step| emit_getter(step, site));
 
     quote! {
         impl #container_ident {
@@ -22,13 +29,13 @@ pub(super) fn emit_getters_impl(plan: &Plan) -> TokenStream {
     }
 }
 
-fn emit_getter(step: &Step<FieldSyntax>) -> TokenStream {
+fn emit_getter(step: &Step<FieldSyntax>, site: Site<'_>) -> TokenStream {
     let FieldSyntax { ident, ty, .. } = &step.syntax;
     let getter = format_ident!("get_{}", ident.unraw());
     let body = if step.lifecycle.is_singleton() {
         quote!(self.#ident.clone())
     } else {
-        construct(step, ValueSource::SelfFields)
+        construct(step, site)
     };
 
     quote! {

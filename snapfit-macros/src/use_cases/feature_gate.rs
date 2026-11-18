@@ -53,11 +53,25 @@ fn planned_features_of<F>(dependency: &DependencyDeclaration<F>) -> Vec<Feature>
     let dispatch = dependency.dispatch.is_some().then(|| Feature::Dispatch {
         dependency: dependency.name.clone(),
     });
+    let async_factory = (dependency.construction == Some(Construction::Factory)
+        && dependency.execution.is_async())
+    .then(|| Feature::AsyncFactory {
+        dependency: dependency.name.clone(),
+    });
+    let builder =
+        (dependency.construction == Some(Construction::Builder)).then(|| Feature::Builder {
+            dependency: dependency.name.clone(),
+        });
     let parents = dependency
         .parent_prerequisites
         .iter()
         .map(|parent| parent_dependency(parent, dependency));
-    dispatch.into_iter().chain(parents).collect()
+    dispatch
+        .into_iter()
+        .chain(async_factory)
+        .chain(builder)
+        .chain(parents)
+        .collect()
 }
 
 fn parent_dependency<F>(parent: &DependencyName, dependency: &DependencyDeclaration<F>) -> Feature {
@@ -89,17 +103,7 @@ fn unstable_features_of<F>(dependency: &DependencyDeclaration<F>) -> Vec<Feature
         .then(|| Feature::Transient {
             dependency: name.clone(),
         });
-    let builder = match &dependency.construction {
-        Construction::Builder(builder) => Some(Feature::Builder {
-            builder: builder.clone(),
-            dependency: name.clone(),
-        }),
-        Construction::Constructor(_) => None,
-    };
-    [is_async, is_transient, builder]
-        .into_iter()
-        .flatten()
-        .collect()
+    [is_async, is_transient].into_iter().flatten().collect()
 }
 
 fn not_yet_implemented(feature: Feature) -> DomainError {

@@ -18,6 +18,9 @@ pub(crate) struct FieldSyntax {
     pub(crate) ty: syn::Type,
     /// `T` when the field's type is `Arc<T>`, otherwise the field's type.
     pub(crate) arc_inner: syn::Type,
+    /// The function of `build = constructor(...)` as the user wrote it, with
+    /// its span, so that an editor completing inside the attribute sees it.
+    pub(crate) constructor: Option<syn::Ident>,
     pub(crate) vis: syn::Visibility,
     pub(crate) attrs: Vec<syn::Attribute>,
 }

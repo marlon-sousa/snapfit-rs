@@ -1,7 +1,10 @@
 #![deny(warnings)]
 
+mod build_containers;
+mod build_world;
 mod codegen_containers;
 mod containers;
+mod factory_containers;
 mod fixture_outcomes;
 mod services;
 mod stale_library;
