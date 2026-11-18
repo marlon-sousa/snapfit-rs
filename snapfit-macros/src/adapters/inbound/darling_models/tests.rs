@@ -64,10 +64,7 @@ fn a_dependency_attribute_reads_parent_deps_and_a_factory() {
             PrerequisiteMeta::Sibling("session".into())
         ]
     );
-    assert_eq!(
-        meta.build,
-        Some(BuildMeta::Word(quote::format_ident!("factory")))
-    );
+    assert_eq!(meta.build, Some(BuildMeta::Word(BuildWord::Factory)));
 
     let bad_call: syn::Attribute = parse_quote!(#[singleton(deps = [other(db)])]);
     assert!(DependencyAttrMeta::from_attribute(&bad_call).is_err());
@@ -75,10 +72,14 @@ fn a_dependency_attribute_reads_parent_deps_and_a_factory() {
 
 #[test]
 fn a_build_value_keeps_every_shape_the_user_can_write() {
-    let cases: [(syn::Attribute, BuildMeta); 4] = [
+    let cases: [(syn::Attribute, BuildMeta); 5] = [
         (
             parse_quote!(#[singleton(build = default)]),
-            BuildMeta::Word(quote::format_ident!("default")),
+            BuildMeta::Word(BuildWord::Default),
+        ),
+        (
+            parse_quote!(#[singleton(build = factroy)]),
+            BuildMeta::UnknownWord(quote::format_ident!("factroy")),
         ),
         (
             parse_quote!(#[singleton(build = constructor("connect"))]),
@@ -97,4 +98,17 @@ fn a_build_value_keeps_every_shape_the_user_can_write() {
         let meta = DependencyAttrMeta::from_attribute(&attr).unwrap();
         assert_eq!(meta.build, Some(expected));
     }
+}
+
+#[test]
+fn darling_reads_a_build_word_only_from_a_string_so_the_bare_word_is_handed_to_it() {
+    assert_eq!(
+        BuildWord::from_string("factory").ok(),
+        Some(BuildWord::Factory)
+    );
+    assert!(BuildWord::from_expr(&parse_quote!(factory)).is_err());
+    assert_eq!(
+        BuildMeta::from_expr(&parse_quote!(factory)).ok(),
+        Some(BuildMeta::Word(BuildWord::Factory))
+    );
 }

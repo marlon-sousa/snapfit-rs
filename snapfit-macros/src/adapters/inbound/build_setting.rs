@@ -2,7 +2,7 @@
 
 use quote::ToTokens;
 
-use super::darling_models::{BuildMeta, FunctionNameMeta};
+use super::darling_models::{BuildMeta, BuildWord, FunctionNameMeta};
 use crate::domain::{Construction, Constructor, DependencyName, DomainError, FunctionName};
 
 #[cfg(test)]
@@ -17,7 +17,11 @@ pub(super) fn field_construction(
     let name = dependency.clone();
     match build {
         None => Ok((None, None)),
-        Some(BuildMeta::Word(word)) => mode(dependency, &word).map(without_name),
+        Some(BuildMeta::Word(word)) => mode(dependency, word).map(without_name),
+        Some(BuildMeta::UnknownWord(word)) => Err(DomainError::UnknownBuild {
+            dependency: name,
+            written: word.to_string(),
+        }),
         Some(BuildMeta::Builder) => Ok(without_name(Construction::Builder)),
         Some(BuildMeta::Constructor(function)) => {
             function_name(dependency, function).map(named_constructor)
@@ -34,17 +38,14 @@ pub(super) fn field_construction(
 }
 
 /// `build = default`, `factory` or `builder`; `constructor` without its
-/// function's name, and any other word, are refused.
-fn mode(dependency: &DependencyName, word: &syn::Ident) -> Result<Construction, DomainError> {
-    let dependency = dependency.clone();
-    match word.to_string().as_str() {
-        "default" => Ok(Construction::Constructor(Constructor::Default)),
-        "factory" => Ok(Construction::Factory),
-        "builder" => Ok(Construction::Builder),
-        "constructor" => Err(DomainError::ConstructorWithoutName { dependency }),
-        written => Err(DomainError::UnknownBuild {
-            dependency,
-            written: written.to_string(),
+/// function's name is refused.
+fn mode(dependency: &DependencyName, word: BuildWord) -> Result<Construction, DomainError> {
+    match word {
+        BuildWord::Default => Ok(Construction::Constructor(Constructor::Default)),
+        BuildWord::Factory => Ok(Construction::Factory),
+        BuildWord::Builder => Ok(Construction::Builder),
+        BuildWord::Constructor => Err(DomainError::ConstructorWithoutName {
+            dependency: dependency.clone(),
         }),
     }
 }
@@ -94,7 +95,7 @@ pub(super) fn leaf_constructor(
 ) -> Result<(Constructor, Option<syn::Ident>), DomainError> {
     match leaf_build {
         None => Ok((Constructor::New, None)),
-        Some(BuildMeta::Word(word)) if word == "default" => Ok((Constructor::Default, None)),
+        Some(BuildMeta::Word(BuildWord::Default)) => Ok((Constructor::Default, None)),
         Some(BuildMeta::Constructor(FunctionNameMeta::Bare(ident))) => {
             FunctionName::new(ident.to_string()).map(|name| (Constructor::Named(name), Some(ident)))
         }
@@ -108,6 +109,7 @@ pub(super) fn leaf_constructor(
 fn written(build: &BuildMeta) -> String {
     match build {
         BuildMeta::Word(word) => word.to_string(),
+        BuildMeta::UnknownWord(word) => word.to_string(),
         BuildMeta::Builder => "builder(...)".to_string(),
         BuildMeta::Constructor(function) => format!("constructor({})", written_function(function)),
         BuildMeta::Quoted(text) => format!("\"{text}\""),
