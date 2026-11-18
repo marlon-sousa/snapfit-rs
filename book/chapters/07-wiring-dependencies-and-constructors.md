@@ -70,7 +70,7 @@ It prints:
 name: ch07_leaf_build
 ```
 
-`leaf_build = default` changes how the container builds its leaves: the fields that need nothing and say nothing about how they are built. `discounts`, and `gift_wrap`, a new settings struct that also derives `Default`, are built with `Default`, so both lists are empty. `tax` still wants its own constructor, which gives the shop its 10% rate, so it says `build = constructor(new)`, and a field's own `build` always wins.
+`leaf_build = default` changes how the container builds its leaves: the fields that need nothing and say nothing about how they are built. `discounts`, and `gift_wrap`, a new settings struct that also derives `Default`, are built with `Default`, so both lists are empty. `tax` still wants its own constructor, which gives the shop its 10% rate, so it says `build = constructor(new)`, and a field's own `build` always wins. If your leaves share a constructor with another name, `leaf_build = constructor(open)` does the same with that constructor.
 
 Think of a hotel that makes every bed with the same white sheets unless the guest asked for something else when booking. The housekeeping rule is written once, and the guests with a wish write it on their own card. Without `leaf_build`, the container behaves as before, and calls `new` on every field that says nothing.
 

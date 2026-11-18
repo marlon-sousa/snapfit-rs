@@ -48,12 +48,14 @@ name: ch09_swapped_deps
 region: container
 ```
 
+Let's run it:
+
 ```example
 name: ch09_swapped_deps
 region: run
 ```
 
-It compiles without a single warning. Let's run it:
+It compiles without a single warning, and it prints:
 
 ```output
 name: ch09_swapped_deps

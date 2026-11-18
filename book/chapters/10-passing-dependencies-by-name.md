@@ -72,7 +72,7 @@ You don't need bon, or any builder crate. The container only calls a starting fu
 
 ## Which one should I use?
 
-Both take the order of `deps` out of the picture, in different ways. In a factory, every input is named where you pass it, so a swap would be written in plain sight, in a few lines of Rust you can read. With a builder, the compiler checks every name against the setter it calls, so a swap can't be written at all. They also differ in where the code lives.
+Both take the order of `deps` out of the picture, in different ways. In a factory, every input is named where you pass it, so a swap would be written in plain sight, in a few lines of Rust you can read. With a builder, the compiler checks every setter's name. With bare names, the field and the setter are the same word, so a swap can't be written at all; with a label, each pairing is written in plain sight in the attribute, as in a factory. They also differ in where the code lives.
 
 1. **Use a builder when the type already has one, or can have one.** The container needs no code at all, and the type keeps its own builder, which is useful anywhere else you build it, such as in a test.
 2. **Use a factory when building the field is the container's business.** A factory works for any type, including types you don't own and can't add a builder to. It is also how a container field can be a trait object, as we'll see in [Chapter 11](11-choosing-an-implementation.md).
