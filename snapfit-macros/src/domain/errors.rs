@@ -166,6 +166,14 @@ pub(crate) enum DomainError {
     },
 
     #[error(
+        "field '{dependency}' lists '{prerequisite}' in deps more than once; list each dependency once"
+    )]
+    RepeatedPrerequisite {
+        dependency: DependencyName,
+        prerequisite: DependencyName,
+    },
+
+    #[error(
         "field '{dependency}' passes more than one dependency to the builder setter '{setter}'; give each dependency its own setter"
     )]
     DuplicateSetter {

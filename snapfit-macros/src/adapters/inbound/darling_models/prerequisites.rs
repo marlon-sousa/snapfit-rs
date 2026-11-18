@@ -1,7 +1,6 @@
 //! Adapter: the entries of `deps = [...]` as darling reads them.
 
 use darling::FromMeta;
-use darling::ast::NestedMeta;
 use quote::{ToTokens, quote};
 
 use super::super::type_inspector::compact_type_tokens;
@@ -34,16 +33,14 @@ pub(in crate::adapters::inbound) type PrerequisiteEntry =
     Result<PrerequisiteMeta, AttributeProblem>;
 
 impl FromMeta for PrerequisiteList {
-    fn from_word() -> darling::Result<Self> {
-        Ok(Self::refusing("deps"))
-    }
-
-    fn from_expr(expr: &syn::Expr) -> darling::Result<Self> {
-        Ok(Self::from_value(expr))
-    }
-
-    fn from_list(items: &[NestedMeta]) -> darling::Result<Self> {
-        Ok(Self(items.iter().map(entry_of_nested).collect()))
+    /// `deps(...)` is refused whatever its parentheses hold, before darling
+    /// would read them as settings and stop at one it cannot read.
+    fn from_meta(meta: &syn::Meta) -> darling::Result<Self> {
+        Ok(match meta {
+            syn::Meta::Path(_) => Self::refusing("deps"),
+            syn::Meta::List(list) => Self::in_parentheses(&list.tokens),
+            syn::Meta::NameValue(pair) => Self::from_value(&pair.value),
+        })
     }
 }
 
@@ -53,6 +50,12 @@ impl PrerequisiteList {
             syn::Expr::Array(array) => Self(array.elems.iter().map(entry_of_expr).collect()),
             other => Self::refusing(&format!("deps = {}", written(other))),
         }
+    }
+
+    fn in_parentheses(tokens: &proc_macro2::TokenStream) -> Self {
+        Self(vec![Err(AttributeProblem::DepsInParentheses(written(
+            tokens,
+        )))])
     }
 
     fn refusing(written: &str) -> Self {
@@ -125,17 +128,6 @@ fn parent_entry(call: &syn::ExprCall) -> PrerequisiteEntry {
             quote!(#argument),
         ))),
         _ => Err(AttributeProblem::NotAParentDependency(written(call))),
-    }
-}
-
-fn entry_of_nested(item: &NestedMeta) -> PrerequisiteEntry {
-    match item {
-        NestedMeta::Meta(syn::Meta::Path(path)) => Ok(PrerequisiteMeta::sibling(path)),
-        NestedMeta::Meta(syn::Meta::NameValue(pair)) => {
-            PrerequisiteMeta::labelled(pair.path.get_ident(), single_word(&pair.value), pair)
-        }
-        NestedMeta::Lit(syn::Lit::Str(lit)) => Ok(PrerequisiteMeta::quoted_sibling(lit)),
-        other => Err(AttributeProblem::NotAField(written(other))),
     }
 }
 

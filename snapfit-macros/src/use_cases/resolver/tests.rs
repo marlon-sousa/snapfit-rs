@@ -3,6 +3,7 @@ use crate::domain::{ConstructionPlan, Execution, Lifecycle, TypeShape};
 use crate::test_support::{container, dependency_with, name, names};
 
 mod errors;
+mod properties;
 
 fn dependency(text: &str, prerequisites: &[&str]) -> DependencyDeclaration<&'static str> {
     dependency_with(text, prerequisites, "syntax")

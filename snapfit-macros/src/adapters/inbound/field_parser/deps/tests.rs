@@ -71,3 +71,24 @@ fn deps_that_is_not_a_list_says_to_write_one() {
         [format!("field 'exporter': 'deps' {not_a_list}")]
     );
 }
+
+#[test]
+fn deps_in_parentheses_says_to_write_the_same_entries_in_square_brackets() {
+    let cases: [(syn::Attribute, &str); 3] = [
+        (
+            parse_quote!(#[singleton(deps(config, disk = folder_files))]),
+            "config, disk = folder_files",
+        ),
+        (parse_quote!(#[singleton(deps(config + 1))]), "config + 1"),
+        (parse_quote!(#[singleton(deps())]), ""),
+    ];
+
+    for (attr, entries) in cases {
+        assert_eq!(
+            errors(attr),
+            [format!(
+                "field 'exporter': 'deps({entries})' writes its fields in parentheses; write them in square brackets: deps = [{entries}]"
+            )]
+        );
+    }
+}

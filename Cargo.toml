@@ -44,3 +44,4 @@ futures = "0.3"
 compile-outcomes = "0.1"
 bon = "=3.9.3"
 typed-builder = "=0.22.0"
+proptest = { version = "1.11", default-features = false, features = ["std"] }
