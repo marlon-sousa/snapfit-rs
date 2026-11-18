@@ -12,12 +12,12 @@ A procedural macro does no input or output: it is a pure function from tokens to
 
 ## The repository
 
-- **`snapfit/`**, the crate users depend on: the `Container` trait and the re-export of the macro. Its `README.md` is a symbolic link to the one at the root and is its crate documentation on docs.rs, so the README's example is a doctest of `snapfit`.
+- **`snapfit/`**, the crate users depend on: the `Container` trait and the re-export of the macro. Its `README.md`, which crates.io shows and which is its crate documentation on docs.rs, is written from the root README by `cargo xtask crate-readme` and shows what the site shows, with a link in place of the releases, as [WORKFLOW.md](WORKFLOW.md), section 7, says. `snapfit/src/lib.rs` includes it, so its example is a doctest of `snapfit`. `scripts/crate_readme.py` holds the rules, and `scripts/test_crate_readme.py` tests them.
 - **`snapfit-macros/`**, the procedural macro, laid out as the rest of this document describes.
 - **`tests/`**, the crate `snapfit_bdd`: the Gherkin features under `tests/features/` (`stable/`, and `unstable/`, run with the `unstable` feature), their step definitions, the containers they exercise, and the compile-fail fixtures under `tests/fixtures/compile_fail/`, compiled with [compile-outcomes](https://github.com/marlon-sousa/compile-outcomes-rs) against the build of snapfit the suite runs, whose diagnostics the steps check.
 - **`book/`**, the crate `snapfit_book`: The Snapfit Book, whose chapters, examples, recorded outputs and compile-error fixtures `cargo xtask book-check` verifies. [book/BOOK.md](../book/BOOK.md) describes it.
 - **`site/`**, the Astro site that renders the README as its front page and each edition of the book, checked by `npm run verify` and published onto the `site` branch by the site workflow.
-- **`xtask/`** and **`scripts/gate.py`**, the quality gate, `cargo xtask ci`, whose checks CI runs, the tests on Linux, macOS and Windows; [WORKFLOW.md](WORKFLOW.md), section 7, lists them.
+- **`xtask/`** and **`scripts/gate.py`**, the quality gate, `cargo xtask ci`, whose checks CI runs, the tests on Linux, macOS and Windows; [WORKFLOW.md](WORKFLOW.md), section 7, lists them. `scripts/architecture.py` holds the check of its `arch` mode.
 - **`.github/release/`**, the release gate and its fixtures, which the release and release checks workflows run, as [WORKFLOW.md](WORKFLOW.md), section 9, says.
 - **`.github/workflows/`**, the CI, pull request, weekly, release, release checks and site workflows, as [WORKFLOW.md](WORKFLOW.md), section 7, lists them.
 - **`clippy.toml`**, what clippy allows in tests.
