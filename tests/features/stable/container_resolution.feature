@@ -136,6 +136,14 @@ Feature: Container Dependency Resolution
     And the error should point at line 12 of the fixture
 
   @v0_1_0 @regression
+  Scenario: A raw identifier and the plain word name the same field
+    Given an invalid container fixture "raw_identifier_repeated"
+    When the fixture is compiled
+    Then compilation should fail with "field 'db' lists 'config' in deps more than once; list each dependency once"
+    And the compiler output should not mention "unknown dependency"
+    And the error should point at line 12 of the fixture
+
+  @v0_1_0 @regression
   Scenario: deps written in parentheses is refused, saying to write square brackets
     Given an invalid container fixture "parenthesised_deps"
     When the fixture is compiled

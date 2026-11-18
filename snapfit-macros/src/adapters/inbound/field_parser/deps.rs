@@ -2,6 +2,7 @@
 //! prerequisites, with the setter each sibling is passed to.
 
 use strum::{EnumIs, EnumTryAs};
+use syn::ext::IdentExt;
 
 use super::super::darling_models::{PrerequisiteEntry, PrerequisiteList, PrerequisiteMeta};
 use super::rules::attribute_error;
@@ -82,7 +83,7 @@ fn prerequisite(entry: PrerequisiteMeta) -> Result<Prerequisite, AttributeProble
     match entry {
         PrerequisiteMeta::Labelled { label, name } => Ok(Prerequisite {
             field: dependency_name(name)?,
-            label: Some(SetterName::new(label.to_string()).map_err(blank)?),
+            label: Some(SetterName::new(label.unraw().to_string()).map_err(blank)?),
         }),
         other => dependency_name(other.into_name()).map(Prerequisite::new),
     }

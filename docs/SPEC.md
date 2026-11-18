@@ -223,6 +223,8 @@ Each field is built one way, which its `build` setting chooses. The value is a b
 
 A container can say once how its leaves are built: `#[container(leaf_build = default)]` builds every field that has no `deps` and no `build` of its own as if it said `build = default`, which suits a project whose leaf types all derive `Default`. `leaf_build` applies to synchronous fields only, because `Default::default()` and a constructor chosen for the whole container cannot be awaited; an async field keeps its own constructor. `leaf_build` takes the values a leaf can take, `default` or `constructor(<fn>)`; leaving it out is `constructor(new)`, the behaviour above. `leaf_build` only changes the default for leaves, such as from `new` to `default`: a field's own `build` always wins, so a leaf that says `build = constructor(sandbox)` is still built by `sandbox`; a field with `deps` is never affected; and every field still needs its `#[singleton]`. Any other value, such as `leaf_build = factory`, is refused at the container's name.
 
+A field and a `deps` entry, label included, are named as Rust reads them: a raw identifier names the same field as the plain word, so `r#config` and `config` are one field, and messages name it without the `r#` ([#83](https://github.com/marlon-sousa/snapfit-rs/issues/83)).
+
 Where the user names a function, as in `build = constructor(connect)` or `leaf_build = constructor(open)`, the generated code calls it with the user's own token, keeping its position, so that an editor completing or hovering inside the attribute sees the type's real functions.
 
 ### A. Standard Constructors (`::new`, `default`, `constructor(...)`)

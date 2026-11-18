@@ -29,6 +29,18 @@ fn then_db_holds_qualified_config(world: &mut ContainerWorld) {
     );
 }
 
+#[then("the field whose deps write config as r#config should hold that same config singleton")]
+fn then_raw_dependency_names_the_field(world: &mut ContainerWorld) {
+    let container = world.typed_fields_container();
+    assert!(
+        Arc::ptr_eq(
+            &container.get_config(),
+            &container.get_ref().get_config_ref()
+        ),
+        "Expected deps = [r#config] to wire the container's config field"
+    );
+}
+
 #[given(regex = r"^a container that derives Clone and Debug (before|after) #\[container\]$")]
 fn given_derived_container(world: &mut ContainerWorld, placement: String) {
     world.select(match placement.as_str() {
