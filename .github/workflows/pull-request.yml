@@ -16,11 +16,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Required on main, so it reports on every pull request: it passes at once
+  # when every commit other than a merge is a test, the one kind that needs no
+  # issue.
   has-issue:
     name: names an open issue
     runs-on: ubuntu-latest
     steps:
-      - uses: itinera-dev/actions/pr-has-issue@d49d88f6b15f4d4c344503e9e3304a449ee3ebe8 # v1.11.0
+      - name: Tell whether a commit other than a test needs an issue
+        id: commits
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PULL: ${{ github.event.pull_request.number }}
+        run: |
+          subjects=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PULL/commits" --paginate \
+            --jq '.[] | select(.parents | length == 1) | .commit.message | sub("^\\s+"; "") | split("\n") | first')
+          if printf '%s\n' "$subjects" | grep -v -E '^(test(\([^)]*\))?:|$)'; then
+            echo "need-issue=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Every commit is a test, so no issue is needed."
+          fi
+      - if: steps.commits.outputs.need-issue == 'true'
+        uses: itinera-dev/actions/pr-has-issue@d49d88f6b15f4d4c344503e9e3304a449ee3ebe8 # v1.11.0
 
   no-cross-repo-closing:
     name: closes no issue of another repository

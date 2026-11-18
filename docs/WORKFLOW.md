@@ -62,7 +62,7 @@ The QA gate runs the Gherkin suite once on the stable build, whose scenarios pro
 
 ### Naming the issue
 
-Every pull request names an open issue of this repository, as section 10 says: `Closes #N` when it finishes the issue, `Refs #N` when it does part of it. The layers of a stack each say `Refs #N`, and the top one also says `Closes #N` once it targets `main`: GitHub links a closing keyword only on a pull request into the default branch, so before that the check finds only `Refs #N`. A pull request never closes an issue of another repository, which GitHub would close the moment it merged, before that repository's own work.
+Every pull request names an open issue of this repository, as section 10 says, unless every one of its commits, merges aside, is a `test`: `Closes #N` when it finishes the issue, `Refs #N` when it does part of it. The layers of a stack each say `Refs #N`, and the top one also says `Closes #N` once it targets `main`: GitHub links a closing keyword only on a pull request into the default branch, so before that the check finds only `Refs #N`. A pull request doing the work of several issues names each of them. A pull request never closes an issue of another repository, which GitHub would close the moment it merged, before that repository's own work.
 
 ---
 
@@ -80,8 +80,8 @@ Rather than waiting until the end to write integration tests, `snapfit` uses an 
 
 For every PR slice in the stack:
 
-1. **Implementation & Local Verification:** starting from its agreed issue, the implementer writes the code and its tests, and runs `cargo xtask ci`.
-2. **Independent Review:** before the pull request is opened, a reviewer agent reviews the commits, given the issue they belong to, against the checklist in [AGENTS.md](../AGENTS.md), "Reviewing a change"; `.claude/skills/review-change` says how Claude starts it. Findings are fixed, or rejected with a reason the reviewer accepts or the maintainer decides. Every later push is reviewed the same way.
+1. **Implementation & Local Verification:** starting from its agreed issues, the implementer writes the code and its tests, and runs `cargo xtask ci`.
+2. **Independent Review:** before the pull request is opened, a reviewer agent reviews the commits, given the issues they belong to, against the checklist in [AGENTS.md](../AGENTS.md), "Reviewing a change"; `.claude/skills/review-change` says how Claude starts it. Findings are fixed, or rejected with a reason the reviewer accepts or the maintainer decides. Every later push is reviewed the same way.
 3. **Automated CI:** GitHub Actions runs the checks of `cargo xtask ci`, the tests on Linux, macOS and Windows, as section 7 says.
 4. **Human Review & Sign-Off:** the pull request is reported ready, with the review's verdict, once both the review and the CI of its latest push have passed. The maintainer approves and merges, or advances the stack.
 
@@ -90,7 +90,7 @@ For every PR slice in the stack:
 ## 6. Definition of Done (DoD) per Stack Slice
 
 A slice is only ready for human merge when:
-- [ ] **Issue named:** the description names its open issue, with `Closes #N` or `Refs #N`.
+- [ ] **Issues named:** the description names its open issues, with `Closes #N` or `Refs #N`, unless every commit, merges aside, is a `test`.
 - [ ] **Clean Pre-Flight:** `cargo xtask ci` passes locally with 0 errors.
 - [ ] **Clean Compilation:** `cargo check --workspace --all-targets` passes with 0 errors.
 - [ ] **Zero Warnings:** `cargo clippy --workspace --all-targets -- -D warnings` passes with 0 warnings.
@@ -133,7 +133,7 @@ To eliminate environmental drift between local development and CI, all quality c
 Every action a workflow uses is pinned to a commit, with its version in a comment beside it.
 
 * **`.github/workflows/ci.yml`**, on every pull request, whatever its base, and every push to `main`. A branch is checked through its pull request, so a push to a branch with no pull request, or whose pull request has a merge conflict, runs no checks. It runs each mode of `cargo xtask ci` in a job of its own on Linux, the `test` mode on Linux, macOS and Windows, the `test` mode again with the minimum supported Rust, and `npm run verify` in `site/`, which builds the site and checks its pages, links, accessibility and layout.
-* **`.github/workflows/pull-request.yml`**, on every pull request, whatever its base: the description names an open issue of this repository, and neither the description nor a commit message closes an issue of another repository, with the `pr-has-issue` and `no-cross-repo-closing` actions of itinera-dev/actions; every commit message keeps the convention of section 3, and the description has no unticked checkbox. Ticking a checkbox runs only this workflow again.
+* **`.github/workflows/pull-request.yml`**, on every pull request, whatever its base: the description names an open issue of this repository, unless every commit other than a merge is a `test`, and neither the description nor a commit message closes an issue of another repository, with the `pr-has-issue` and `no-cross-repo-closing` actions of itinera-dev/actions; every commit message keeps the convention of section 3, and the description has no unticked checkbox. Ticking a checkbox runs only this workflow again.
 * **`.github/workflows/weekly.yml`**, each Monday: the `test` mode on Rust beta, so that a change in the next Rust that breaks snapfit, such as a compiler message a compile-fail fixture checks, is known before it is released.
 * **`.github/workflows/release.yml`**, on a tag `v<version>`: section 9.
 * **`.github/workflows/site.yml`**, run by hand with a release's version: publishes that release's README front page and book edition onto the `site` branch, as section 8 says.
@@ -183,11 +183,21 @@ crates.io's trusted publishing lets the workflow publish without a token, but it
 
 ## 10. Issues come first
 
-Every change starts as an issue, and is agreed there before any code is written: building the wrong thing is the expensive mistake, and the issue is the cheapest place to find it.
+Every change starts as an issue, and is agreed there before any code is written: building the wrong thing is the expensive mistake, and the issue is the cheapest place to find it. The issues are also the record of every decision taken about snapfit, what it does and how it is built and released, so that a decision can be found again by its kind.
+
+The one exception is a change whose commits, merges aside, are all `test` commits. It changes neither what snapfit does nor how it is built, so it holds no decision of its own: what it checks was agreed already.
 
 * **A feature** says what is wanted and why, and what it must not break, such as a generated name. It can be short; the details are worked out in the issue.
 * **A bug** says what happened, what was expected, and the smallest container that shows it.
-* **Labels:** each issue carries one of `feature`, `bug`, `docs` or `process`.
+* **A change to the architecture, the process or the documentation** says what changes and why, and what else was considered.
+* **Labels:** each issue carries one label, which says what kind of decision it holds, so that decisions can be found again:
+  * `feature`, something new a user meets;
+  * `bug`, something a user meets that is wrong;
+  * `architecture`, how the code is organised or written, refactors included, and the rules on code of docs/ARCHITECTURE.md and AGENTS.md;
+  * `process`, CI, this workflow, releases, and the process rules and review checklist of AGENTS.md;
+  * `docs`, the documentation a user reads, such as README.md and the book.
+
+  One issue per kind: a pull request that holds decisions of several kinds names one issue of each kind.
 
 A decision the maintainer takes about an issue, wherever it is taken, such as in a chat, is recorded at once as a comment on the issue, headed "Decided so far (continued)", dated, saying that the maintainer decided it, and saying so when an agent wrote it. Once an issue is agreed, every decision taken in its comments is written into its body, which then binds the work. The comments stay as the history of how each decision was reached, and nothing in them may contradict the body.
 
