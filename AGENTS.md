@@ -52,5 +52,5 @@ The report lists findings, each marked blocking or not, with its `file:line` and
 
 The toolchain is pinned in `rust-toolchain.toml`. Before pushing, run from the repository's root:
 
-- `cargo xtask ci`, the quality gate CI runs: formatting, clippy with every warning an error on the default and the `unstable` builds, the architecture check (no compiler type in `domain/` or `use_cases/`, no `mod.rs`, files under about 200 lines), every unit test and Gherkin scenario on both builds, every doctest, the documentation of both builds, the dependencies with cargo-deny, and a publish dry run of the crates. docs/WORKFLOW.md, section 7, lists each check and how to install cargo-deny;
+- `cargo xtask ci`, the quality gate CI runs: formatting, clippy with every warning an error on the default and the `unstable` builds, the architecture check (no compiler type in `domain/` or `use_cases/`, no `mod.rs`, files under about 200 lines), every unit test and Gherkin scenario on both builds, every doctest, the documentation of both builds and the crate's README against the root README, the dependencies with cargo-deny, and a publish dry run of the crates. docs/WORKFLOW.md, section 7, lists each check and how to install cargo-deny;
 - `cargo xtask book-check`, on a branch that has the site, when the change alters a diagnostic or generated code the book shows.
