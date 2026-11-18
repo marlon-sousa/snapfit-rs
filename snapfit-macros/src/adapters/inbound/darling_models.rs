@@ -76,7 +76,12 @@ pub(super) struct DependencyAttrMeta {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum BuildMeta {
     Word(syn::Ident),
-    Builder,
+    /// `builder(...)`: the word, for the span of its default functions, and
+    /// its settings as written.
+    Builder {
+        word: syn::Ident,
+        settings: Vec<syn::Expr>,
+    },
     Constructor(FunctionNameMeta),
     Quoted(String),
     Invalid(String),
@@ -89,10 +94,7 @@ impl FromMeta for BuildMeta {
                 || Self::Invalid(quote!(#path).to_string()),
                 |ident| Self::Word(ident.clone()),
             ),
-            syn::Expr::Call(call) if is_named(&call.func, "constructor") => {
-                Self::Constructor(FunctionNameMeta::from_arguments(&call.args))
-            }
-            syn::Expr::Call(call) if is_named(&call.func, "builder") => Self::Builder,
+            syn::Expr::Call(call) => Self::from_call(call),
             syn::Expr::Lit(syn::ExprLit {
                 lit: syn::Lit::Str(text),
                 ..
@@ -102,8 +104,28 @@ impl FromMeta for BuildMeta {
     }
 }
 
-fn is_named(func: &syn::Expr, name: &str) -> bool {
-    matches!(func, syn::Expr::Path(path) if path.path.is_ident(name))
+impl BuildMeta {
+    /// `constructor(...)` or `builder(...)`; any other call is not a build.
+    fn from_call(call: &syn::ExprCall) -> Self {
+        match single_word(&call.func) {
+            Some(word) if word == "constructor" => {
+                Self::Constructor(FunctionNameMeta::from_arguments(&call.args))
+            }
+            Some(word) if word == "builder" => Self::Builder {
+                word: word.clone(),
+                settings: call.args.iter().cloned().collect(),
+            },
+            _ => Self::Invalid(quote!(#call).to_string()),
+        }
+    }
+}
+
+/// The expression as a single word, such as the function a call names.
+pub(super) fn single_word(func: &syn::Expr) -> Option<&syn::Ident> {
+    match func {
+        syn::Expr::Path(path) if path.qself.is_none() => path.path.get_ident(),
+        _ => None,
+    }
 }
 
 /// The argument of `constructor(...)`, with its span. Only one bare function

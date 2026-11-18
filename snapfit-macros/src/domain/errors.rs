@@ -4,10 +4,11 @@
 mod accumulated;
 mod parts;
 mod sentences;
+mod subject;
 
 use thiserror::Error;
 
-use crate::domain::names::DependencyName;
+use crate::domain::names::{DependencyName, SetterName};
 
 pub(crate) use accumulated::DomainErrors;
 pub(crate) use parts::{AttributeProblem, Feature};
@@ -74,7 +75,7 @@ pub(crate) enum DomainError {
     ConditionalField { dependency: DependencyName },
 
     #[error(
-        "build = {written} on field '{dependency}' is not a way to build a field; write build = default, build = factory, or build = constructor({written}) to call a function of that name"
+        "build = {written} on field '{dependency}' is not a way to build a field; write build = default, build = factory, build = builder, or build = constructor({written}) to call a function of that name"
     )]
     UnknownBuild {
         dependency: DependencyName,
@@ -90,7 +91,7 @@ pub(crate) enum DomainError {
     },
 
     #[error(
-        "build = {written} on field '{dependency}' is not a way to build a field; write build = default, build = factory, or build = constructor(connect)"
+        "build = {written} on field '{dependency}' is not a way to build a field; write build = default, build = factory, build = builder, or build = constructor(connect)"
     )]
     NotABuild {
         dependency: DependencyName,
@@ -148,45 +149,35 @@ pub(crate) enum DomainError {
     TraitObjectWithoutFactory { dependency: DependencyName },
 
     #[error(
+        "builder({written}) on field '{dependency}' cannot be read; builder takes start and finish, each with a function's name, such as builder(start = new_builder, finish = done)"
+    )]
+    InvalidBuilderSetting {
+        dependency: DependencyName,
+        written: String,
+    },
+
+    #[error(
+        "the dependency '{label} = {field}' of field '{dependency}' has a label, which names a builder setter; write {field} alone, or build the field with build = builder"
+    )]
+    LabelWithoutBuilder {
+        dependency: DependencyName,
+        label: SetterName,
+        field: DependencyName,
+    },
+
+    #[error(
+        "field '{dependency}' passes more than one dependency to the builder setter '{setter}'; give each dependency its own setter"
+    )]
+    DuplicateSetter {
+        dependency: DependencyName,
+        setter: SetterName,
+    },
+
+    #[error(
         "{feature} is unstable in this version of snapfit; enable the `unstable` feature of the `snapfit` crate to use it"
     )]
     RequiresUnstable { feature: Feature },
 
     #[error("{feature} is planned for a future version of snapfit and is not implemented yet")]
     NotYetImplemented { feature: Feature },
-}
-
-impl DomainError {
-    /// The dependency the error is about, whose field the diagnostic points at.
-    pub(crate) fn subject(&self) -> Option<&DependencyName> {
-        match self {
-            Self::DependencyCycle { start, .. } => Some(start),
-            Self::UnknownPrerequisites { dependency, .. }
-            | Self::DuplicateDependency(dependency)
-            | Self::FieldAttribute { dependency, .. }
-            | Self::Unannotated { dependency }
-            | Self::MultipleLifecycles { dependency }
-            | Self::MultipleDispatches { dependency }
-            | Self::ConditionalField { dependency }
-            | Self::UnknownBuild { dependency, .. }
-            | Self::QuotedBuild { dependency, .. }
-            | Self::NotABuild { dependency, .. }
-            | Self::ConstructorWithoutName { dependency }
-            | Self::DefaultWithDependencies { dependency }
-            | Self::QuotedFunctionName { dependency, .. }
-            | Self::NotAFunctionName { dependency, .. }
-            | Self::AsyncDependencyInSyncContainer { dependency }
-            | Self::AsyncTransient { dependency }
-            | Self::AsyncDefault { dependency }
-            | Self::TraitObjectWithoutFactory { dependency } => Some(dependency),
-            Self::RequiresUnstable { feature } | Self::NotYetImplemented { feature } => {
-                feature.dependency()
-            }
-            Self::BlankName { .. }
-            | Self::TupleStruct
-            | Self::MultipleContainerAttributes
-            | Self::InvalidLeafBuild { .. }
-            | Self::ContainerAttribute { .. } => None,
-        }
-    }
 }

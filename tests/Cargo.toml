@@ -8,9 +8,11 @@ license.workspace = true
 publish = false
 
 [dependencies]
+bon = { workspace = true }
 cucumber = { workspace = true }
 futures = { workspace = true }
 snapfit = { workspace = true }
+typed-builder = { workspace = true }
 
 [dev-dependencies]
 compile-outcomes = { workspace = true }

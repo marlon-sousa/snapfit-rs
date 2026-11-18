@@ -1,5 +1,8 @@
 use super::*;
-use crate::domain::{Constructor, DependencyName, EnumDispatch, Execution, TypeName};
+use crate::domain::{
+    BuilderMethods, Constructor, DependencyName, EnumDispatch, Execution, FunctionName,
+    Prerequisite, TypeName,
+};
 
 fn dependency(shape: TypeShape, construction: Option<Construction>) -> DependencyDeclaration<()> {
     let mut dependency = DependencyDeclaration::new(DependencyName::new("store").unwrap(), ());
@@ -76,7 +79,7 @@ fn leaf_build_applies_only_to_fields_with_no_deps_and_no_build_of_their_own() {
     assert_eq!(call_for(&bare_leaf, &leaf), default_call);
 
     let mut with_deps = dependency(TypeShape::Value, None);
-    with_deps.prerequisites = vec![DependencyName::new("config").unwrap()];
+    with_deps.prerequisites = vec![Prerequisite::new(DependencyName::new("config").unwrap())];
     assert_eq!(call_for(&with_deps, &leaf), Ok(constructor(Wrapping::None)));
 
     let own_build = dependency(
@@ -94,5 +97,46 @@ fn leaf_build_leaves_an_async_leaf_to_its_own_constructor() {
     assert_eq!(
         call_for(&async_leaf, &Constructor::Default),
         Ok(constructor(Wrapping::None))
+    );
+}
+
+fn builder() -> BuilderMethods {
+    BuilderMethods::new(
+        FunctionName::new("builder").unwrap(),
+        FunctionName::new("build").unwrap(),
+    )
+}
+
+#[test]
+fn a_builder_belongs_to_the_inner_type_of_an_arc_and_its_value_is_wrapped() {
+    let call = call_for(
+        &dependency(TypeShape::Arc, Some(Construction::Builder(builder()))),
+        &Constructor::New,
+    );
+
+    assert_eq!(
+        call,
+        Ok(Call::Builder {
+            methods: builder(),
+            wrapping: Wrapping::Arc,
+        })
+    );
+}
+
+#[test]
+fn a_trait_object_built_by_a_builder_is_refused_pointing_to_a_factory() {
+    let call = call_for(
+        &dependency(
+            TypeShape::TraitObject,
+            Some(Construction::Builder(builder())),
+        ),
+        &Constructor::New,
+    );
+
+    assert_eq!(
+        call,
+        Err(DomainError::TraitObjectWithoutFactory {
+            dependency: DependencyName::new("store").unwrap(),
+        })
     );
 }

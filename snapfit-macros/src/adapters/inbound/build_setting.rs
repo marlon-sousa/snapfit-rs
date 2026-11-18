@@ -3,24 +3,64 @@
 use quote::ToTokens;
 
 use super::darling_models::{BuildMeta, FunctionNameMeta};
-use crate::domain::{Construction, Constructor, DependencyName, DomainError, FunctionName};
+use crate::adapters::syntax::BuilderSyntax;
+use crate::domain::{
+    BuilderMethods, Construction, Constructor, DependencyName, DomainError, FunctionName,
+};
 
+mod builder;
 #[cfg(test)]
 mod tests;
 
-/// How a field's `build = ...` builds it, with the constructor's name as the
-/// user wrote it when there is one; `None` when the field writes no `build`.
+/// What a field's `build = ...` says, with the functions it names as the
+/// user wrote them; all empty when the field writes no `build`.
+#[derive(Debug, Default, PartialEq)]
+pub(super) struct WrittenBuild {
+    pub(super) construction: Option<Construction>,
+    pub(super) constructor: Option<syn::Ident>,
+    pub(super) builder: Option<BuilderSyntax>,
+}
+
+impl WrittenBuild {
+    fn of(construction: Construction) -> Self {
+        Self {
+            construction: Some(construction),
+            ..Self::default()
+        }
+    }
+
+    fn named_constructor((name, ident): (FunctionName, syn::Ident)) -> Self {
+        Self {
+            constructor: Some(ident),
+            ..Self::of(Construction::Constructor(Constructor::Named(name)))
+        }
+    }
+
+    fn builder((methods, syntax): (BuilderMethods, BuilderSyntax)) -> Self {
+        Self {
+            builder: Some(syntax),
+            ..Self::of(Construction::Builder(methods))
+        }
+    }
+}
+
+/// How a field's `build = ...` builds it.
 pub(super) fn field_construction(
     dependency: &DependencyName,
     build: Option<BuildMeta>,
-) -> Result<(Option<Construction>, Option<syn::Ident>), DomainError> {
+) -> Result<WrittenBuild, DomainError> {
     let name = dependency.clone();
     match build {
-        None => Ok((None, None)),
-        Some(BuildMeta::Word(word)) => mode(dependency, &word).map(without_name),
-        Some(BuildMeta::Builder) => Ok(without_name(Construction::Builder)),
+        None => Ok(WrittenBuild::default()),
+        Some(BuildMeta::Word(word)) if word == "builder" => {
+            builder::methods(dependency, &word, &[]).map(WrittenBuild::builder)
+        }
+        Some(BuildMeta::Word(word)) => mode(dependency, &word).map(WrittenBuild::of),
+        Some(BuildMeta::Builder { word, settings }) => {
+            builder::methods(dependency, &word, &settings).map(WrittenBuild::builder)
+        }
         Some(BuildMeta::Constructor(function)) => {
-            function_name(dependency, function).map(named_constructor)
+            function_name(dependency, function).map(WrittenBuild::named_constructor)
         }
         Some(BuildMeta::Quoted(written)) => Err(DomainError::QuotedBuild {
             dependency: name,
@@ -33,33 +73,19 @@ pub(super) fn field_construction(
     }
 }
 
-/// `build = default`, `factory` or `builder`; `constructor` without its
-/// function's name, and any other word, are refused.
+/// `build = default` or `factory`; `constructor` without its function's
+/// name, and any other word, are refused.
 fn mode(dependency: &DependencyName, word: &syn::Ident) -> Result<Construction, DomainError> {
     let dependency = dependency.clone();
     match word.to_string().as_str() {
         "default" => Ok(Construction::Constructor(Constructor::Default)),
         "factory" => Ok(Construction::Factory),
-        "builder" => Ok(Construction::Builder),
         "constructor" => Err(DomainError::ConstructorWithoutName { dependency }),
         written => Err(DomainError::UnknownBuild {
             dependency,
             written: written.to_string(),
         }),
     }
-}
-
-fn named_constructor(
-    (name, ident): (FunctionName, syn::Ident),
-) -> (Option<Construction>, Option<syn::Ident>) {
-    (
-        Some(Construction::Constructor(Constructor::Named(name))),
-        Some(ident),
-    )
-}
-
-fn without_name(construction: Construction) -> (Option<Construction>, Option<syn::Ident>) {
-    (Some(construction), None)
 }
 
 fn function_name(
@@ -108,7 +134,7 @@ pub(super) fn leaf_constructor(
 fn written(build: &BuildMeta) -> String {
     match build {
         BuildMeta::Word(word) => word.to_string(),
-        BuildMeta::Builder => "builder(...)".to_string(),
+        BuildMeta::Builder { settings, .. } => format!("builder({})", written_settings(settings)),
         BuildMeta::Constructor(function) => format!("constructor({})", written_function(function)),
         BuildMeta::Quoted(text) => format!("\"{text}\""),
         BuildMeta::Invalid(text) => text.clone(),
@@ -121,4 +147,12 @@ fn written_function(function: &FunctionNameMeta) -> String {
         FunctionNameMeta::Quoted(text) => format!("\"{text}\""),
         FunctionNameMeta::Invalid(text) => text.clone(),
     }
+}
+
+fn written_settings(settings: &[syn::Expr]) -> String {
+    settings
+        .iter()
+        .map(|setting| setting.to_token_stream().to_string())
+        .collect::<Vec<_>>()
+        .join(", ")
 }

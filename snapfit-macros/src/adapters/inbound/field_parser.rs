@@ -1,20 +1,22 @@
 //! Adapter: reads one field and its snapfit attributes into a dependency declaration.
 
-use super::darling_models::{DependencyAttrMeta, PrerequisiteMeta};
+use super::darling_models::DependencyAttrMeta;
 use super::type_inspector::{
     arc_inner_type, dispatched_trait, parse_dispatch_attribute, type_shape,
 };
-use crate::adapters::syntax::{FieldDeclaration, FieldSyntax, is_user_attribute};
+use crate::adapters::syntax::{BuilderSyntax, FieldDeclaration, FieldSyntax, is_user_attribute};
 use crate::domain::{
     AttributeProblem, DependencyDeclaration, DependencyName, DomainError, DomainErrors,
     EnumDispatch, Execution, Lifecycle, TypeName,
 };
 
+mod deps;
 mod rules;
 #[cfg(test)]
 mod tests;
 
-use super::build_setting::field_construction;
+use super::build_setting::{WrittenBuild, field_construction};
+use deps::{Deps, read_deps};
 use rules::{attribute_error, ensure_unconditional};
 
 /// The declaration, or every problem the field's attributes have.
@@ -30,12 +32,22 @@ pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, Domain
         (None, Some(_)) => (Lifecycle::Singleton, DependencyAttrMeta::default()),
         (None, None) => return Err(unannotated(&name).into()),
     };
-    let construction = field_construction(&name, meta.build).map_err(DomainErrors::from);
-    let prerequisites = prerequisites_of(&name, meta.deps.0).map_err(DomainErrors::from);
-    let ((construction, constructor), (prerequisites, parent_prerequisites)) =
-        DomainErrors::both(construction, prerequisites)?;
+    let build = field_construction(&name, meta.build).map_err(DomainErrors::from);
+    let deps = read_deps(&name, meta.deps.0).map_err(DomainErrors::from);
+    let (build, deps) = DomainErrors::both(build, deps)?;
+    let WrittenBuild {
+        construction,
+        constructor,
+        builder,
+    } = build;
+    let Deps {
+        siblings,
+        parents,
+        setters,
+    } = deps;
 
-    let mut dependency = DependencyDeclaration::new(name, field_syntax(field, ident, constructor));
+    let syntax = field_syntax(field, ident, constructor, builder, setters);
+    let mut dependency = DependencyDeclaration::new(name, syntax);
     dependency.lifecycle = lifecycle;
     dependency.execution = if meta.is_async {
         Execution::Async
@@ -44,8 +56,8 @@ pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, Domain
     };
     dependency.construction = construction;
     dependency.shape = type_shape(&field.ty);
-    dependency.prerequisites = prerequisites;
-    dependency.parent_prerequisites = parent_prerequisites;
+    dependency.prerequisites = siblings;
+    dependency.parent_prerequisites = parents;
     dependency.dispatch = dispatch;
     Ok(dependency)
 }
@@ -59,10 +71,14 @@ fn field_syntax(
     field: &syn::Field,
     ident: syn::Ident,
     constructor: Option<syn::Ident>,
+    builder: Option<BuilderSyntax>,
+    setters: Vec<syn::Ident>,
 ) -> FieldSyntax {
     FieldSyntax {
         ident,
         constructor,
+        builder,
+        setters,
         ty: field.ty.clone(),
         arc_inner: arc_inner_type(&field.ty).unwrap_or(&field.ty).clone(),
         vis: field.vis.clone(),
@@ -146,27 +162,4 @@ fn enum_dispatch(attr: &syn::Attribute, ty: &syn::Type) -> Result<EnumDispatch, 
 
 fn type_name(text: String) -> Result<TypeName, AttributeProblem> {
     TypeName::new(text).map_err(|_| AttributeProblem::BlankName)
-}
-
-/// Siblings and `parent(...)` entries of `deps`, each in the order written.
-fn prerequisites_of(
-    name: &DependencyName,
-    entries: Vec<PrerequisiteMeta>,
-) -> Result<(Vec<DependencyName>, Vec<DependencyName>), DomainError> {
-    let (siblings, parents): (Vec<_>, Vec<_>) =
-        entries.into_iter().partition(PrerequisiteMeta::is_sibling);
-    let siblings = dependency_names(siblings).map_err(|problem| attribute_error(name, problem))?;
-    let parents = dependency_names(parents).map_err(|problem| attribute_error(name, problem))?;
-    Ok((siblings, parents))
-}
-
-fn dependency_names(
-    entries: Vec<PrerequisiteMeta>,
-) -> Result<Vec<DependencyName>, AttributeProblem> {
-    entries
-        .into_iter()
-        .map(PrerequisiteMeta::into_name)
-        .map(DependencyName::new)
-        .collect::<Result<_, _>>()
-        .map_err(|_| AttributeProblem::BlankName)
 }

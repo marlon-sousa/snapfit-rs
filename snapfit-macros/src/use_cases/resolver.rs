@@ -151,7 +151,7 @@ impl<F> Resolver<F> {
         let outcomes: Vec<_> = dependency
             .prerequisites
             .iter()
-            .map(|prerequisite| self.visit(prerequisite))
+            .map(|prerequisite| self.visit(&prerequisite.field))
             .collect();
         let missing: Vec<_> = dependency
             .prerequisites

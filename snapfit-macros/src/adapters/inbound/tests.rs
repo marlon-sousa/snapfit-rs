@@ -5,7 +5,7 @@ use super::*;
 use crate::domain::{
     Construction, Constructor, EnumDispatch, Execution, FunctionName, Lifecycle, TypeShape,
 };
-use crate::test_support::names;
+use crate::test_support::{names, prerequisites};
 
 #[test]
 fn every_setting_and_field_is_read_into_the_declaration() {
@@ -56,10 +56,10 @@ fn every_setting_and_field_is_read_into_the_declaration() {
             FunctionName::new("connect").unwrap()
         )))
     );
-    assert_eq!(db.prerequisites, names(&["config"]));
+    assert_eq!(db.prerequisites, prerequisites(&["config"]));
 
     assert_eq!(auth.construction, Some(Construction::Factory));
-    assert_eq!(auth.prerequisites, names(&["config", "db"]));
+    assert_eq!(auth.prerequisites, prerequisites(&["config", "db"]));
     assert_eq!(auth.parent_prerequisites, names(&["audit"]));
 
     assert_eq!(controller.lifecycle, Lifecycle::Transient);

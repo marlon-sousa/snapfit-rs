@@ -129,3 +129,28 @@ fn default_calls_the_default_trait_and_wraps_an_arc() {
         "<Clockas::std::default::Default>::default()"
     );
 }
+
+#[test]
+fn a_builder_passes_each_dependency_to_its_setter_and_finishes_the_chain() {
+    let item: syn::ItemStruct = parse_quote! {
+        struct App {
+            #[singleton]
+            folder_files: Arc<FolderFiles>,
+            #[singleton]
+            memory_files: Arc<MemoryFiles>,
+            #[singleton(deps = [memory = memory_files, disk = folder_files], build = builder)]
+            writer: Arc<SiteWriter>,
+            #[singleton(deps = [folder_files], build = builder(start = make, finish = done))]
+            reader: Reader,
+        }
+    };
+
+    assert_eq!(
+        built(item.clone(), "writer", ValueSource::Locals),
+        "::std::sync::Arc::new(<SiteWriter>::builder().memory(__snapfit_memory_files.clone()).disk(__snapfit_folder_files.clone()).build())"
+    );
+    assert_eq!(
+        built(item, "reader", ValueSource::SelfFields),
+        "<Reader>::make().folder_files(self.folder_files.clone()).done()"
+    );
+}

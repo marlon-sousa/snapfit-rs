@@ -2,6 +2,7 @@
 
 use crate::domain::{
     ContainerDeclaration, ContainerName, DependencyDeclaration, DependencyName, DomainError,
+    Prerequisite,
 };
 
 pub(crate) fn name(text: &str) -> DependencyName {
@@ -20,6 +21,11 @@ pub(crate) fn names(texts: &[&str]) -> Vec<DependencyName> {
     texts.iter().copied().map(name).collect()
 }
 
+/// Siblings written alone in `deps`, without labels.
+pub(crate) fn prerequisites(texts: &[&str]) -> Vec<Prerequisite> {
+    names(texts).into_iter().map(Prerequisite::new).collect()
+}
+
 /// A singleton built with `new`, needing `prerequisites`.
 pub(crate) fn dependency(text: &str, prerequisites: &[&str]) -> DependencyDeclaration<()> {
     dependency_with(text, prerequisites, ())
@@ -31,7 +37,7 @@ pub(crate) fn dependency_with<F>(
     syntax: F,
 ) -> DependencyDeclaration<F> {
     let mut dependency = DependencyDeclaration::new(name(text), syntax);
-    dependency.prerequisites = names(prerequisites);
+    dependency.prerequisites = self::prerequisites(prerequisites);
     dependency
 }
 

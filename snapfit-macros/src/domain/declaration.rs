@@ -7,7 +7,7 @@
 use derive_new::new;
 use strum::EnumIs;
 
-use crate::domain::names::{ContainerName, DependencyName, FunctionName, TypeName};
+use crate::domain::names::{ContainerName, DependencyName, FunctionName, SetterName, TypeName};
 
 #[cfg(test)]
 mod tests;
@@ -36,7 +36,34 @@ pub(crate) enum Construction {
     /// The `build_<field>` method the user writes in the container's factories trait.
     Factory,
     /// The type's builder, with one setter per prerequisite.
-    Builder,
+    Builder(BuilderMethods),
+}
+
+/// The functions a builder chain starts and finishes with.
+#[derive(new, Debug, Clone, PartialEq, Eq)]
+pub(crate) struct BuilderMethods {
+    /// The type's associated function that returns its builder.
+    pub(crate) start: FunctionName,
+    /// The builder's method that returns the value.
+    pub(crate) finish: FunctionName,
+}
+
+/// One sibling entry of `deps = [...]`.
+#[derive(new, Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Prerequisite {
+    /// The container's field the value comes from.
+    pub(crate) field: DependencyName,
+    /// `disk` in `disk = folder_files`: the builder setter that takes it, when
+    /// it is not the field's own name.
+    #[new(default)]
+    pub(crate) label: Option<SetterName>,
+}
+
+impl Prerequisite {
+    /// The builder setter that takes this value: its label, or the field's name.
+    pub(crate) fn setter(&self) -> SetterName {
+        self.label.clone().unwrap_or_else(|| self.field.as_kind())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -95,9 +122,9 @@ pub(crate) struct DependencyDeclaration<F> {
     #[new(default)]
     pub(crate) shape: TypeShape,
     /// The siblings the field is built from: passed to a constructor in order,
-    /// and by name to a factory.
+    /// by name to a factory, and each to its own setter of a builder.
     #[new(default)]
-    pub(crate) prerequisites: Vec<DependencyName>,
+    pub(crate) prerequisites: Vec<Prerequisite>,
     /// `parent(name)` entries of `deps`, which name a parent container's dependency.
     #[new(default)]
     pub(crate) parent_prerequisites: Vec<DependencyName>,

@@ -2,6 +2,7 @@
 
 mod build_containers;
 mod build_world;
+mod builder_containers;
 mod codegen_containers;
 mod containers;
 mod factory_containers;

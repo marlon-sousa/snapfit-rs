@@ -35,11 +35,11 @@ Stacks 1 to 4 built the core of `v0.1.0`:
 3. Inbound and outbound adapters.
 4. Walking skeleton, with the first Gherkin scenario green: `v0.1.0`. The Snapfit Book and its site follow it.
 
-What comes after it, such as async containers, transients, custom builders, enum dispatch, test overrides and child containers, is planned in the [open issues labelled `feature`](https://github.com/marlon-sousa/snapfit-rs/issues?q=is%3Aissue%20is%3Aopen%20label%3Afeature), as section 10 says.
+What comes after it, such as async containers, transients, enum dispatch, test overrides and child containers, is planned in the [open issues labelled `feature`](https://github.com/marlon-sousa/snapfit-rs/issues?q=is%3Aissue%20is%3Aopen%20label%3Afeature), as section 10 says.
 
 ### 0.1.0 scope
 
-`v0.1.0` ships the synchronous singleton container, with fields built by `new`, `Default`, a named constructor or a factory. Async containers and transient dependencies were implemented early (Stacks 2 to 4) and are kept behind the `unstable` Cargo feature until their issues settle the API. Planned features with no code generation (`dispatch`, `parent`, `introspection`) are compile errors. Items removed from the runtime crate for 0.1.0 are listed in [SPEC §0](SPEC.md#0-what-ships-in-010) so that the work on their issues restores them.
+`v0.1.0` ships the synchronous singleton container, with fields built by `new`, `Default`, a named constructor, a factory or a builder. Async containers and transient dependencies were implemented early (Stacks 2 to 4) and are kept behind the `unstable` Cargo feature until their issues settle the API. Planned features with no code generation (`dispatch`, `parent`, `introspection`) are compile errors. Items removed from the runtime crate for 0.1.0 are listed in [SPEC §0](SPEC.md#0-what-ships-in-010) so that the work on their issues restores them.
 
 The QA gate runs the Gherkin suite once on the stable build, whose scenarios prove the gate rejects unstable APIs, and once with the `unstable` feature. Each run compiles the compile-fail fixtures against snapfit with its own features, so both builds share one target folder.
 

@@ -58,7 +58,7 @@ Feature: Unstable lifecycles behind the `unstable` feature
       | planned_dispatch         | 10   | #[dispatch(...)] on dependency 'store'  |
       | generic_container        | 4    | generic parameters on container 'Repo'  |
       | planned_async_factory    | 8    | build = factory on async dependency 'db' |
-      | planned_builder          | 8    | build = builder on dependency 'exporter' |
+      | planned_async_builder    | 8    | build = builder on async dependency 'exporter' |
 
   @unstable @regression
   Scenario: A trait-object field without a factory is told to build it in one, as on the stable build

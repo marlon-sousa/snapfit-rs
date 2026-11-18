@@ -1,10 +1,10 @@
 use std::sync::Arc;
 use snapfit::container;
 
-pub struct Exporter;
+pub trait FileWriter: Send + Sync {}
 
 #[container]
-pub struct Shop {
+pub struct Site {
     #[singleton(build = builder)]
-    exporter: Arc<Exporter>,
+    writer: Arc<dyn FileWriter>,
 }

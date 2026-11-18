@@ -5,7 +5,7 @@ use std::rc::Rc;
 use derive_new::new;
 use strum::EnumIs;
 
-use crate::domain::declaration::{Constructor, Execution, Lifecycle};
+use crate::domain::declaration::{BuilderMethods, Constructor, Execution, Lifecycle};
 use crate::domain::names::DependencyName;
 
 #[cfg(test)]
@@ -26,6 +26,11 @@ pub(crate) enum Call {
     },
     /// The field's `build_<field>` method of the container's factories trait.
     Factory,
+    /// The type's builder, with one setter per prerequisite.
+    Builder {
+        methods: BuilderMethods,
+        wrapping: Wrapping,
+    },
 }
 
 #[derive(new, Debug, PartialEq, Eq)]
@@ -35,7 +40,7 @@ pub(crate) struct Step<F> {
     pub(crate) lifecycle: Lifecycle,
     pub(crate) execution: Execution,
     pub(crate) call: Call,
-    /// The steps whose values are passed to the call, in order.
+    /// The steps whose values are passed to the call, in the order `deps` lists them.
     pub(crate) prerequisites: Vec<Rc<Step<F>>>,
 }
 

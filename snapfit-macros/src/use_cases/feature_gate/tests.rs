@@ -1,8 +1,9 @@
 use super::*;
 use crate::domain::{
-    Construction, Constructor, EnumDispatch, FunctionName, Introspection, Lifecycle, TypeName,
+    BuilderMethods, Construction, Constructor, EnumDispatch, FunctionName, Introspection,
+    Lifecycle, TypeName,
 };
-use crate::test_support::{container, dependency};
+use crate::test_support::{container, dependency, prerequisites};
 
 fn features(errors: &[DomainError]) -> Vec<String> {
     errors.iter().map(ToString::to_string).collect()
@@ -21,7 +22,7 @@ fn planned(feature: &str) -> String {
 #[test]
 fn stable_singletons_pass_both_gates() {
     let mut db = dependency("db", &[]);
-    db.prerequisites = vec![DependencyName::new("config").unwrap()];
+    db.prerequisites = prerequisites(&["config"]);
     db.construction = Some(Construction::Constructor(Constructor::Named(
         FunctionName::new("connect").unwrap(),
     )));
@@ -122,16 +123,40 @@ fn an_async_factory_is_planned_on_every_build() {
     );
 }
 
+fn builder() -> Construction {
+    Construction::Builder(BuilderMethods::new(
+        FunctionName::new("builder").unwrap(),
+        FunctionName::new("build").unwrap(),
+    ))
+}
+
 #[test]
-fn a_builder_is_planned_on_every_build() {
+fn a_builder_passes_both_gates() {
     let mut exporter = dependency("exporter", &[]);
-    exporter.construction = Some(Construction::Builder);
-    let builder = container(vec![exporter]);
+    exporter.construction = Some(builder());
+    let container = container(vec![exporter]);
 
     for gate in [FeatureGate::Stable, FeatureGate::Unstable] {
-        assert_eq!(
-            features(&gate.refusals(&builder)),
-            [planned("build = builder on dependency 'exporter'")]
-        );
+        assert!(gate.refusals(&container).is_empty(), "{gate:?}");
     }
+}
+
+#[test]
+fn an_async_builder_is_planned_on_every_build() {
+    let mut exporter = dependency("exporter", &[]);
+    exporter.construction = Some(builder());
+    exporter.execution = Execution::Async;
+    let async_builder = container(vec![exporter]);
+
+    assert_eq!(
+        features(&FeatureGate::Unstable.refusals(&async_builder)),
+        [planned("build = builder on async dependency 'exporter'")]
+    );
+    assert_eq!(
+        features(&FeatureGate::Stable.refusals(&async_builder)),
+        [
+            planned("build = builder on async dependency 'exporter'"),
+            unstable("async dependency 'exporter'"),
+        ]
+    );
 }

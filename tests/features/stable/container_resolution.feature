@@ -118,6 +118,5 @@ Feature: Container Dependency Resolution
       | fixture                  | line | expected_error                          |
       | planned_parent_container | 7    | #[container(parent = ...)]              |
       | planned_introspection    | 7    | #[container(introspection = true)]      |
-      | planned_builder          | 8    | build = builder on dependency 'exporter' |
       | planned_dispatch         | 10   | #[dispatch(...)] on dependency 'store'  |
       | generic_container        | 4    | generic parameters on container 'Repo'  |

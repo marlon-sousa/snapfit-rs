@@ -28,8 +28,8 @@ pub(crate) enum Feature {
     Transient { dependency: DependencyName },
     #[display("build = factory on async dependency '{dependency}'")]
     AsyncFactory { dependency: DependencyName },
-    #[display("build = builder on dependency '{dependency}'")]
-    Builder { dependency: DependencyName },
+    #[display("build = builder on async dependency '{dependency}'")]
+    AsyncBuilder { dependency: DependencyName },
 }
 
 impl Feature {
@@ -40,7 +40,7 @@ impl Feature {
             | Self::AsyncDependency { dependency }
             | Self::Transient { dependency }
             | Self::AsyncFactory { dependency }
-            | Self::Builder { dependency } => Some(dependency),
+            | Self::AsyncBuilder { dependency } => Some(dependency),
             Self::ParentContainer
             | Self::Introspection
             | Self::GenericContainer { .. }

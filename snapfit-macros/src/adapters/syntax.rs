@@ -22,8 +22,22 @@ pub(crate) struct FieldSyntax {
     pub(crate) arc_inner: syn::Type,
     /// The function of `build = constructor(...)` as the user wrote it.
     pub(crate) constructor: Option<syn::Ident>,
+    /// The functions of `build = builder`, when the field says it.
+    pub(crate) builder: Option<BuilderSyntax>,
+    /// The setter each sibling entry of `deps` is passed to, in order, as the
+    /// user wrote it: its label, or the entry itself.
+    pub(crate) setters: Vec<syn::Ident>,
     pub(crate) vis: syn::Visibility,
     pub(crate) attrs: Vec<syn::Attribute>,
+}
+
+/// The functions a builder chain starts and finishes with, as the user wrote
+/// them in `builder(start = ..., finish = ...)`, or spelt at the `builder`
+/// word for the ones left out.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct BuilderSyntax {
+    pub(crate) start: syn::Ident,
+    pub(crate) finish: syn::Ident,
 }
 
 pub(crate) type Declaration = ContainerDeclaration<ContainerSyntax, FieldSyntax>;

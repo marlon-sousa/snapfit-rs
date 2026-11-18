@@ -42,3 +42,5 @@ derive_more = { version = "2.1", features = ["display"] }
 cucumber = "0.21"
 futures = "0.3"
 compile-outcomes = "0.1"
+bon = "3.10"
+typed-builder = "0.23"

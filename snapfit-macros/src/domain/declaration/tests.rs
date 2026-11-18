@@ -22,3 +22,14 @@ fn a_declared_container_leaves_its_mode_to_its_dependencies() {
     assert!(container.introspection.is_off());
     assert!(container.dependencies.is_empty());
 }
+
+#[test]
+fn a_prerequisite_is_passed_to_the_setter_its_label_names_or_to_its_own() {
+    let field = DependencyName::new("folder_files").unwrap();
+    let bare = Prerequisite::new(field.clone());
+    let mut labelled = Prerequisite::new(field);
+    labelled.label = Some(SetterName::new("disk").unwrap());
+
+    assert_eq!(bare.setter().as_str(), "folder_files");
+    assert_eq!(labelled.setter().as_str(), "disk");
+}

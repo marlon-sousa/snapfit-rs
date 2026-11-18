@@ -6,7 +6,7 @@ use syn::ext::IdentExt;
 
 use super::factories::{inputs_ident, method_ident, trait_ident};
 use crate::adapters::syntax::{ContainerSyntax, FieldSyntax};
-use crate::domain::{Call, Constructor, FunctionName, Step, Wrapping};
+use crate::domain::{BuilderMethods, Call, Constructor, FunctionName, Step, Wrapping};
 
 #[cfg(test)]
 mod tests;
@@ -38,16 +38,14 @@ pub(super) fn construct(step: &Step<FieldSyntax>, site: Site<'_>) -> TokenStream
         Call::Constructor {
             constructor,
             wrapping,
-        } => {
-            let target = match wrapping {
-                Wrapping::Arc => &field.arc_inner,
-                Wrapping::None => &field.ty,
-            };
-            (
-                constructor_call(target, constructor, field, site, args),
-                *wrapping,
-            )
-        }
+        } => (
+            constructor_call(target(field, *wrapping), constructor, field, site, args),
+            *wrapping,
+        ),
+        Call::Builder { methods, wrapping } => (
+            builder_call(target(field, *wrapping), methods, field, args),
+            *wrapping,
+        ),
         Call::Factory => (factory_call(step, site, args), Wrapping::None),
     };
     let value = if step.execution.is_async() {
@@ -93,6 +91,36 @@ fn factory_call(
         .iter()
         .map(|prerequisite| &prerequisite.syntax.ident);
     quote_spanned!(field.span()=> <Self as #factories_trait>::#method(#inputs { #(#names: #args),* }))
+}
+
+/// The type whose function builds the value: `T` when the field holds `Arc<T>`.
+fn target(field: &FieldSyntax, wrapping: Wrapping) -> &syn::Type {
+    match wrapping {
+        Wrapping::Arc => &field.arc_inner,
+        Wrapping::None => &field.ty,
+    }
+}
+
+/// `<T>::builder().disk(...).memory(...).build()`, each name with the user's
+/// own token: the setter's label or `deps` entry, and the start and finish of
+/// `builder(...)`, or the `builder` word for the ones left out.
+fn builder_call(
+    target: &syn::Type,
+    methods: &BuilderMethods,
+    field: &FieldSyntax,
+    args: impl Iterator<Item = TokenStream>,
+) -> TokenStream {
+    let (start, finish) = field.builder.as_ref().map_or_else(
+        || {
+            (
+                function_ident(&methods.start),
+                function_ident(&methods.finish),
+            )
+        },
+        |builder| (builder.start.clone(), builder.finish.clone()),
+    );
+    let setters = &field.setters;
+    quote!(<#target>::#start()#(.#setters(#args))*.#finish())
 }
 
 /// `<T>::new(...)`, `<T as Default>::default()`, or `<T>::connect(...)` with

@@ -173,3 +173,28 @@ fn a_container_without_factories_generates_no_factories_trait() {
     assert!(!code.contains("Factories"));
     assert!(!code.contains("Inputs"));
 }
+
+#[test]
+fn a_builder_field_is_built_by_its_setters_and_a_misplaced_label_is_refused() {
+    let built = expand_attribute(
+        quote!(),
+        quote! {
+            pub struct Site {
+                #[singleton]
+                folder_files: Arc<FolderFiles>,
+                #[singleton(deps = [disk = folder_files], build = builder)]
+                writer: Arc<SiteWriter>,
+                #[singleton(deps = [disk = folder_files])]
+                reader: Arc<SiteReader>,
+            }
+        },
+        FeatureGate::Stable,
+    );
+
+    assert_eq!(
+        compile_errors(&built),
+        [
+            "the dependency 'disk = folder_files' of field 'reader' has a label, which names a builder setter; write folder_files alone, or build the field with build = builder"
+        ]
+    );
+}

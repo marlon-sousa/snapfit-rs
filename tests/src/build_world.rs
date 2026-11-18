@@ -1,6 +1,7 @@
 //! The containers whose fields say how they are built, kept apart from the rest of the world.
 
 use crate::build_containers::{archive, leaves, named};
+use crate::builder_containers::{catalog, handmade, site};
 use crate::factory_containers::{orders, payments};
 
 #[derive(Default)]
@@ -10,6 +11,9 @@ pub struct BuildContainers {
     archive: Option<archive::Archive>,
     shop: Option<orders::Shop>,
     store: Option<payments::Store>,
+    site: Option<site::Site>,
+    shelves: Option<catalog::Shelves>,
+    reports: Option<handmade::Reports>,
 }
 
 impl BuildContainers {
@@ -61,5 +65,35 @@ impl BuildContainers {
         self.store
             .as_ref()
             .expect("the Store container must be instantiated before Then assertions")
+    }
+
+    pub fn instantiate_site(&mut self) {
+        self.site = Some(site::Site::new());
+    }
+
+    pub fn site(&self) -> &site::Site {
+        self.site
+            .as_ref()
+            .expect("the Site container must be instantiated before Then assertions")
+    }
+
+    pub fn instantiate_shelves(&mut self) {
+        self.shelves = Some(catalog::Shelves::new());
+    }
+
+    pub fn shelves(&self) -> &catalog::Shelves {
+        self.shelves
+            .as_ref()
+            .expect("the Shelves container must be instantiated before Then assertions")
+    }
+
+    pub fn instantiate_reports(&mut self) {
+        self.reports = Some(handmade::Reports::new());
+    }
+
+    pub fn reports(&self) -> &handmade::Reports {
+        self.reports
+            .as_ref()
+            .expect("the Reports container must be instantiated before Then assertions")
     }
 }

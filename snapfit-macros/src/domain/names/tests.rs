@@ -21,3 +21,12 @@ fn every_kind_of_name_refuses_blank_text() {
     assert!(FunctionName::new("").is_err());
     assert!(TypeName::new(" ").is_err());
 }
+
+#[test]
+fn a_name_keeps_its_text_as_another_kind() {
+    let field = DependencyName::new("disk").unwrap();
+
+    let setter: SetterName = field.as_kind();
+
+    assert_eq!(setter.as_str(), "disk");
+}

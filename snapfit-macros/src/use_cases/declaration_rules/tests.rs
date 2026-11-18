@@ -1,5 +1,5 @@
 use super::*;
-use crate::domain::{DependencyName, Execution, Lifecycle};
+use crate::domain::{BuilderMethods, DependencyName, Execution, FunctionName, Lifecycle};
 use crate::test_support::{container, dependency};
 
 fn transient(name: &str, execution: Execution) -> DependencyDeclaration<()> {
@@ -64,4 +64,68 @@ fn default_on_an_async_dependency_is_refused() {
             dependency: DependencyName::new("rates").unwrap()
         }]
     );
+}
+
+fn labelled(field: &str, label: &str) -> Prerequisite {
+    Prerequisite {
+        field: DependencyName::new(field).unwrap(),
+        label: Some(SetterName::new(label).unwrap()),
+    }
+}
+
+fn builder() -> Construction {
+    Construction::Builder(BuilderMethods::new(
+        FunctionName::new("builder").unwrap(),
+        FunctionName::new("build").unwrap(),
+    ))
+}
+
+#[test]
+fn a_label_on_a_field_not_built_by_a_builder_is_refused_for_each_label() {
+    let mut writer = dependency("writer", &["config"]);
+    writer.prerequisites.extend([
+        labelled("folder_files", "disk"),
+        labelled("memory_files", "memory"),
+    ]);
+
+    let errors: Vec<_> = rule_violations(&container(vec![writer]))
+        .iter()
+        .map(ToString::to_string)
+        .collect();
+
+    assert_eq!(
+        errors,
+        [
+            "the dependency 'disk = folder_files' of field 'writer' has a label, which names a builder setter; write folder_files alone, or build the field with build = builder",
+            "the dependency 'memory = memory_files' of field 'writer' has a label, which names a builder setter; write memory_files alone, or build the field with build = builder",
+        ]
+    );
+}
+
+#[test]
+fn a_builder_takes_labels_and_refuses_a_setter_passed_twice_once() {
+    let mut writer = dependency("writer", &["disk"]);
+    writer.construction = Some(builder());
+    writer.prerequisites.extend([
+        labelled("folder_files", "disk"),
+        labelled("memory_files", "memory"),
+        labelled("spare_files", "disk"),
+    ]);
+
+    assert_eq!(
+        rule_violations(&container(vec![writer])),
+        [DomainError::DuplicateSetter {
+            dependency: DependencyName::new("writer").unwrap(),
+            setter: SetterName::new("disk").unwrap(),
+        }]
+    );
+}
+
+#[test]
+fn a_builder_with_a_setter_for_each_dependency_breaks_no_rule() {
+    let mut writer = dependency("writer", &["config"]);
+    writer.construction = Some(builder());
+    writer.prerequisites.push(labelled("folder_files", "disk"));
+
+    assert!(rule_violations(&container(vec![writer])).is_empty());
 }

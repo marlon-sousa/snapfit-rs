@@ -4,34 +4,35 @@ use crate::domain::{
     Call, Construction, Constructor, DependencyDeclaration, DomainError, TypeShape, Wrapping,
 };
 
-/// A constructor belongs to the type the field holds, or to `T` when the field
-/// holds `Arc<T>`, whose value is then wrapped. A trait object has no
-/// constructor, so it needs a factory. A dispatched field and a builder are
-/// refused by the feature gate, so their shape decides nothing yet.
+/// A constructor or a builder belongs to the type the field holds, or to `T`
+/// when the field holds `Arc<T>`, whose value is then wrapped. A trait object
+/// has neither, so it needs a factory. A dispatched field is refused by the
+/// feature gate, so its shape decides nothing yet.
 pub(super) fn call_for<F>(
     dependency: &DependencyDeclaration<F>,
     leaf: &Constructor,
 ) -> Result<Call, DomainError> {
-    let construction = construction_of(dependency, leaf);
-    let constructor = match &construction {
-        Construction::Factory => return Ok(Call::Factory),
-        Construction::Constructor(constructor) => constructor.clone(),
-        Construction::Builder => Constructor::New,
-    };
-    let refused = dependency.dispatch.is_some() || construction.is_builder();
-    let wrapping = match (dependency.shape, refused) {
-        (_, true) | (TypeShape::Value, false) => Wrapping::None,
-        (TypeShape::Arc, false) => Wrapping::Arc,
-        (TypeShape::TraitObject, false) => {
-            return Err(DomainError::TraitObjectWithoutFactory {
-                dependency: dependency.name.clone(),
-            });
-        }
-    };
-    Ok(Call::Constructor {
-        constructor,
-        wrapping,
+    Ok(match construction_of(dependency, leaf) {
+        Construction::Factory => Call::Factory,
+        Construction::Builder(methods) => Call::Builder {
+            methods,
+            wrapping: wrapping_of(dependency)?,
+        },
+        Construction::Constructor(constructor) => Call::Constructor {
+            constructor,
+            wrapping: wrapping_of(dependency)?,
+        },
     })
+}
+
+fn wrapping_of<F>(dependency: &DependencyDeclaration<F>) -> Result<Wrapping, DomainError> {
+    match (dependency.shape, dependency.dispatch.is_some()) {
+        (_, true) | (TypeShape::Value, false) => Ok(Wrapping::None),
+        (TypeShape::Arc, false) => Ok(Wrapping::Arc),
+        (TypeShape::TraitObject, false) => Err(DomainError::TraitObjectWithoutFactory {
+            dependency: dependency.name.clone(),
+        }),
+    }
 }
 
 /// The field's own `build`; without one, the container's `leaf_build` for a

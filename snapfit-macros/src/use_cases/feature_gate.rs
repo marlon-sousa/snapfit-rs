@@ -53,23 +53,23 @@ fn planned_features_of<F>(dependency: &DependencyDeclaration<F>) -> Vec<Feature>
     let dispatch = dependency.dispatch.is_some().then(|| Feature::Dispatch {
         dependency: dependency.name.clone(),
     });
-    let async_factory = (dependency.construction == Some(Construction::Factory)
-        && dependency.execution.is_async())
-    .then(|| Feature::AsyncFactory {
-        dependency: dependency.name.clone(),
-    });
-    let builder =
-        (dependency.construction == Some(Construction::Builder)).then(|| Feature::Builder {
-            dependency: dependency.name.clone(),
-        });
+    let name = dependency.name.clone();
+    let async_build = match (&dependency.construction, dependency.execution) {
+        (Some(Construction::Factory), Execution::Async) => {
+            Some(Feature::AsyncFactory { dependency: name })
+        }
+        (Some(Construction::Builder(_)), Execution::Async) => {
+            Some(Feature::AsyncBuilder { dependency: name })
+        }
+        _ => None,
+    };
     let parents = dependency
         .parent_prerequisites
         .iter()
         .map(|parent| parent_dependency(parent, dependency));
     dispatch
         .into_iter()
-        .chain(async_factory)
-        .chain(builder)
+        .chain(async_build)
         .chain(parents)
         .collect()
 }

@@ -1,7 +1,9 @@
+use quote::format_ident;
 use syn::parse_quote;
 
 use super::*;
 use crate::domain::{Construction, Constructor, FunctionName, TypeShape};
+use crate::test_support::prerequisites;
 
 fn message(field: &syn::Field) -> String {
     let errors: Vec<_> = parse_field(field).unwrap_err().into_iter().collect();
@@ -19,10 +21,8 @@ fn a_singleton_reads_its_prerequisites_execution_and_constructor() {
     let dependency = parse_field(&field).unwrap();
 
     assert_eq!(dependency.name.as_str(), "db");
-    assert_eq!(
-        dependency.prerequisites,
-        vec![DependencyName::new("config").unwrap()]
-    );
+    assert_eq!(dependency.prerequisites, prerequisites(&["config"]));
+    assert_eq!(dependency.syntax.setters, [format_ident!("config")]);
     assert_eq!(dependency.lifecycle, Lifecycle::Singleton);
     assert_eq!(dependency.execution, Execution::Async);
     assert_eq!(
