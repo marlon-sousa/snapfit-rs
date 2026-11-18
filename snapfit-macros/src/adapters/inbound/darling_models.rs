@@ -2,7 +2,7 @@
 
 use darling::FromMeta;
 use darling::ast::NestedMeta;
-use proc_macro2::{Ident, TokenStream, TokenTree};
+use proc_macro2::TokenStream;
 use quote::quote;
 
 use super::type_inspector::compact_type_tokens;
@@ -64,7 +64,7 @@ impl FromMeta for ParentTypeMeta {
 pub(super) struct DependencyAttrMeta {
     #[darling(default)]
     pub(super) deps: PrerequisiteList,
-    #[darling(default)]
+    #[darling(default, rename = "async")]
     pub(super) is_async: bool,
     #[darling(default)]
     pub(super) build: Option<BuildMeta>,
@@ -80,23 +80,8 @@ impl DependencyAttrMeta {
     }
 
     fn from_tokens(tokens: TokenStream) -> Result<Self, AttributeProblem> {
-        let normalized = normalize_async_keyword(tokens);
-        let nested = NestedMeta::parse_meta_list(normalized).map_err(unreadable)?;
+        let nested = NestedMeta::parse_meta_list(tokens).map_err(unreadable)?;
         Self::from_list(&nested).map_err(unreadable)
-    }
-}
-
-/// `async` is a keyword, which darling cannot read as a field name.
-fn normalize_async_keyword(tokens: TokenStream) -> TokenStream {
-    tokens.into_iter().map(async_as_is_async).collect()
-}
-
-fn async_as_is_async(tree: TokenTree) -> TokenTree {
-    match tree {
-        TokenTree::Ident(ident) if ident == "async" => {
-            TokenTree::Ident(Ident::new("is_async", ident.span()))
-        }
-        tree => tree,
     }
 }
 

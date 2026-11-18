@@ -1,6 +1,7 @@
 //! Adapter: the value of `build = ...` and `leaf_build = ...` as darling reads it.
 
 use darling::FromMeta;
+use derive_more::Display;
 use quote::quote;
 use syn::Token;
 use syn::punctuated::Punctuated;
@@ -28,8 +29,9 @@ pub(in crate::adapters::inbound) enum BuildMeta {
 }
 
 /// The bare words `build` and `leaf_build` take, matched by darling.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, FromMeta)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromMeta, Display)]
 #[darling(rename_all = "snake_case")]
+#[display(rename_all = "snake_case")]
 pub(in crate::adapters::inbound) enum BuildWord {
     Default,
     Factory,
@@ -58,8 +60,8 @@ impl FromMeta for BuildMeta {
 
 impl BuildMeta {
     fn from_word(written: &syn::Ident) -> Self {
-        BuildWord::from_string(&written.to_string()).map_or_else(
-            |_| Self::UnknownWord(written.clone()),
+        word_of(written).map_or_else(
+            || Self::UnknownWord(written.clone()),
             |word| Self::Word {
                 word,
                 written: written.clone(),
@@ -69,17 +71,23 @@ impl BuildMeta {
 
     /// `constructor(...)` or `builder(...)`; any other call is not a build.
     fn from_call(call: &syn::ExprCall) -> Self {
-        match single_word(&call.func) {
-            Some(word) if word == "constructor" => {
+        let called = single_word(&call.func);
+        match (called, called.and_then(word_of)) {
+            (_, Some(BuildWord::Constructor)) => {
                 Self::Constructor(FunctionNameMeta::from_arguments(&call.args))
             }
-            Some(word) if word == "builder" => Self::Builder {
+            (Some(word), Some(BuildWord::Builder)) => Self::Builder {
                 word: word.clone(),
                 settings: call.args.iter().cloned().collect(),
             },
             _ => Self::Invalid(quote!(#call).to_string()),
         }
     }
+}
+
+/// The build word darling knows by this name, if any.
+fn word_of(ident: &syn::Ident) -> Option<BuildWord> {
+    BuildWord::from_string(&ident.to_string()).ok()
 }
 
 /// The expression as a single word, such as the function a call names or

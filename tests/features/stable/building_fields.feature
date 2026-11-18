@@ -79,4 +79,4 @@ Feature: Choosing how a field is built
     Examples:
       | fixture                     | expected_error            |
       | removed_builder             | Unknown field: `builder`  |
-      | removed_constructor_setting | Unknown field: `constructor` |
+      | removed_constructor_setting | Unknown field: `constructor`. Available values: `async`, `build`, `deps` |
