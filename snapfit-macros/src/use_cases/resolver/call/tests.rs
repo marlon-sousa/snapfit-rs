@@ -1,5 +1,5 @@
 use super::*;
-use crate::domain::{Constructor, DependencyName, EnumDispatch, TypeName};
+use crate::domain::{Constructor, DependencyName, EnumDispatch, Execution, TypeName};
 
 fn dependency(shape: TypeShape, construction: Option<Construction>) -> DependencyDeclaration<()> {
     let mut dependency = DependencyDeclaration::new(DependencyName::new("store").unwrap(), ());
@@ -89,7 +89,7 @@ fn leaf_build_applies_only_to_fields_with_no_deps_and_no_build_of_their_own() {
 #[test]
 fn leaf_build_leaves_an_async_leaf_to_its_own_constructor() {
     let mut async_leaf = dependency(TypeShape::Value, None);
-    async_leaf.execution = crate::domain::Execution::Async;
+    async_leaf.execution = Execution::Async;
 
     assert_eq!(
         call_for(&async_leaf, &Constructor::Default),

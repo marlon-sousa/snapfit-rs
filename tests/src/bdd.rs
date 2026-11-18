@@ -10,6 +10,8 @@ mod services;
 mod stale_library;
 mod steps;
 #[cfg(feature = "unstable")]
+mod unstable_build_containers;
+#[cfg(feature = "unstable")]
 mod unstable_containers;
 #[cfg(feature = "unstable")]
 mod unstable_world;

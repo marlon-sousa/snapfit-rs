@@ -85,6 +85,7 @@ fn then_leaves_built_by_default(world: &mut ContainerWorld) {
         &billing.get_invoicer().settings,
         &billing.get_settings()
     ));
+    // The clock has no new, so the container compiling proves Default built it.
     let _clock = billing.get_clock();
 }
 

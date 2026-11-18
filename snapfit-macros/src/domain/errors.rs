@@ -137,7 +137,7 @@ pub(crate) enum DomainError {
     AsyncTransient { dependency: DependencyName },
 
     #[error(
-        "async dependency '{dependency}' cannot be built with build = default, because Default::default() cannot be awaited"
+        "async dependency '{dependency}' cannot be built with build = default, because Default::default() cannot be awaited; remove async, or build it with build = constructor and the name of an async function in brackets"
     )]
     AsyncDefault { dependency: DependencyName },
 

@@ -1,3 +1,4 @@
+use crate::unstable_build_containers::DepotContainer;
 use crate::unstable_containers::{
     AsyncShopContainer, LayeredShopContainer, TransientFactoryShopContainer, TransientShopContainer,
 };
@@ -8,6 +9,7 @@ pub struct UnstableContainers {
     transient_shop: Option<TransientShopContainer>,
     transient_factory_shop: Option<TransientFactoryShopContainer>,
     layered_shop: Option<LayeredShopContainer>,
+    depot: Option<DepotContainer>,
 }
 
 impl UnstableContainers {
@@ -16,6 +18,13 @@ impl UnstableContainers {
             .await
             .unwrap_or_else(|err| panic!("AsyncShopContainer::init() failed: {err}"));
         self.async_shop = Some(container);
+    }
+
+    pub async fn init_depot(&mut self) {
+        let container = DepotContainer::init()
+            .await
+            .unwrap_or_else(|err| panic!("DepotContainer::init() failed: {err}"));
+        self.depot = Some(container);
     }
 
     pub fn new_transient_shop(&mut self) {
@@ -52,5 +61,11 @@ impl UnstableContainers {
         self.layered_shop
             .as_ref()
             .expect("LayeredShopContainer must be instantiated before Then assertions")
+    }
+
+    pub fn depot(&self) -> &DepotContainer {
+        self.depot
+            .as_ref()
+            .expect("DepotContainer must be initialized before Then assertions")
     }
 }

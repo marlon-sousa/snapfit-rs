@@ -96,6 +96,11 @@ impl ContainerWorld {
     }
 
     #[cfg(feature = "unstable")]
+    pub async fn initialize_depot(&mut self) {
+        self.unstable.init_depot().await;
+    }
+
+    #[cfg(feature = "unstable")]
     pub fn unstable(&self) -> &UnstableContainers {
         &self.unstable
     }

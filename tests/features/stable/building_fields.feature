@@ -37,6 +37,7 @@ Feature: Choosing how a field is built
     Then compilation should fail with "invalid container mode 'threaded': write mode = "sync", or leave mode out"
     And compilation should fail with "leaf_build = factory cannot build the container's fields that have no deps"
     And the compiler should report 2 errors
+    And the error should point at line 7 of the fixture
 
   @v0_1_0
   Scenario Outline: A build setting that cannot be followed is refused at its field

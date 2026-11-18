@@ -33,6 +33,18 @@ Feature: Unstable lifecycles behind the `unstable` feature
     And the trait-object notifier made by its factory should send through "email:northwind"
 
   @unstable
+  Scenario: A container's leaf_build skips its async leaves, which keep their own new
+    When the async depot whose leaf_build is default is initialized
+    Then its region should be built by Default, and its async warehouse by its own new
+
+  @unstable
+  Scenario: An async field cannot be built by Default
+    Given an invalid container fixture "async_default"
+    When the fixture is compiled
+    Then compilation should fail with "async dependency 'db' cannot be built with build = default, because Default::default() cannot be awaited; remove async, or build it with build = constructor and the name of an async function in brackets"
+    And the error should point at line 9 of the fixture
+
+  @unstable
   Scenario Outline: Planned container features stay refused with the unstable feature enabled
     Given an invalid container fixture "<fixture>"
     When the fixture is compiled

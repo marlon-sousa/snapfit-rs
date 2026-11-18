@@ -107,3 +107,16 @@ fn then_notifier_uses_channel(world: &mut ContainerWorld, channel: String) {
     let container = world.unstable().layered_shop();
     assert_eq!(container.get_notifier().channel(), channel);
 }
+
+#[when("the async depot whose leaf_build is default is initialized")]
+async fn when_depot_initialized(world: &mut ContainerWorld) {
+    world.initialize_depot().await;
+}
+
+#[then("its region should be built by Default, and its async warehouse by its own new")]
+fn then_async_leaf_keeps_new(world: &mut ContainerWorld) {
+    let depot = world.unstable().depot();
+
+    assert_eq!(depot.get_region().code, "");
+    assert_eq!(depot.get_warehouse().opened_by, "new");
+}

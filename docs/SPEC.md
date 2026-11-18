@@ -15,7 +15,7 @@ This document describes the full design. Only part of it ships as a stable API i
 | `build = default` and `build = constructor(<fn>)` (a bare function name, `build = constructor(connect)`) | Stable | §5.A |
 | `#[container(leaf_build = ...)]` for fields with no `deps` | Stable | §2, §5 |
 | Factories: `build = factory` and the generated `<ContainerName>Factories` trait | Stable | §5.B |
-| Builders: `build = builder`, dependency labels and `builder(start = ..., finish = ...)` | Planned | §5.C |
+| Builders: `build = builder` and `builder(start = ..., finish = ...)`, refused as planned; dependency labels, which are not read yet and arrive with builders | Planned | §5.C |
 | Compile-time missing-dependency and cycle detection | Stable | §6 |
 | `Container` trait, `new()`, `Default` | Stable | §2 |
 | Async containers: `mode = "async"`, `#[singleton(async)]`, `init().await` (sequential) | Unstable | §8 |

@@ -71,8 +71,8 @@ pub(super) struct DependencyAttrMeta {
 }
 
 /// The value of `build = ...` or `leaf_build = ...` as the user wrote it: a
-/// bare word, `constructor(...)` or `builder(...)`, whose arguments the
-/// builder reads. Every other shape is turned into an error when it is read.
+/// bare word, `constructor(...)`, or `builder(...)`, which is refused as
+/// planned whatever its arguments. Every other shape is turned into an error when it is read.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum BuildMeta {
     Word(syn::Ident),
