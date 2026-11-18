@@ -29,6 +29,9 @@ strum = { workspace = true }
 syn = { version = "2.0", features = ["full", "extra-traits"] }
 thiserror = { workspace = true }
 
+[dev-dependencies]
+proptest = { workspace = true }
+
 [features]
 # Enables APIs whose shape is not settled for 0.1.0: async containers and
 # transient dependencies. Enable it through `snapfit`.
