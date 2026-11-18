@@ -2,6 +2,8 @@ use super::*;
 use crate::domain::{DependencyName, Execution, Lifecycle, SetterName};
 use crate::test_support::{builder, container, dependency, labelled};
 
+mod properties;
+
 fn transient(name: &str, execution: Execution) -> DependencyDeclaration<()> {
     let mut dependency = dependency(name, &[]);
     dependency.lifecycle = Lifecycle::Transient;
@@ -114,4 +116,53 @@ fn a_builder_with_a_setter_for_each_dependency_breaks_no_rule() {
     writer.prerequisites.push(labelled("folder_files", "disk"));
 
     assert!(rule_violations(&container(vec![writer])).is_empty());
+}
+
+#[test]
+fn a_field_passed_again_to_the_same_setter_is_refused_once() {
+    let mut writer = dependency("writer", &["config", "db", "config", "config"]);
+    writer.construction = Some(builder());
+    writer.prerequisites.push(labelled("db", "db"));
+
+    let errors: Vec<_> = rule_violations(&container(vec![writer]))
+        .iter()
+        .map(ToString::to_string)
+        .collect();
+
+    assert_eq!(
+        errors,
+        [
+            "field 'writer' lists 'config' in deps more than once; list each dependency once",
+            "field 'writer' lists 'db' in deps more than once; list each dependency once",
+        ]
+    );
+}
+
+#[test]
+fn a_builder_may_pass_one_field_to_two_setters() {
+    let mut store = dependency("store", &[]);
+    store.construction = Some(builder());
+    store
+        .prerequisites
+        .extend([labelled("pool", "reader"), labelled("pool", "writer")]);
+
+    assert!(rule_violations(&container(vec![store])).is_empty());
+}
+
+#[test]
+fn a_field_passed_twice_to_one_setter_is_a_repeat_not_a_second_use_of_the_setter() {
+    let mut writer = dependency("writer", &[]);
+    writer.construction = Some(builder());
+    writer.prerequisites.extend([
+        labelled("folder_files", "disk"),
+        labelled("folder_files", "disk"),
+    ]);
+
+    assert_eq!(
+        rule_violations(&container(vec![writer])),
+        [DomainError::RepeatedPrerequisite {
+            dependency: DependencyName::new("writer").unwrap(),
+            prerequisite: DependencyName::new("folder_files").unwrap(),
+        }]
+    );
 }

@@ -63,6 +63,11 @@ pub(crate) enum AttributeProblem {
         "'{_0}' is not a list of fields; write the fields in square brackets, such as deps = [config]"
     )]
     DepsNotAList(String),
+    /// The entries of `deps(...)`, as written between its parentheses.
+    #[display(
+        "'deps({_0})' writes its fields in parentheses; write them in square brackets: deps = [{_0}]"
+    )]
+    DepsInParentheses(String),
     #[display(
         "the deps entry '{_0}' is not the name of a field; write another field's name, such as config"
     )]
