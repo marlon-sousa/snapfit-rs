@@ -21,3 +21,6 @@ desktop.ini
 # Environment / Local files
 .env
 .env.local
+
+# Python bytecode of the gate's scripts
+__pycache__/

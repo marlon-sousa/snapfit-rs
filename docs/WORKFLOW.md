@@ -117,10 +117,12 @@ To eliminate environmental drift between local development and CI, all quality c
 | `fmt` | rustfmt compliance. |
 | `clippy` | clippy with every warning an error, on the default and the `unstable` builds. |
 | `arch` | no compiler type in `domain/` or `use_cases/`, no `mod.rs`, and files under about 200 lines. |
-| `test` | every unit test and Gherkin scenario, on the default and the `unstable` builds, and every doctest, such as the README's example. |
-| `doc` | the documentation of both builds, with every warning an error; docs.rs documents the default build only, the stable API. |
+| `test` | every unit test and Gherkin scenario, on the default and the `unstable` builds, every doctest, such as the README's example, and the tests of the gate's own scripts. |
+| `doc` | the documentation of both builds, with every warning an error; docs.rs documents the default build only, the stable API. It also checks that `snapfit/README.md`, the crate's documentation, is what the root README gives, as `cargo xtask crate-readme` writes it. |
 | `deny` | the licences, advisories and sources of the dependencies, as `deny.toml` allows them. It needs cargo-deny, installed with `cargo install cargo-deny --version 0.20.2 --locked`. |
 | `package` | snapfit and snapfit-macros built from their packages alone, as crates.io receives them, with `cargo publish --workspace --dry-run`. |
+
+`cargo xtask crate-readme` writes `snapfit/README.md`, which crates.io and docs.rs show, from the root README, as the site sees it: without the `<!-- github-only -->` blocks, with the `<!-- site-only` blocks shown, and with a link to the site in place of `<!-- snapfit:releases -->`. Run it after changing the root README, and commit the file it writes. It is not a mode of `cargo xtask ci`, whose `doc` mode checks that the file is up to date.
 
 `cargo xtask book-check` runs only the tests of The Snapfit Book: it compiles and runs every example and checks every recorded output and compiler message. It is not a mode of `cargo xtask ci`, whose `test` mode already runs the book's tests with the rest of the workspace.
 
