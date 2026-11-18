@@ -2,7 +2,7 @@
 
 extern crate self as snapfit;
 
-pub mod container;
+mod container;
 
 #[cfg(test)]
 mod tests;

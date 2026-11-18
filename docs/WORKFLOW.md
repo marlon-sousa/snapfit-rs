@@ -136,13 +136,13 @@ Every action a workflow uses is pinned to a commit, with its version in a commen
 * **`.github/workflows/pull-request.yml`**, on every pull request, whatever its base: the description names an open issue of this repository, unless every commit other than a merge is a `test` and no `Cargo.toml` or `Cargo.lock` changes, and neither the description nor a commit message closes an issue of another repository, with the `pr-has-issue` and `no-cross-repo-closing` actions of itinera-dev/actions; every commit message keeps the convention of section 3, and the description has no unticked checkbox. Ticking a checkbox runs only this workflow again.
 * **`.github/workflows/weekly.yml`**, each Monday: the `test` mode on Rust beta, so that a change in the next Rust that breaks snapfit, such as a compiler message a compile-fail fixture checks, is known before it is released.
 * **`.github/workflows/release.yml`**, on a tag `v<version>`: section 9.
-* **`.github/workflows/site.yml`**, run by hand with a release's version: publishes that release's README front page and book edition onto the `site` branch, as section 8 says.
+* **`.github/workflows/site.yml`**, called by the release workflow for a release, or run by hand with a release's version: publishes that release's README front page and book edition onto the `site` branch, as section 8 says.
 
 ---
 
 ## 8. The Snapfit Book & Documentation Site (`site` branch)
 
-**The Snapfit Book** lives in `book/`: [book/BOOK.md](../book/BOOK.md) says what it contains and how it is written, and [book/FORMAT.md](../book/FORMAT.md) defines the directives its chapters use. Each edition teaches only the stable API of its release. The site in `site/` renders the book and the README, and the site workflow publishes them onto the `site` branch.
+**The Snapfit Book** lives in `book/`: [book/BOOK.md](../book/BOOK.md) says what it contains and how it is written, and [book/FORMAT.md](../book/FORMAT.md) defines the directives its chapters use. Each edition teaches only the stable API of its release. The site in `site/` renders the book and the README, and the site workflow publishes them onto the `site` branch, which GitHub Pages serves at <https://marlon-sousa.github.io/snapfit-rs/>, the `homepage` of the crates. Pages is set once, in the repository's settings, to deploy from the `site` branch's root.
 
 ---
 
@@ -155,7 +155,7 @@ snapfit and snapfit-macros share one version, `version` in the workspace's `Carg
 A release starts as a pull request, titled "Release <version>", whose commit `chore(release): release <version>`:
 
 1. raises `version` under `[workspace.package]` and the `version` requirements of snapfit and snapfit-macros under `[workspace.dependencies]` in `Cargo.toml`, and the versions in `Cargo.lock` with `cargo update --workspace`;
-2. writes the version's section at the top of [CHANGELOG.md](../CHANGELOG.md), starting from what `git cliff --unreleased --tag v<version> --strip all` prints, which is the heading `## [<version>]` and the entries of the commits since the last release;
+2. writes the version's section at the top of [CHANGELOG.md](../CHANGELOG.md), starting from what `git cliff --unreleased --tag v<version> --strip all` prints, which is the heading `## [<version>]` and the entries of the commits since the last release. A section the commits cannot write, such as 0.1.0's, which says what the first version on crates.io holds as a whole, is written by hand from SPEC.md, §0 ([#34](https://github.com/marlon-sousa/snapfit-rs/issues/34));
 3. reconciles those entries, since a commit's entries cannot change once it merges: entries a later commit made untrue become one that says what the release holds, entries that say the same thing merge, and a change a user meets that carries no entry gets one.
 
 `cliff.toml` is written for git-cliff 2.14.2, which installs with `cargo install git-cliff --version 2.14.2 --locked`.
@@ -166,12 +166,13 @@ A pre-release is named with a dot before its number, such as `0.1.0-alpha.1` or 
 
 Once the pull request has merged, the maintainer tags the commit the merge put on `main` and pushes the tag, such as `git tag -a v0.1.0 <commit> -m "snapfit 0.1.0"` and `git push origin v0.1.0`. The release workflow then runs:
 
-1. **release gate**, which refuses the tag unless it is `v` and the version in `Cargo.toml`, its commit is on `main`, and `CHANGELOG.md` has notes for the version, reporting every reason, and tells whether the version goes to crates.io;
+1. **release gate**, which refuses the tag unless it is `v` and the version in `Cargo.toml`, its commit is on `main`, and `CHANGELOG.md` has notes for the version, reporting every reason, and tells whether the version goes to crates.io and to the site;
 2. **checks**, every job of `ci.yml` again on the tagged commit;
-3. **release tools**, the release gate and the crates.io rule against their fixtures under `.github/release/`;
+3. **release tools**, the release gate, the crates.io rule and the site rule against their fixtures under `.github/release/`;
 4. **the crates' packages**, the `.crate` files of snapfit-macros and snapfit;
 5. **crates.io**, for a version that goes there, once every job before it passed;
-6. **GitHub release**, with the `create-release` action of [itinera-dev/actions](https://github.com/itinera-dev/actions): the version's section of `CHANGELOG.md` as its notes, a pre-release for a version such as `0.2.0-rc.1`, and the packages attached.
+6. **GitHub release**, with the `create-release` action of [itinera-dev/actions](https://github.com/itinera-dev/actions): the version's section of `CHANGELOG.md` as its notes, a pre-release for a version such as `0.2.0-rc.1`, and the packages attached;
+7. **the site**, for a version without a pre-release part only, once the GitHub release exists: the site workflow publishes the release's book edition and front page, as section 8 says. The gate tells which versions do, with `.github/release/site.sh`, which the release tools check too.
 
 A pull request that changes how releases are made runs the release tools and packs the crates, without releasing anything.
 

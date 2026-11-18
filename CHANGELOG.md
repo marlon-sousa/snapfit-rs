@@ -1,6 +1,26 @@
 # Changelog
 
-Every release of snapfit and snapfit-macros, which share one version. Each section is written in the release's pull request, from the changelog entries its commits carry as trailers, as [docs/WORKFLOW.md](docs/WORKFLOW.md), "Releases", describes, and becomes the notes of its [GitHub release](https://github.com/marlon-sousa/snapfit-rs/releases). Versions follow [Semantic Versioning](https://semver.org/).
+Every release of snapfit and snapfit-macros, which share one version. Each section is written in the release's pull request, from the changelog entries its commits carry as trailers, except 0.1.0's, written by hand for those meeting snapfit for the first time, as [docs/WORKFLOW.md](docs/WORKFLOW.md), "Releases", describes, and becomes the notes of its [GitHub release](https://github.com/marlon-sousa/snapfit-rs/releases). Versions follow [Semantic Versioning](https://semver.org/).
+
+## [0.1.0]
+
+The first release of snapfit on crates.io: compile-time verified dependency injection, with the container declaring the wiring and the domain types left as plain Rust. It holds everything 0.1.0-alpha.1 and 0.1.0-alpha.2 brought, described here as a whole for anyone who did not try them. It needs Rust 1.85.0 or newer, and is licensed under MIT or Apache 2.0.
+
+### Added
+
+- `#[container]` on a struct with named fields generates `new()`, `Default`, an impl of the `Container` trait and a `get_<field>()` getter for each dependency, and keeps the struct's own attributes, documentation and visibility.
+- `#[singleton]` fields are built once, when the container is built, and cloned on every read; a field typed `Arc<T>` is built as `Arc::new(T::new(...))`.
+- `deps = [a, b]` passes the named fields to the constructor, in order, so that several fields of one type can be wired to different dependents.
+- One `build` setting chooses how a field is built: `build = constructor(connect)` calls `T::connect(...)`, `build = default` calls `Default::default()`, `build = factory` calls the `build_<field>` method you write in the generated `<Container>Factories` trait, which receives its dependencies by name, and `build = builder` passes each dependency to the setter of its name on the type's builder.
+- `deps = [disk = folder_files]` passes a field to another setter of a builder, and `build = builder(start = draft, finish = publish)` names the functions a builder's chain starts and finishes with.
+- `#[container(leaf_build = ...)]` builds every field without deps or a build of its own as `default` or `constructor(<fn>)`.
+- Each field is built after the fields it needs, in the order the fields are declared wherever the graph allows.
+- Attributes are read the same when a `macro_rules!` passes their values, and a raw identifier, such as `r#config`, names the same field as the plain word.
+- Mistakes are compile errors, each a sentence pointing at its field or, when no field is at fault, at the container. For example: a field without `#[singleton]`, an unknown dependency, a dependency cycle, a trait-object field without a factory, a tuple struct or generic container, a second `#[container]`, a `#[cfg]` on a dependency, a misspelt attribute or setting, a `build` value snapfit does not know, a `constructor(...)` value that is not a plain function name, `build = default` with `deps`, a label without `build = builder`, two fields for one builder setter, and a bad or repeated `deps` entry.
+- The problems found while reading the fields are reported together in one compile; once every field reads, the unknown dependencies, cycles and other rules of the declaration are reported together.
+- The Snapfit Book, in `book/`, teaches the stable API with examples and compiler messages that CI checks; its website, with the README as its front page and one edition of the book per release, is first published with this release.
+- Async containers and `#[transient]` dependencies ship behind the `unstable` feature, whose API may still change; the stable build refuses them with an error that names the feature. With it, `build = default`, `build = factory` and `build = builder` on an async field are refused.
+- `#[dispatch(...)]`, child containers (`parent = ...`) and introspection (`introspection = true`) are planned, and are compile errors that say so.
 
 ## [0.1.0-alpha.2]
 
