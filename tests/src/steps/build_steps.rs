@@ -102,3 +102,20 @@ fn then_leaves_opened_by_open(world: &mut ContainerWorld) {
     assert_eq!(archive.get_maps().opened_by, "open");
     assert_eq!(archive.get_spare().opened_by, "default");
 }
+
+#[when(
+    "the office declared by a macro_rules! that passes its leaf_build, deps and constructor as expressions is instantiated"
+)]
+fn when_office_instantiated(world: &mut ContainerWorld) {
+    world.built.instantiate_office();
+}
+
+#[then("its settings should be built by Default and its mailer connected to them")]
+fn then_office_read_as_written_by_hand(world: &mut ContainerWorld) {
+    let office = world.built.office();
+    let mailer = office.get_mailer();
+
+    assert_eq!(office.get_settings().region, "");
+    assert_eq!(mailer.opened_by, "connect");
+    assert!(Arc::ptr_eq(&mailer.settings, &office.get_settings()));
+}

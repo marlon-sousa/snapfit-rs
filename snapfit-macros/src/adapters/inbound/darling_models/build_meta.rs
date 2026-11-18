@@ -5,6 +5,8 @@ use quote::quote;
 use syn::Token;
 use syn::punctuated::Punctuated;
 
+use super::expressions::{single_word, ungrouped};
+
 /// The value of `build = ...` or `leaf_build = ...` as the user wrote it: a
 /// bare word, `constructor(...)`, or `builder(...)` with its settings. Every
 /// other shape is turned into an error when it is read.
@@ -40,6 +42,7 @@ pub(in crate::adapters::inbound) enum BuildWord {
 
 impl FromMeta for BuildMeta {
     fn from_expr(expr: &syn::Expr) -> darling::Result<Self> {
+        let expr = ungrouped(expr);
         Ok(match expr {
             syn::Expr::Path(_) => single_word(expr)
                 .map_or_else(|| Self::Invalid(quote!(#expr).to_string()), Self::from_word),
@@ -73,7 +76,7 @@ impl BuildMeta {
             }
             (Some(word), Some(BuildWord::Builder)) => Self::Builder {
                 word: word.clone(),
-                settings: call.args.iter().cloned().collect(),
+                settings: call.args.iter().map(ungrouped).cloned().collect(),
             },
             _ => Self::Invalid(quote!(#call).to_string()),
         }
@@ -83,15 +86,6 @@ impl BuildMeta {
 /// The build word darling knows by this name, if any.
 fn word_of(ident: &syn::Ident) -> Option<BuildWord> {
     BuildWord::from_string(&ident.to_string()).ok()
-}
-
-/// The expression as a single word, such as the function a call names or
-/// either side of `start = make`.
-pub(in crate::adapters::inbound) fn single_word(expr: &syn::Expr) -> Option<&syn::Ident> {
-    match expr {
-        syn::Expr::Path(path) if path.qself.is_none() => path.path.get_ident(),
-        _ => None,
-    }
 }
 
 /// The argument of `constructor(...)`, with its span. Only one bare function
@@ -112,6 +106,7 @@ impl FunctionNameMeta {
     }
 
     fn from_argument(expr: &syn::Expr) -> Self {
+        let expr = ungrouped(expr);
         match expr {
             syn::Expr::Path(_) => single_word(expr).map_or_else(
                 || Self::Invalid(quote!(#expr).to_string()),

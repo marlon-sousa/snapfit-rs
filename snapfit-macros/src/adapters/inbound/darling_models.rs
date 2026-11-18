@@ -9,11 +9,14 @@ use super::type_inspector::compact_type_tokens;
 use crate::domain::AttributeProblem;
 
 mod build_meta;
+mod expressions;
 mod prerequisites;
 #[cfg(test)]
 mod tests;
 
-pub(super) use build_meta::{BuildMeta, BuildWord, FunctionNameMeta, single_word};
+pub(super) use build_meta::{BuildMeta, BuildWord, FunctionNameMeta};
+pub(super) use expressions::single_word;
+use expressions::ungrouped;
 pub(super) use prerequisites::{PrerequisiteList, PrerequisiteMeta};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, FromMeta)]
@@ -49,6 +52,7 @@ impl FromMeta for ParentTypeMeta {
     }
 
     fn from_expr(expr: &syn::Expr) -> darling::Result<Self> {
+        let expr = ungrouped(expr);
         match expr {
             syn::Expr::Lit(syn::ExprLit {
                 lit: syn::Lit::Str(lit),

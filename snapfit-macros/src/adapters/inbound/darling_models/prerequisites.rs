@@ -6,7 +6,7 @@ use quote::quote;
 use strum::EnumIs;
 
 use super::super::type_inspector::compact_type_tokens;
-use super::single_word;
+use super::expressions::{single_word, ungrouped};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub(in crate::adapters::inbound) struct PrerequisiteList(
@@ -31,7 +31,7 @@ pub(in crate::adapters::inbound) enum PrerequisiteMeta {
 
 impl FromMeta for PrerequisiteList {
     fn from_expr(expr: &syn::Expr) -> darling::Result<Self> {
-        let syn::Expr::Array(array) = expr else {
+        let syn::Expr::Array(array) = ungrouped(expr) else {
             return Err(darling::Error::unexpected_expr_type(expr));
         };
         array
@@ -88,6 +88,7 @@ impl PrerequisiteMeta {
 
 impl PrerequisiteList {
     fn parse_prereq_expr(expr: &syn::Expr) -> darling::Result<PrerequisiteMeta> {
+        let expr = ungrouped(expr);
         match expr {
             syn::Expr::Path(path) => Ok(PrerequisiteMeta::sibling(&path.path)),
             syn::Expr::Lit(syn::ExprLit {
@@ -103,7 +104,7 @@ impl PrerequisiteList {
     }
 
     fn parse_parent_call(call: &syn::ExprCall) -> darling::Result<PrerequisiteMeta> {
-        let syn::Expr::Path(callee) = &*call.func else {
+        let syn::Expr::Path(callee) = ungrouped(&call.func) else {
             return Err(darling::Error::unexpected_expr_type(&call.func));
         };
         if !callee.path.is_ident("parent") || call.args.len() != 1 {
@@ -111,7 +112,7 @@ impl PrerequisiteList {
                 "expected 'parent(<dep>)' with a single dependency identifier",
             ));
         }
-        let Some(syn::Expr::Path(arg_path)) = call.args.first() else {
+        let Some(syn::Expr::Path(arg_path)) = call.args.first().map(ungrouped) else {
             return Err(darling::Error::custom(
                 "parent(...) argument must be a dependency identifier",
             ));

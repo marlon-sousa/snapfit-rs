@@ -3,6 +3,8 @@ use syn::parse_quote;
 
 use super::*;
 
+mod macro_input;
+
 fn sibling(name: &str) -> PrerequisiteMeta {
     PrerequisiteMeta::Sibling {
         name: name.to_string(),
