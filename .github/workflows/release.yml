@@ -82,17 +82,28 @@ jobs:
           if-no-files-found: error
 
   publish:
-    # A dry run until trusted publishing is set up, as docs/WORKFLOW.md, section 9, says.
-    name: crates.io (dry run)
+    # Trusted publishing, as docs/WORKFLOW.md, section 9, says: crates.io trusts
+    # this workflow in the crates-io environment, which only v* tags may use,
+    # and gives it a short-lived token.
+    name: crates.io
     if: github.event_name == 'push' && needs.gate.outputs.crates-io == 'true'
     needs: [gate, ci, package]
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: crates-io
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - run: rustup toolchain install
-      - run: cargo publish --workspace --dry-run --locked
+      - uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
+        id: auth
+      - run: cargo publish --workspace --locked
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
 
   release:
     name: GitHub release

@@ -178,7 +178,13 @@ A pull request that changes how releases are made runs the release tools and pac
 
 ### Publishing to crates.io
 
-crates.io's trusted publishing lets the workflow publish without a token, but it is set up on a crate that already exists there. So the first version, 0.1.0, is published by hand: after the gate passes, the maintainer runs `cargo publish --workspace --locked` at the tagged commit, from Linux or macOS, which publishes snapfit-macros, then snapfit. Each crate's licence files are links to the ones at the root, which a Windows checkout without symbolic links would pack as text. Until trusted publishing is set up for both crates, the crates.io job only runs `cargo publish --workspace --dry-run --locked`. A later pull request (#35) then makes the job publish, as compile-outcomes does: in a `crates-io` environment that only `v*` tags may deploy to, `rust-lang/crates-io-auth-action` exchanges the workflow's identity for a short-lived crates.io token, and `cargo publish --workspace --locked` uses it.
+crates.io's trusted publishing lets the workflow publish without a token. The crates.io job runs in a `crates-io` environment that only `v*` tags may deploy to; `rust-lang/crates-io-auth-action` exchanges the workflow's identity for a short-lived crates.io token, and `cargo publish --workspace --locked` uses it to publish snapfit-macros, then snapfit ([#35](https://github.com/marlon-sousa/snapfit-rs/issues/35)). It works once both crates' settings on crates.io name `release.yml` and that environment as a trusted publisher, and the environment and its tag rule are set in the repository's settings; no token is kept anywhere. Trusted publishing is set up on a crate that already exists on crates.io, so the first version, 0.1.0, was published by hand. A crate's licence files are links to the ones at the root, which is why a publish runs on Linux: a Windows checkout without symbolic links would pack them as text.
+
+If snapfit-macros is published and snapfit then fails, running the job again fails on snapfit-macros, which already exists. The jobs after the crates.io job do not run either. The maintainer then finishes the release by hand:
+
+- publishes snapfit at the tagged commit with `cargo publish --package snapfit --locked`;
+- makes the GitHub release;
+- for a version without a pre-release part, runs the site workflow from the Actions tab with the release's version.
 
 ---
 
