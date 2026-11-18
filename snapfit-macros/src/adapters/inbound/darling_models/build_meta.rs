@@ -1,7 +1,6 @@
 //! Adapter: the value of `build = ...` and `leaf_build = ...` as darling reads it.
 
 use darling::FromMeta;
-use derive_more::Display;
 use quote::quote;
 use syn::Token;
 use syn::punctuated::Punctuated;
@@ -29,9 +28,8 @@ pub(in crate::adapters::inbound) enum BuildMeta {
 }
 
 /// The bare words `build` and `leaf_build` take, matched by darling.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, FromMeta, Display)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromMeta)]
 #[darling(rename_all = "snake_case")]
-#[display(rename_all = "snake_case")]
 pub(in crate::adapters::inbound) enum BuildWord {
     Default,
     Factory,
@@ -41,9 +39,6 @@ pub(in crate::adapters::inbound) enum BuildWord {
 }
 
 impl FromMeta for BuildMeta {
-    /// darling's derive reads a unit variant only from a quoted string and
-    /// does not allow `from_expr` beside one, so the bare word is handed to
-    /// the derived [`BuildWord`] here.
     fn from_expr(expr: &syn::Expr) -> darling::Result<Self> {
         Ok(match expr {
             syn::Expr::Path(_) => single_word(expr)

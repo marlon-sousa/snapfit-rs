@@ -81,9 +81,8 @@ struct Setters {
 
 impl Setters {
     fn with(mut self, setter: SetterName) -> Self {
-        if !self.seen.contains(&setter) {
-            self.seen.insert(setter);
-        } else if !self.repeated.contains(&setter) {
+        let is_repeat = !self.seen.insert(setter.clone());
+        if is_repeat && !self.repeated.contains(&setter) {
             self.repeated.push(setter);
         }
         self
