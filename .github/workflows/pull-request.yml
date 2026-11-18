@@ -31,7 +31,11 @@ jobs:
         run: |
           subjects=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PULL/commits" --paginate \
             --jq '.[] | select(.parents | length == 1) | .commit.message | sub("^\\s+"; "") | split("\n") | first')
-          if printf '%s\n' "$subjects" | grep -v -E '^(test(\([^)]*\))?:|$)'; then
+          # Counted, never printed: a subject is the author's text, and a line
+          # of the log starting with "::" would run as a workflow command.
+          others=$(printf '%s\n' "$subjects" | grep -c -v -E '^(test(\([^)]*\))?:|$)' || true)
+          if [ "$others" -gt 0 ]; then
+            echo "$others commits are not tests, so the description names an issue."
             echo "need-issue=true" >> "$GITHUB_OUTPUT"
           else
             echo "Every commit is a test, so no issue is needed."
