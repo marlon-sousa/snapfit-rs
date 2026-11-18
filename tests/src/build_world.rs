@@ -1,6 +1,6 @@
 //! The containers whose fields say how they are built, kept apart from the rest of the world.
 
-use crate::build_containers::{archive, leaves, named};
+use crate::build_containers::{archive, generated, leaves, named};
 use crate::builder_containers::{catalog, handmade, site};
 use crate::factory_containers::{orders, payments};
 
@@ -14,6 +14,7 @@ pub struct BuildContainers {
     site: Option<site::Site>,
     shelves: Option<catalog::Shelves>,
     reports: Option<handmade::Reports>,
+    office: Option<generated::Office>,
 }
 
 impl BuildContainers {
@@ -95,5 +96,15 @@ impl BuildContainers {
         self.reports
             .as_ref()
             .expect("the Reports container must be instantiated before Then assertions")
+    }
+
+    pub fn instantiate_office(&mut self) {
+        self.office = Some(generated::Office::new());
+    }
+
+    pub fn office(&self) -> &generated::Office {
+        self.office
+            .as_ref()
+            .expect("the Office container must be instantiated before Then assertions")
     }
 }

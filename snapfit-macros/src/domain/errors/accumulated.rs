@@ -1,5 +1,7 @@
 //! Error: every problem found in one expansion, gathered so that none hides another.
 
+use derive_new::new;
+
 use super::DomainError;
 
 #[cfg(test)]
@@ -7,7 +9,7 @@ mod tests;
 
 /// Every problem found in one expansion, never empty, so that the user fixes
 /// them all in one pass.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(new, Debug, Clone, PartialEq, Eq)]
 pub(crate) struct DomainErrors {
     first: DomainError,
     rest: Vec<DomainError>,

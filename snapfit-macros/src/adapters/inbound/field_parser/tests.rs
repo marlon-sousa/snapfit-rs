@@ -116,6 +116,6 @@ fn a_label_that_is_not_a_single_name_is_refused_with_how_to_write_one() {
 
     assert_eq!(
         message(&field),
-        "field 'writer': a labelled dependency is written setter = field, each a single name, such as disk = folder_files at deps"
+        "field 'writer': the deps entry 'disk = files::folder' is not a label; write the setter, then '=', then the field, each a single name, such as disk = folder_files"
     );
 }

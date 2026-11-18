@@ -9,6 +9,11 @@ Feature: Choosing how a field is built
     When the books whose tax rates are built by Default and whose ledger is opened by its open constructor are instantiated
     Then the ledger should be opened by open with the container's own default tax rates
 
+  @v0_1_0 @regression
+  Scenario: Build settings and deps passed through a macro_rules! are read as if written by hand
+    When the office declared by a macro_rules! that passes its leaf_build, deps and constructor as expressions is instantiated
+    Then its settings should be built by Default and its mailer connected to them
+
   @v0_1_0
   Scenario: A factory receives two dependencies of the same type by name, whatever order deps lists them in
     When the shop whose order store is built by a factory from write_db and read_db is instantiated

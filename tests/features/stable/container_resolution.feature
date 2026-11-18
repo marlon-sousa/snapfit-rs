@@ -94,6 +94,20 @@ Feature: Container Dependency Resolution
     And the error should point at line 9 of the fixture
     And the error should point at line 11 of the fixture
 
+  @v0_1_0 @regression
+  Scenario: Every bad entry of deps is reported in one compile, in words, beside the attribute's other problems
+    Given an invalid container fixture "several_bad_deps"
+    When the fixture is compiled
+    Then compilation should fail with "field 'cache': the deps entry 'config + 1' is not the name of a field; write another field's name, such as config"
+    And compilation should fail with "field 'cache': the deps entry 'a::b = config' is not a label; write the setter, then '=', then the field, each a single name, such as disk = folder_files"
+    And compilation should fail with "field 'mailer': 'deps = config' is not a list of fields; write the fields in square brackets, such as deps = [config]"
+    And compilation should fail with "field 'clock': Unknown field: `bogus`"
+    And compilation should fail with "field 'clock': the deps entry 'parent()' names no single dependency; parent(...) is planned for a future version of snapfit and is not implemented yet"
+    And the compiler should report 5 errors
+    And the error should point at line 14 of the fixture
+    And the error should point at line 17 of the fixture
+    And the error should point at line 20 of the fixture
+
   @v0_1_0
   Scenario Outline: APIs that are not stable in 0.1.0 require the unstable feature
     Given an invalid container fixture "<fixture>"

@@ -1,5 +1,5 @@
 //! Containers whose fields say how they are built: by `Default`, or by a
-//! named constructor.
+//! named constructor, written by hand or by a `macro_rules!`.
 
 /// A leaf built by `Default` and a database opened by a constructor that is
 /// not `new`.
@@ -124,4 +124,47 @@ pub mod archive {
         #[singleton(build = default)]
         spare: Shelf,
     }
+}
+
+/// A container declared by a `macro_rules!` that passes its `leaf_build`, a
+/// `deps` entry and a constructor's name as `$e:expr`, which wraps each in an
+/// invisible group.
+pub mod generated {
+    use std::sync::Arc;
+
+    use snapfit::container;
+
+    #[derive(Default)]
+    pub struct Settings {
+        pub region: &'static str,
+    }
+
+    pub struct Mailer {
+        pub settings: Arc<Settings>,
+        pub opened_by: &'static str,
+    }
+
+    impl Mailer {
+        pub fn connect(settings: Arc<Settings>) -> Self {
+            Self {
+                settings,
+                opened_by: "connect",
+            }
+        }
+    }
+
+    macro_rules! office {
+        ($leaf:expr, $dependency:expr, $function:expr) => {
+            #[container(leaf_build = $leaf)]
+            pub struct Office {
+                #[singleton]
+                settings: Arc<Settings>,
+
+                #[singleton(deps = [$dependency], build = constructor($function))]
+                mailer: Arc<Mailer>,
+            }
+        };
+    }
+
+    office!(default, settings, connect);
 }

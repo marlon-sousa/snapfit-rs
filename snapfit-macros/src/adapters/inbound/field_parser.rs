@@ -17,13 +17,13 @@ mod tests;
 
 use super::build_setting::{WrittenBuild, field_construction};
 use deps::{Deps, read_deps};
-use rules::{attribute_error, ensure_unconditional};
+use rules::{attribute_error, ensure_unconditional, unreadable_attribute};
 
 /// The declaration, or every problem the field's attributes have.
 pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, DomainErrors> {
     let (name, ident) = field_name(field)?;
     let unconditional = ensure_unconditional(field, &name).map_err(DomainErrors::from);
-    let lifecycle = lifecycle_attr(&field.attrs, &name).map_err(DomainErrors::from);
+    let lifecycle = lifecycle_attr(&field.attrs, &name);
     let dispatch = dispatch_attr(field, &name).map_err(DomainErrors::from);
     let ((_, lifecycle), dispatch) =
         DomainErrors::both(DomainErrors::both(unconditional, lifecycle), dispatch)?;
@@ -33,7 +33,7 @@ pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, Domain
         (None, None) => return Err(unannotated(&name).into()),
     };
     let build = field_construction(&name, meta.build).map_err(DomainErrors::from);
-    let deps = read_deps(&name, meta.deps.0).map_err(DomainErrors::from);
+    let deps = read_deps(&name, meta.deps);
     let (build, deps) = DomainErrors::both(build, deps)?;
     let WrittenBuild {
         construction,
@@ -100,12 +100,13 @@ fn unannotated(name: &DependencyName) -> DomainError {
 fn lifecycle_attr(
     attrs: &[syn::Attribute],
     name: &DependencyName,
-) -> Result<Option<(Lifecycle, DependencyAttrMeta)>, DomainError> {
+) -> Result<Option<(Lifecycle, DependencyAttrMeta)>, DomainErrors> {
     let matched: Vec<_> = attrs.iter().filter_map(lifecycle_attribute).collect();
     if matched.len() > 1 {
         return Err(DomainError::MultipleLifecycles {
             dependency: name.clone(),
-        });
+        }
+        .into());
     }
     matched
         .into_iter()
@@ -113,7 +114,7 @@ fn lifecycle_attr(
         .map(|(lifecycle, attr)| {
             DependencyAttrMeta::from_attribute(attr)
                 .map(|meta| (lifecycle, meta))
-                .map_err(|problem| attribute_error(name, problem))
+                .map_err(|unreadable| unreadable_attribute(name, unreadable))
         })
         .transpose()
 }

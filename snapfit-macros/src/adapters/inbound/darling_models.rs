@@ -9,12 +9,15 @@ use super::type_inspector::compact_type_tokens;
 use crate::domain::AttributeProblem;
 
 mod build_meta;
+mod expressions;
 mod prerequisites;
 #[cfg(test)]
 mod tests;
 
-pub(super) use build_meta::{BuildMeta, BuildWord, FunctionNameMeta, single_word};
-pub(super) use prerequisites::{PrerequisiteList, PrerequisiteMeta};
+pub(super) use build_meta::{BuildMeta, BuildWord, FunctionNameMeta};
+pub(super) use expressions::single_word;
+use expressions::ungrouped;
+pub(super) use prerequisites::{PrerequisiteEntry, PrerequisiteList, PrerequisiteMeta};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, FromMeta)]
 pub(super) struct ContainerAttrMeta {
@@ -49,6 +52,7 @@ impl FromMeta for ParentTypeMeta {
     }
 
     fn from_expr(expr: &syn::Expr) -> darling::Result<Self> {
+        let expr = ungrouped(expr);
         match expr {
             syn::Expr::Lit(syn::ExprLit {
                 lit: syn::Lit::Str(lit),
@@ -71,17 +75,59 @@ pub(super) struct DependencyAttrMeta {
 }
 
 impl DependencyAttrMeta {
-    pub(super) fn from_attribute(attr: &syn::Attribute) -> Result<Self, AttributeProblem> {
+    pub(super) fn from_attribute(attr: &syn::Attribute) -> Result<Self, UnreadableAttribute> {
         match &attr.meta {
             syn::Meta::Path(_) => Ok(Self::default()),
             syn::Meta::List(list) => Self::from_tokens(list.tokens.clone()),
-            syn::Meta::NameValue(_) => Err(AttributeProblem::Assigned),
+            syn::Meta::NameValue(_) => Err(UnreadableAttribute::alone(AttributeProblem::Assigned)),
         }
     }
 
-    fn from_tokens(tokens: TokenStream) -> Result<Self, AttributeProblem> {
-        let nested = NestedMeta::parse_meta_list(tokens).map_err(unreadable)?;
-        Self::from_list(&nested).map_err(unreadable)
+    fn from_tokens(tokens: TokenStream) -> Result<Self, UnreadableAttribute> {
+        let nested = NestedMeta::parse_meta_list(tokens)
+            .map_err(unreadable)
+            .map_err(UnreadableAttribute::alone)?;
+        Self::from_list(&nested).map_err(|err| UnreadableAttribute {
+            problem: unreadable(err),
+            bad_deps: bad_deps(&nested),
+        })
+    }
+}
+
+/// A field attribute that does not read, with every bad `deps` entry it
+/// holds, which darling's problem with the rest of it leaves out.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct UnreadableAttribute {
+    pub(super) problem: AttributeProblem,
+    pub(super) bad_deps: Vec<AttributeProblem>,
+}
+
+impl UnreadableAttribute {
+    fn alone(problem: AttributeProblem) -> Self {
+        Self {
+            problem,
+            bad_deps: Vec::new(),
+        }
+    }
+}
+
+fn bad_deps(nested: &[NestedMeta]) -> Vec<AttributeProblem> {
+    nested
+        .iter()
+        .filter_map(deps_setting)
+        .flat_map(|deps| deps.0)
+        .filter_map(Result::err)
+        .collect()
+}
+
+/// The entries of a `deps` setting; one that does not read at all is
+/// already in darling's problem.
+fn deps_setting(item: &NestedMeta) -> Option<PrerequisiteList> {
+    match item {
+        NestedMeta::Meta(meta) if meta.path().is_ident("deps") => {
+            PrerequisiteList::from_meta(meta).ok()
+        }
+        _ => None,
     }
 }
 
