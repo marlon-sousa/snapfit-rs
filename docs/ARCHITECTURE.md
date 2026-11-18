@@ -12,7 +12,7 @@ A procedural macro does no input or output: it is a pure function from tokens to
 
 ## The repository
 
-- **`snapfit/`**, the crate users depend on: the `Container` trait and the re-export of the macro. Its README examples run as doctests.
+- **`snapfit/`**, the crate users depend on: the `Container` trait and the re-export of the macro. Its `README.md` is a symbolic link to the one at the root and is its crate documentation on docs.rs, so the README's example is a doctest of `snapfit`.
 - **`snapfit-macros/`**, the procedural macro, laid out as the rest of this document describes.
 - **`tests/`**, the crate `snapfit_bdd`: the Gherkin features under `tests/features/` (`stable/`, and `unstable/`, run with the `unstable` feature), their step definitions, the containers they exercise, and the compile-fail fixtures under `tests/fixtures/compile_fail/`, compiled with [compile-outcomes](https://github.com/marlon-sousa/compile-outcomes-rs) against the build of snapfit the suite runs, whose diagnostics the steps check.
 - **`book/`**, the crate `snapfit_book`: The Snapfit Book, whose chapters, examples, recorded outputs and compile-error fixtures `cargo xtask book-check` verifies. [book/BOOK.md](../book/BOOK.md) describes it.

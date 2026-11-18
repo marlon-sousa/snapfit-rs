@@ -7,7 +7,9 @@ rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
-readme.workspace = true
+# Not `readme.workspace`: that names the root README, outside the package,
+# beside this crate's own `README.md`, and cargo warns about the two.
+readme = "README.md"
 homepage.workspace = true
 keywords.workspace = true
 categories.workspace = true
