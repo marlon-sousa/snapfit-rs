@@ -17,8 +17,8 @@ concurrency:
 
 jobs:
   # Required on main, so it reports on every pull request: it passes at once
-  # when every commit other than a merge is a test, the one kind that needs no
-  # issue.
+  # when every commit other than a merge is a test and no Cargo.toml or
+  # Cargo.lock changes, the one change that needs no issue.
   has-issue:
     name: names an open issue
     runs-on: ubuntu-latest
@@ -31,7 +31,8 @@ jobs:
         run: |
           subjects=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PULL/commits" --paginate \
             --jq '.[] | select(.parents | length == 1) | .commit.message | sub("^\\s+"; "") | split("\n") | first')
-          files=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PULL/files" --paginate --jq '.[] | .filename, (.previous_filename // empty)')
+          files=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PULL/files" --paginate \
+            --jq '.[] | .filename, (.previous_filename // empty)')
           # Counted, never printed: a subject is the author's text, and a line
           # of the log starting with "::" would run as a workflow command.
           # grep -c exits 1 when it counts none; any other failure ends the step.
