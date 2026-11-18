@@ -62,7 +62,7 @@ The QA gate runs the Gherkin suite once on the stable build, whose scenarios pro
 
 ### Naming the issue
 
-Every pull request names an open issue of this repository, as section 10 says, unless every one of its commits, merges aside, is a `test`: `Closes #N` when it finishes the issue, `Refs #N` when it does part of it. The layers of a stack each say `Refs #N`, and the top one also says `Closes #N` once it targets `main`: GitHub links a closing keyword only on a pull request into the default branch, so before that the check finds only `Refs #N`. A pull request doing the work of several issues names each of them. A pull request never closes an issue of another repository, which GitHub would close the moment it merged, before that repository's own work.
+Every pull request names an open issue of this repository, as section 10 says, unless every one of its commits, merges aside, is a `test` and it changes no `Cargo.toml`: `Closes #N` when it finishes the issue, `Refs #N` when it does part of it. The layers of a stack each say `Refs #N`, and the top one also says `Closes #N` once it targets `main`: GitHub links a closing keyword only on a pull request into the default branch, so before that the check finds only `Refs #N`. A pull request doing the work of several issues names each of them. A pull request never closes an issue of another repository, which GitHub would close the moment it merged, before that repository's own work.
 
 ---
 
@@ -90,7 +90,7 @@ For every PR slice in the stack:
 ## 6. Definition of Done (DoD) per Stack Slice
 
 A slice is only ready for human merge when:
-- [ ] **Issues named:** the description names its open issues, with `Closes #N` or `Refs #N`, unless every commit, merges aside, is a `test`.
+- [ ] **Issues named:** the description names its open issues, with `Closes #N` or `Refs #N`, unless every commit, merges aside, is a `test` and no `Cargo.toml` changes.
 - [ ] **Clean Pre-Flight:** `cargo xtask ci` passes locally with 0 errors.
 - [ ] **Clean Compilation:** `cargo check --workspace --all-targets` passes with 0 errors.
 - [ ] **Zero Warnings:** `cargo clippy --workspace --all-targets -- -D warnings` passes with 0 warnings.
@@ -133,7 +133,7 @@ To eliminate environmental drift between local development and CI, all quality c
 Every action a workflow uses is pinned to a commit, with its version in a comment beside it.
 
 * **`.github/workflows/ci.yml`**, on every pull request, whatever its base, and every push to `main`. A branch is checked through its pull request, so a push to a branch with no pull request, or whose pull request has a merge conflict, runs no checks. It runs each mode of `cargo xtask ci` in a job of its own on Linux, the `test` mode on Linux, macOS and Windows, the `test` mode again with the minimum supported Rust, and `npm run verify` in `site/`, which builds the site and checks its pages, links, accessibility and layout.
-* **`.github/workflows/pull-request.yml`**, on every pull request, whatever its base: the description names an open issue of this repository, unless every commit other than a merge is a `test`, and neither the description nor a commit message closes an issue of another repository, with the `pr-has-issue` and `no-cross-repo-closing` actions of itinera-dev/actions; every commit message keeps the convention of section 3, and the description has no unticked checkbox. Ticking a checkbox runs only this workflow again.
+* **`.github/workflows/pull-request.yml`**, on every pull request, whatever its base: the description names an open issue of this repository, unless every commit other than a merge is a `test` and no `Cargo.toml` changes, and neither the description nor a commit message closes an issue of another repository, with the `pr-has-issue` and `no-cross-repo-closing` actions of itinera-dev/actions; every commit message keeps the convention of section 3, and the description has no unticked checkbox. Ticking a checkbox runs only this workflow again.
 * **`.github/workflows/weekly.yml`**, each Monday: the `test` mode on Rust beta, so that a change in the next Rust that breaks snapfit, such as a compiler message a compile-fail fixture checks, is known before it is released.
 * **`.github/workflows/release.yml`**, on a tag `v<version>`: section 9.
 * **`.github/workflows/site.yml`**, run by hand with a release's version: publishes that release's README front page and book edition onto the `site` branch, as section 8 says.
@@ -185,7 +185,7 @@ crates.io's trusted publishing lets the workflow publish without a token, but it
 
 Every change starts as an issue, and is agreed there before any code is written: building the wrong thing is the expensive mistake, and the issue is the cheapest place to find it. The issues are also the record of every decision taken about snapfit, what it does and how it is built and released, so that a decision can be found again by its kind.
 
-The one exception is a change whose commits, merges aside, are all `test` commits. It changes neither what snapfit does nor how its code is organised or released, so it holds no decision of its own: what it checks was agreed already. It may still add a dependency used only by tests, which the review checks as AGENTS.md, rule 10, asks.
+The one exception is a change whose commits, merges aside, are all `test` commits and that changes no `Cargo.toml`. It changes neither what snapfit does nor how its code is organised or released, so it holds no decision of its own: what it checks was agreed already. A change that adds or changes a dependency, even one used only by tests, holds a decision, such as which crate and at which version, so it needs an `architecture` issue.
 
 * **A feature** says what is wanted and why, and what it must not break, such as a generated name. It can be short; the details are worked out in the issue.
 * **A bug** says what happened, what was expected, and the smallest container that shows it.
@@ -193,7 +193,7 @@ The one exception is a change whose commits, merges aside, are all `test` commit
 * **Labels:** each issue carries one label, which says what kind of decision it holds, so that decisions can be found again:
   * `feature`, something new a user meets;
   * `bug`, something a user meets that is wrong;
-  * `architecture`, how the code is organised or written, refactors included, and the rules on code of docs/ARCHITECTURE.md and AGENTS.md;
+  * `architecture`, how the code is organised or written, refactors included, and the crates it depends on, those of the tests included, and the rules on code of docs/ARCHITECTURE.md and AGENTS.md;
   * `process`, CI, this workflow, releases, and the process rules and review checklist of AGENTS.md;
   * `docs`, the documentation a user reads, such as README.md and the book.
 
