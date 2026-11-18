@@ -4,12 +4,13 @@ use syn::parse_quote;
 use super::*;
 
 mod macro_input;
+mod unreadable;
 
-fn sibling(name: &str) -> PrerequisiteMeta {
-    PrerequisiteMeta::Sibling {
+fn sibling(name: &str) -> PrerequisiteEntry {
+    Ok(PrerequisiteMeta::Sibling {
         name: name.to_string(),
         word: Some(quote::format_ident!("{name}")),
-    }
+    })
 }
 
 #[test]
@@ -62,7 +63,10 @@ fn a_dependency_attribute_reads_parent_deps_and_a_factory() {
 
     assert_eq!(
         meta.deps.0,
-        vec![PrerequisiteMeta::Parent("db".into()), sibling("session")]
+        vec![
+            Ok(PrerequisiteMeta::Parent("db".into())),
+            sibling("session")
+        ]
     );
     assert_eq!(
         meta.build,
@@ -73,7 +77,13 @@ fn a_dependency_attribute_reads_parent_deps_and_a_factory() {
     );
 
     let bad_call: syn::Attribute = parse_quote!(#[singleton(deps = [other(db)])]);
-    assert!(DependencyAttrMeta::from_attribute(&bad_call).is_err());
+    assert_eq!(
+        DependencyAttrMeta::from_attribute(&bad_call)
+            .unwrap()
+            .deps
+            .0,
+        vec![Err(AttributeProblem::NotAField("other(db)".to_string()))]
+    );
 }
 
 #[test]
@@ -118,10 +128,10 @@ fn a_labelled_dependency_reads_its_setter_and_its_field() {
     assert_eq!(
         meta.deps.0,
         vec![
-            PrerequisiteMeta::Labelled {
+            Ok(PrerequisiteMeta::Labelled {
                 label: quote::format_ident!("disk"),
                 name: "folder_files".to_string(),
-            },
+            }),
             sibling("config"),
         ]
     );
@@ -165,7 +175,10 @@ fn a_dependency_attribute_knows_async_by_its_own_name_only() {
     assert!(DependencyAttrMeta::from_attribute(&hidden).is_err());
     assert!(matches!(
         DependencyAttrMeta::from_attribute(&removed),
-        Err(AttributeProblem::Unreadable(message))
+        Err(UnreadableAttribute {
+            problem: AttributeProblem::Unreadable(message),
+            ..
+        })
             if message.contains("`async`") && !message.contains("is_async")
     ));
 }

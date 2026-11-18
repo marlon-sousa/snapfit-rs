@@ -59,6 +59,22 @@ pub(crate) enum AttributeProblem {
     BlankName,
     #[display("snapfit's attributes take their settings in parentheses, not after '='")]
     Assigned,
+    #[display(
+        "'{_0}' is not a list of fields; write the fields in square brackets, such as deps = [config]"
+    )]
+    DepsNotAList(String),
+    #[display(
+        "the deps entry '{_0}' is not the name of a field; write another field's name, such as config"
+    )]
+    NotAField(String),
+    #[display(
+        "the deps entry '{_0}' is not a label; write the setter, then '=', then the field, each a single name, such as disk = folder_files"
+    )]
+    NotALabel(String),
+    #[display(
+        "the deps entry '{_0}' names no single dependency; parent(...) is planned for a future version of snapfit and is not implemented yet"
+    )]
+    NotAParentDependency(String),
     #[display("invalid container mode '{_0}': write mode = \"sync\", or leave mode out")]
     InvalidMode(String),
     #[display("#[dispatch(...)] requires a parenthesized list of implementation types")]

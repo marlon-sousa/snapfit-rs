@@ -75,6 +75,7 @@ These are compile errors that point at the offending field or container, instead
 * **`build = default` on an async dependency** (unstable): `Default::default()` cannot be awaited.
 * **`build = factory` on an async dependency** (unstable): planned, refused as not implemented yet, because a factory that awaits needs an async trait method, designed with `#[async_container]` ([#37](https://github.com/marlon-sousa/snapfit-rs/issues/37)).
 * **A dependency label without `build = builder`** (`deps = [disk = folder_files]` on a field built another way): only a builder has setters for a label to name.
+* **A `deps` entry that is not another field's name**, a label written `setter = field` or `parent(<name>)`, such as `config + 1` or `a::b = config`, and a `deps` that is not a list in square brackets. Each bad entry is its own error at the field, and every one is reported in the same compile, beside any other problem of the same attribute ([#65](https://github.com/marlon-sousa/snapfit-rs/issues/65)).
 * **Two `deps` entries that call the same builder setter**, and **`builder(...)` settings other than `start` and `finish` with a bare function name each.**
 * **`build = builder` on an async dependency** (unstable): planned, refused as not implemented yet, like an async factory.
 

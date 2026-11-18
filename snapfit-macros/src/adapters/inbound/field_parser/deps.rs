@@ -1,14 +1,19 @@
 //! Adapter: reads the entries of `deps = [...]` into the field's
 //! prerequisites, with the setter each sibling is passed to.
 
-use super::super::darling_models::PrerequisiteMeta;
+use strum::{EnumIs, EnumTryAs};
+
+use super::super::darling_models::{PrerequisiteEntry, PrerequisiteList, PrerequisiteMeta};
 use super::rules::attribute_error;
-use crate::domain::{AttributeProblem, DependencyName, DomainError, Prerequisite, SetterName};
+use crate::domain::{
+    AttributeProblem, DependencyName, DomainError, DomainErrors, Prerequisite, SetterName,
+};
 
 #[cfg(test)]
 mod tests;
 
 /// The entries of one field's `deps`, each in the order written.
+#[cfg_attr(test, derive(Debug))]
 pub(super) struct Deps {
     pub(super) siblings: Vec<Prerequisite>,
     /// `parent(...)` entries.
@@ -21,31 +26,48 @@ pub(super) struct Deps {
 
 pub(super) fn read_deps(
     name: &DependencyName,
-    entries: Vec<PrerequisiteMeta>,
-) -> Result<Deps, DomainError> {
-    let (siblings, parents): (Vec<_>, Vec<_>) =
-        entries.into_iter().partition(is_sibling_or_labelled);
-    let setters = siblings.iter().filter_map(setter).collect();
-    let siblings = siblings
-        .into_iter()
-        .map(prerequisite)
-        .collect::<Result<_, _>>()
-        .map_err(|problem| attribute_error(name, problem))?;
-    let parents = parents
-        .into_iter()
-        .map(PrerequisiteMeta::into_name)
-        .map(dependency_name)
-        .collect::<Result<_, _>>()
-        .map_err(|problem| attribute_error(name, problem))?;
+    list: PrerequisiteList,
+) -> Result<Deps, DomainErrors> {
+    let setters = list.0.iter().filter_map(written_setter).collect();
+    let read = DomainErrors::collect(list.0.into_iter().map(|entry| read_entry(name, entry)))?;
+    let (siblings, parents): (Vec<_>, Vec<_>) = read.into_iter().partition(Read::is_sibling);
     Ok(Deps {
-        siblings,
-        parents,
+        siblings: siblings
+            .into_iter()
+            .filter_map(Read::try_as_sibling)
+            .collect(),
+        parents: parents
+            .into_iter()
+            .filter_map(Read::try_as_parent)
+            .collect(),
         setters,
     })
 }
 
-fn is_sibling_or_labelled(entry: &PrerequisiteMeta) -> bool {
-    !entry.is_parent()
+/// One entry of `deps`, read.
+#[derive(EnumIs, EnumTryAs)]
+enum Read {
+    Sibling(Prerequisite),
+    /// `parent(...)`.
+    Parent(DependencyName),
+}
+
+/// The entry, or its problem as an error of the field `name`.
+fn read_entry(name: &DependencyName, entry: PrerequisiteEntry) -> Result<Read, DomainErrors> {
+    entry
+        .and_then(read_meta)
+        .map_err(|problem| attribute_error(name, problem).into())
+}
+
+fn read_meta(entry: PrerequisiteMeta) -> Result<Read, AttributeProblem> {
+    match entry {
+        PrerequisiteMeta::Parent(parent) => dependency_name(parent).map(Read::Parent),
+        sibling => prerequisite(sibling).map(Read::Sibling),
+    }
+}
+
+fn written_setter(entry: &PrerequisiteEntry) -> Option<syn::Ident> {
+    entry.as_ref().ok().and_then(setter)
 }
 
 fn setter(entry: &PrerequisiteMeta) -> Option<syn::Ident> {

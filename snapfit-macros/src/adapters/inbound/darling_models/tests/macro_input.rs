@@ -47,10 +47,10 @@ fn every_part_of_a_value_passed_through_a_macro_is_read_as_if_written_by_hand() 
     );
     assert_eq!(
         dependency.deps.0,
-        vec![PrerequisiteMeta::Labelled {
+        vec![Ok(PrerequisiteMeta::Labelled {
             label: quote::format_ident!("disk"),
             name: "folder_files".to_string(),
-        }]
+        })]
     );
     assert_eq!(
         dependency.build,
@@ -72,4 +72,12 @@ fn builder_settings_passed_through_a_macro_are_read_as_if_written_by_hand() {
             settings: vec![parse_quote!(start = draft)],
         })
     );
+}
+
+#[test]
+fn a_parent_dependency_passed_through_a_macro_is_read_as_if_written_by_hand() {
+    let parent = through_a_macro(quote!(db));
+    let meta = DependencyAttrMeta::from_tokens(quote!(deps = [parent(#parent)])).unwrap();
+
+    assert_eq!(meta.deps.0, vec![Ok(PrerequisiteMeta::Parent("db".into()))]);
 }

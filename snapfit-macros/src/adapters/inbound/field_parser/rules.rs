@@ -1,6 +1,7 @@
 //! Adapter: the field attributes that cannot be turned into a declaration.
 
-use crate::domain::{AttributeProblem, DependencyName, DomainError};
+use super::super::darling_models::UnreadableAttribute;
+use crate::domain::{AttributeProblem, DependencyName, DomainError, DomainErrors};
 
 pub(super) fn ensure_unconditional(
     field: &syn::Field,
@@ -23,4 +24,19 @@ pub(super) fn attribute_error(name: &DependencyName, problem: AttributeProblem) 
         dependency: name.clone(),
         problem,
     }
+}
+
+/// The attribute's problem, then each bad `deps` entry it holds, as errors of the field.
+pub(super) fn unreadable_attribute(
+    name: &DependencyName,
+    unreadable: UnreadableAttribute,
+) -> DomainErrors {
+    let UnreadableAttribute { problem, bad_deps } = unreadable;
+    DomainErrors::new(
+        attribute_error(name, problem),
+        bad_deps
+            .into_iter()
+            .map(|problem| attribute_error(name, problem))
+            .collect(),
+    )
 }
