@@ -185,7 +185,7 @@ crates.io's trusted publishing lets the workflow publish without a token, but it
 
 Every change starts as an issue, and is agreed there before any code is written: building the wrong thing is the expensive mistake, and the issue is the cheapest place to find it. The issues are also the record of every decision taken about snapfit, what it does and how it is built and released, so that a decision can be found again by its kind.
 
-The one exception is a change whose commits, merges aside, are all `test` commits. It changes neither what snapfit does nor how its code is organised or released, so it holds no decision of its own: what it checks was agreed already. A test that needs a new dependency, even one used only by tests, is not that exception: choosing a crate is an `architecture` decision, which starts from its issue. The pull request workflow asks for an issue whenever a `Cargo.toml` changes.
+The one exception is a change whose commits, merges aside, are all `test` commits and that changes no `Cargo.toml`. It changes neither what snapfit does nor how its code is organised or released, so it holds no decision of its own: what it checks was agreed already. A test that needs a new dependency, even one used only by tests, is not that exception: choosing a crate is an `architecture` decision, which starts from its issue. The pull request workflow asks for an issue whenever a `Cargo.toml` changes.
 
 * **A feature** says what is wanted and why, and what it must not break, such as a generated name. It can be short; the details are worked out in the issue.
 * **A bug** says what happened, what was expected, and the smallest container that shows it.
@@ -193,7 +193,7 @@ The one exception is a change whose commits, merges aside, are all `test` commit
 * **Labels:** each issue carries one label, which says what kind of decision it holds, so that decisions can be found again:
   * `feature`, something new a user meets;
   * `bug`, something a user meets that is wrong;
-  * `architecture`, how the code is organised or written, refactors included, and the crates it depends on, those of the tests included, and the rules on code of docs/ARCHITECTURE.md and AGENTS.md;
+  * `architecture`, how the code is organised or written, refactors included, and and the rules on code of docs/ARCHITECTURE.md and AGENTS.md;
   * `process`, CI, this workflow, releases, and the process rules and review checklist of AGENTS.md;
   * `docs`, the documentation a user reads, such as README.md and the book.
 

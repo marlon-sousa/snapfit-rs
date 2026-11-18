@@ -14,7 +14,7 @@ Start a separate agent with the most capable model available, at high effort. Wi
 1. It is read-only. It edits, commits and pushes nothing, and never switches branches in the shared checkout. To build a revision, it adds a `git worktree` under the session's scratchpad directory, with a target directory of its own, and removes it afterwards.
 2. Which commits to review, as revisions it can diff, and the draft commit messages and pull request description.
 3. The issues the change belongs to, if it has any, by their numbers, with their comments, which it reads on GitHub.
-4. That AGENTS.md, docs/SPEC.md, docs/ARCHITECTURE.md and docs/WORKFLOW.md bind the change, with any decision recorded on its issue or its pull request.
+4. That AGENTS.md, docs/SPEC.md, docs/ARCHITECTURE.md and docs/WORKFLOW.md bind the change, with any decision recorded on its issues or its pull request.
 5. The section "Reviewing a change" of AGENTS.md, in full. The reviewer works through every item of its checklist, listing every place in the diff where an item applies.
 6. The report it returns, as that section describes it.
 

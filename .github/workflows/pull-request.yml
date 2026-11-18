@@ -23,7 +23,7 @@ jobs:
     name: names an open issue
     runs-on: ubuntu-latest
     steps:
-      - name: Tell whether a commit other than a test, or a Cargo.toml, needs an issue
+      - name: Tell whether the pull request needs an issue
         id: commits
         env:
           GH_TOKEN: ${{ github.token }}
@@ -31,17 +31,14 @@ jobs:
         run: |
           subjects=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PULL/commits" --paginate \
             --jq '.[] | select(.parents | length == 1) | .commit.message | sub("^\\s+"; "") | split("\n") | first')
-          files=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PULL/files" --paginate \
-            --jq '.[].filename')
+          files=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PULL/files" --paginate --jq '.[].filename')
           # Counted, never printed: a subject is the author's text, and a line
           # of the log starting with "::" would run as a workflow command.
+          # grep -c exits 1 when it counts none; any other failure ends the step.
           others=$(printf '%s\n' "$subjects" | grep -c -v -E '^(test(\([^)]*\))?:|$)') || [ $? -eq 1 ]
           manifests=$(printf '%s\n' "$files" | grep -c -E '(^|/)Cargo\.toml$') || [ $? -eq 1 ]
-          if [ "$others" -gt 0 ]; then
-            echo "Commits that are not tests: $others, so the description must name an issue."
-            echo "need-issue=true" >> "$GITHUB_OUTPUT"
-          elif [ "$manifests" -gt 0 ]; then
-            echo "Cargo.toml files changed: $manifests, so the description must name an issue."
+          if [ "$others" -gt 0 ] || [ "$manifests" -gt 0 ]; then
+            echo "Commits that are not tests: $others; Cargo.toml files changed: $manifests. So the description must name an issue."
             echo "need-issue=true" >> "$GITHUB_OUTPUT"
           else
             echo "Every commit is a test and no Cargo.toml changes, so no issue is needed."
