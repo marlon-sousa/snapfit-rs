@@ -37,12 +37,14 @@ Every pull request is reviewed by an independent reviewer before it is opened, o
 7. Every module of `domain/`, `use_cases/` and `adapters/`, against docs/ARCHITECTURE.md, "Module roles" and "The typed model": a decision an adapter takes, a call that goes up a layer, a compiler type named in `domain/` or `use_cases/`, a lookup by name that could fail, and a port or trait around a pure function are findings.
 8. Against docs/ARCHITECTURE.md, "Writing the code": every `unwrap`, `expect`, `panic!`, indexing, `todo!` and `unimplemented!` outside tests; every hand-written trait impl and `new`, naming the derive that would produce it or why none does; every helper, naming what already provides it, if anything; every string or `bool` standing for a closed set, and every constraint stated in a comment that a type could hold; every newtype deriving `Deref`; every closure in a chain of adapters and every `for` loop; every line that changes nothing.
 9. Every test the change adds or moves, against docs/ARCHITECTURE.md, "Folders and files", rule 5, and "Tests": where it lives, what its name states, and that a regression test fails without its fix.
-10. Every comment and doc comment, against docs/ARCHITECTURE.md, "Comments".
-11. Every crate the change adds, removes or uses in a new way, and every claim that a library can or cannot do something, against rule 10 above: it names the source it was checked against at each version, and what the newest release rule 10 names does that the one we use cannot.
-12. Every statement of docs/SPEC.md, docs/ARCHITECTURE.md, docs/WORKFLOW.md and README.md the change makes untrue, which the change updates itself.
-13. The commit messages and the description, against rules 7 and 12 above and docs/WORKFLOW.md: that the description names the issue, and that the change does what the issue agreed, no more; for a layer of a stack, that its branch sits on the current tip of the layer below.
-14. Every change a user meets in the book, such as a diagnostic's words or the generated code, named in the description as a chapter of the site to update.
-15. The checks under "Building and testing", run at the reviewed revision, without changing the checkout the author works in.
+10. Every pattern the change copies from elsewhere in the code or from a library, reviewed where it came from: what the original does that the copy leaves out, and every other place that copies it.
+11. Every input the change accepts, asking whether a test covers the awkward forms a user can write: empty, repeated, several mistakes at once, and written through a macro. For each form no test covers, the reviewer writes a probe and reports what it does, or reports the gap.
+12. Every comment and doc comment, against docs/ARCHITECTURE.md, "Comments".
+13. Every crate the change adds, removes or uses in a new way, and every claim that a library can or cannot do something, against rule 10 above: it names the source it was checked against at each version, and what the newest release rule 10 names does that the one we use cannot.
+14. Every statement of docs/SPEC.md, docs/ARCHITECTURE.md, docs/WORKFLOW.md and README.md the change makes untrue, which the change updates itself.
+15. The commit messages and the description, against rules 7 and 12 above and docs/WORKFLOW.md: that the description names the issue, and that the change does what the issue agreed, no more; for a layer of a stack, that its branch sits on the current tip of the layer below.
+16. Every change a user meets in the book, such as a diagnostic's words or the generated code, named in the description as a chapter of the site to update.
+17. The checks under "Building and testing", run at the reviewed revision, without changing the checkout the author works in.
 
 The report lists findings, each marked blocking or not, with its `file:line` and a fix, then a verdict: approve, or changes needed. A finding the author rejects goes back to the reviewer with the reason, and a blocking one closes only when the reviewer agrees or the maintainer decides. A pull request is reported ready to the maintainer only once both the review and the CI of its latest push have passed.
 
