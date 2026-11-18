@@ -2,8 +2,8 @@ use quote::format_ident;
 use syn::parse_quote;
 
 use super::*;
-use crate::domain::{Construction, Constructor, FunctionName, TypeShape};
-use crate::test_support::prerequisites;
+use crate::domain::{Construction, Constructor, FunctionName, Prerequisite, TypeShape};
+use crate::test_support::{labelled, prerequisites};
 
 fn message(field: &syn::Field) -> String {
     let errors: Vec<_> = parse_field(field).unwrap_err().into_iter().collect();
@@ -33,6 +33,34 @@ fn a_singleton_reads_its_prerequisites_execution_and_constructor() {
     );
     assert_eq!(dependency.shape, TypeShape::Arc);
     assert_eq!(dependency.dispatch, None);
+}
+
+#[test]
+fn a_raw_identifier_is_read_without_its_prefix() {
+    let field: syn::Field = parse_quote! {
+        #[singleton(build = builder, deps = [r#type, r#loop = config, "r#mod"])]
+        r#match: std::sync::Arc<Database>
+    };
+
+    let dependency = parse_field(&field).unwrap();
+
+    assert_eq!(dependency.name.as_str(), "match");
+    assert_eq!(
+        dependency.prerequisites,
+        [
+            Prerequisite::new(DependencyName::new("type").unwrap()),
+            labelled("config", "loop"),
+            Prerequisite::new(DependencyName::new("mod").unwrap()),
+        ]
+    );
+    assert_eq!(
+        dependency.syntax.setters,
+        [
+            format_ident!("r#type"),
+            format_ident!("r#loop"),
+            format_ident!("r#mod")
+        ]
+    );
 }
 
 #[test]

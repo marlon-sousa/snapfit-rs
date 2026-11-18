@@ -10,6 +10,7 @@ Feature: Generated code follows the container as written
     When the container is instantiated
     Then the plain fields should be built with their own constructors
     And the database should hold the container's fully qualified config singleton
+    And the field whose deps write config as r#config should hold that same config singleton
 
   @v0_1_0 @regression
   Scenario: A field named like a unit struct in scope does not clash with the generated code

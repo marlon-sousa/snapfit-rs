@@ -223,6 +223,8 @@ Each field is built one way, which its `build` setting chooses. The value is a b
 
 A container can say once how its leaves are built: `#[container(leaf_build = default)]` builds every field that has no `deps` and no `build` of its own as if it said `build = default`, which suits a project whose leaf types all derive `Default`. `leaf_build` applies to synchronous fields only, because `Default::default()` and a constructor chosen for the whole container cannot be awaited; an async field keeps its own constructor. `leaf_build` takes the values a leaf can take, `default` or `constructor(<fn>)`; leaving it out is `constructor(new)`, the behaviour above. `leaf_build` only changes the default for leaves, such as from `new` to `default`: a field's own `build` always wins, so a leaf that says `build = constructor(sandbox)` is still built by `sandbox`; a field with `deps` is never affected; and every field still needs its `#[singleton]`. Any other value, such as `leaf_build = factory`, is refused at the container's name.
 
+A field and a `deps` entry, label included, are named as Rust reads them: a raw identifier names the same field as the plain word, so `r#config` and `config` are one field, and messages name it without the `r#` ([#83](https://github.com/marlon-sousa/snapfit-rs/issues/83)).
+
 Where the user names a function, as in `build = constructor(connect)` or `leaf_build = constructor(open)`, the generated code calls it with the user's own token, keeping its position, so that an editor completing or hovering inside the attribute sees the type's real functions.
 
 ### A. Standard Constructors (`::new`, `default`, `constructor(...)`)
@@ -349,7 +351,7 @@ pub struct Shop {
 Because all dependencies and their prerequisites are declared within the struct, the procedural macro checks the whole graph at compile time:
 
 1. **Construction order:** Each field's `deps = [...]` names the fields it needs. The macro visits the fields in the order they are declared and builds each one after the fields it needs, so the construction order follows the declaration wherever the graph allows it. Declaring a field before the fields it needs is allowed.
-2. **Unknown dependencies:** A `deps` entry that names no field of the container is refused, naming every unknown entry of that field and every field the container can wire.
+2. **Unknown dependencies:** A `deps` entry that names no field of the container is refused. Each field gets one error, which names each unknown entry once, even one the field lists twice, says "unknown dependency" for one and "unknown dependencies" for several, and lists every field the container can wire.
 3. **Cycles:** A field that needs itself, directly or through other fields, is refused. The message reads as a sentence, without arrows, so that a screen reader speaks it naturally, and it points at the first field of the cycle in declaration order:
 
 ```text

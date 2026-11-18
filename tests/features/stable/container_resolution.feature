@@ -118,6 +118,32 @@ Feature: Container Dependency Resolution
     And the error should point at line 16 of the fixture
 
   @v0_1_0 @regression
+  Scenario: An unknown dependency listed twice is named once
+    Given an invalid container fixture "unknown_dependency_listed_twice"
+    When the fixture is compiled
+    Then compilation should fail with "unknown dependency 'nosuch' on field 'cache'. You must choose between the dependencies the container can wire: [config, pool]"
+    And compilation should fail with "field 'cache' lists 'nosuch' in deps more than once; list each dependency once"
+    And compilation should fail with "unknown dependency 'nosuch' on field 'pool'. You must choose between the dependencies the container can wire: [config, cache]"
+    And the compiler should report 3 errors
+    And the error should point at line 18 of the fixture
+    And the error should point at line 21 of the fixture
+
+  @v0_1_0 @regression
+  Scenario: Several unknown dependencies of one field are named in the plural
+    Given an invalid container fixture "several_unknown_dependencies"
+    When the fixture is compiled
+    Then compilation should fail with "unknown dependencies 'zeta, alpha' on field 'db'. You must choose between the dependencies the container can wire: [config]"
+    And the error should point at line 12 of the fixture
+
+  @v0_1_0 @regression
+  Scenario: A raw identifier and the plain word name the same field
+    Given an invalid container fixture "raw_identifier_repeated"
+    When the fixture is compiled
+    Then compilation should fail with "field 'db' lists 'config' in deps more than once; list each dependency once"
+    And the compiler output should not mention "unknown dependency"
+    And the error should point at line 12 of the fixture
+
+  @v0_1_0 @regression
   Scenario: deps written in parentheses is refused, saying to write square brackets
     Given an invalid container fixture "parenthesised_deps"
     When the fixture is compiled

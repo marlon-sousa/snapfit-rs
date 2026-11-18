@@ -8,7 +8,8 @@ use snapfit::container;
 use crate::services::{Config, Database};
 
 /// Plain, fully qualified and raw-identifier fields: the generator must reuse
-/// the types exactly as written instead of re-parsing them from strings.
+/// the types exactly as written instead of re-parsing them from strings, and
+/// a raw identifier names the same field with or without its `r#`.
 #[container]
 pub struct TypedFieldsContainer {
     #[singleton]
@@ -22,6 +23,9 @@ pub struct TypedFieldsContainer {
 
     #[singleton]
     r#type: std::collections::BTreeMap<String, u32>,
+
+    #[singleton(deps = [r#config])]
+    r#ref: Arc<Database>,
 }
 
 /// Derives written before `#[container]`.

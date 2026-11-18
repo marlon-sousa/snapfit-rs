@@ -3,6 +3,7 @@
 
 use proc_macro2::{Span, TokenStream};
 use quote::ToTokens;
+use syn::ext::IdentExt;
 
 use crate::adapters::syntax::{is_snapfit_attribute, is_user_attribute};
 use crate::domain::{DomainError, DomainErrors};
@@ -60,7 +61,7 @@ impl FieldOrigin {
             .find(|attr| is_snapfit_attribute(attr))
             .map_or_else(|| ident.to_token_stream(), ToTokens::to_token_stream);
         Some(Self {
-            name: ident.to_string(),
+            name: ident.unraw().to_string(),
             tokens,
         })
     }

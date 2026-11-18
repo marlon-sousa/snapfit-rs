@@ -26,6 +26,23 @@ fn every_unknown_prerequisite_is_reported_with_what_could_be_wired() {
 }
 
 #[test]
+fn an_unknown_prerequisite_listed_twice_is_named_once() {
+    let errors = errors_of(vec![
+        dependency("config", &[]),
+        dependency("db", &["nosuch", "config", "pool", "nosuch", "pool"]),
+    ]);
+
+    assert_eq!(
+        errors,
+        [DomainError::UnknownPrerequisites {
+            dependency: name("db"),
+            missing: names(&["nosuch", "pool"]),
+            available: names(&["config"]),
+        }]
+    );
+}
+
+#[test]
 fn a_cycle_is_reported_from_the_first_field_on_it() {
     let errors = errors_of(vec![
         dependency("service_a", &["service_b"]),

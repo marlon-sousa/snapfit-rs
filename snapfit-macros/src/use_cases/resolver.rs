@@ -9,6 +9,7 @@ mod resolved_steps;
 mod tests;
 mod walk;
 
+use super::repeats::repeats;
 pub(crate) use resolved_steps::ResolvedSteps;
 use walk::{Declared, OnPath, Outcome, Placed, is_unknown, name_of_outcome};
 
@@ -143,7 +144,8 @@ impl<F> Resolver<F> {
     }
 
     /// The steps of every prerequisite, or `None` when one of them is unknown
-    /// or failed; unknown ones are reported here, with what could be wired.
+    /// or failed; unknown ones are reported here, each named once, with what
+    /// could be wired.
     fn prerequisites_of(
         &mut self,
         dependency: &DependencyDeclaration<F>,
@@ -153,13 +155,15 @@ impl<F> Resolver<F> {
             .iter()
             .map(|prerequisite| self.visit(&prerequisite.field))
             .collect();
-        let missing: Vec<_> = dependency
-            .prerequisites
-            .iter()
-            .zip(&outcomes)
-            .filter(is_unknown)
-            .map(name_of_outcome)
-            .collect();
+        let missing = repeats(
+            dependency
+                .prerequisites
+                .iter()
+                .zip(&outcomes)
+                .filter(is_unknown)
+                .map(name_of_outcome),
+        )
+        .distinct;
         if !missing.is_empty() {
             self.errors.push(DomainError::UnknownPrerequisites {
                 available: self.others_than(&dependency.name),

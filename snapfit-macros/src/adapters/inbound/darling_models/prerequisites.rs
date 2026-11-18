@@ -2,6 +2,7 @@
 
 use darling::FromMeta;
 use quote::{ToTokens, quote};
+use syn::ext::IdentExt;
 
 use super::super::type_inspector::compact_type_tokens;
 use super::expressions::{single_word, ungrouped};
@@ -74,15 +75,16 @@ impl PrerequisiteMeta {
 
     fn sibling(path: &syn::Path) -> Self {
         Self::Sibling {
-            name: compact_type_tokens(quote!(#path)),
+            name: path.get_ident().map_or_else(|| written(path), name_of_word),
             word: path.get_ident().cloned(),
         }
     }
 
     fn quoted_sibling(lit: &syn::LitStr) -> Self {
+        let word: Option<syn::Ident> = lit.parse().ok();
         Self::Sibling {
-            name: lit.value(),
-            word: lit.parse().ok(),
+            name: word.as_ref().map_or_else(|| lit.value(), name_of_word),
+            word,
         }
     }
 
@@ -95,11 +97,17 @@ impl PrerequisiteMeta {
         match (label, name) {
             (Some(label), Some(name)) => Ok(Self::Labelled {
                 label: label.clone(),
-                name: name.to_string(),
+                name: name_of_word(name),
             }),
             _ => Err(AttributeProblem::NotALabel(written(entry))),
         }
     }
+}
+
+/// The name a word stands for, without the `r#` of a raw identifier, which
+/// Rust reads as the same identifier.
+fn name_of_word(word: &syn::Ident) -> String {
+    word.unraw().to_string()
 }
 
 fn entry_of_expr(expr: &syn::Expr) -> PrerequisiteEntry {

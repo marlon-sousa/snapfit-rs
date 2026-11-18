@@ -1,5 +1,7 @@
 //! Adapter: reads one field and its snapfit attributes into a dependency declaration.
 
+use syn::ext::IdentExt;
+
 use super::darling_models::DependencyAttrMeta;
 use super::type_inspector::{
     arc_inner_type, dispatched_trait, parse_dispatch_attribute, type_shape,
@@ -64,7 +66,7 @@ pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, Domain
 
 fn field_name(field: &syn::Field) -> Result<(DependencyName, syn::Ident), DomainError> {
     let ident = field.ident.clone().ok_or(DomainError::TupleStruct)?;
-    Ok((DependencyName::new(ident.to_string())?, ident))
+    Ok((DependencyName::new(ident.unraw().to_string())?, ident))
 }
 
 fn field_syntax(

@@ -7,11 +7,10 @@ use crate::domain::{
     DomainError, Prerequisite, SetterName,
 };
 
-mod repeats;
 #[cfg(test)]
 mod tests;
 
-use repeats::{Repeats, repeats};
+use super::repeats::{Repeats, repeats};
 
 /// Every rule a dependency breaks: a transient is read through a synchronous
 /// getter, so it cannot be awaited; `Default::default()` takes no
