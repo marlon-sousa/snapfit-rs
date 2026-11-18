@@ -2,6 +2,16 @@
 
 Every release of snapfit and snapfit-macros, which share one version. Each section is written in the release's pull request, from the changelog entries its commits carry as trailers, except 0.1.0's, written by hand for those meeting snapfit for the first time, as [docs/WORKFLOW.md](docs/WORKFLOW.md), "Releases", describes, and becomes the notes of its [GitHub release](https://github.com/marlon-sousa/snapfit-rs/releases). Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.1.1]
+
+### Added
+
+- snapfit's page on docs.rs shows the README and documents the `container` macro and the `Container` trait.
+
+### Changed
+
+- snapfit's README on crates.io and docs.rs is written for users: it leaves out the badges, the unstable and planned APIs and how to contribute, apart from a pointer to the repository, and links to every release of the book on the site.
+
 ## [0.1.0]
 
 The first release of snapfit on crates.io: compile-time verified dependency injection, with the container declaring the wiring and the domain types left as plain Rust. It holds everything 0.1.0-alpha.1 and 0.1.0-alpha.2 brought, described here as a whole for anyone who did not try them. It needs Rust 1.85.0 or newer, and is licensed under MIT or Apache 2.0.
