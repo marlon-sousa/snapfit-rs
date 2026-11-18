@@ -44,6 +44,7 @@ These items existed before 0.1.0 but nothing generated or used them, so they wer
 * **`introspection` module** (`GraphDescriptor`, `NodeDescriptor`, `EdgeDescriptor`): return with `introspection = true`.
 * **`SnapfitError` and the `Error` alias** (`ResolutionFailed`, `MissingDependency`, `InitializationFailed`): return when async initialization errors get dependency context.
 * **`ConstructionPlan::parallel_batches`** (groups of independent async singletons): the planner computed them but the generator never used them. They return with concurrent async boot.
+* **The `snapfit::container` module**, public in the alphas: it held only the `Container` trait, which the crate re-exports, so the trait is reached as `snapfit::Container` alone ([#88](https://github.com/marlon-sousa/snapfit-rs/issues/88)). Nothing is to be restored.
 
 ### Removed from the 0.1.0 macros
 
