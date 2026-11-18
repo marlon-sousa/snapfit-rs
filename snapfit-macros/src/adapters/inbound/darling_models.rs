@@ -13,7 +13,7 @@ mod prerequisites;
 #[cfg(test)]
 mod tests;
 
-pub(super) use build_meta::{BuildMeta, FunctionNameMeta, single_word};
+pub(super) use build_meta::{BuildMeta, BuildWord, FunctionNameMeta, single_word};
 pub(super) use prerequisites::{PrerequisiteList, PrerequisiteMeta};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, FromMeta)]

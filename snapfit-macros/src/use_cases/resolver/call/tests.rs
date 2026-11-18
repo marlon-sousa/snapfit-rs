@@ -117,10 +117,7 @@ fn a_builder_belongs_to_the_inner_type_of_an_arc_and_its_value_is_wrapped() {
 #[test]
 fn a_trait_object_built_by_a_builder_is_refused_pointing_to_a_factory() {
     let call = call_for(
-        &dependency(
-            TypeShape::TraitObject,
-            Some(builder()),
-        ),
+        &dependency(TypeShape::TraitObject, Some(builder())),
         &Constructor::New,
     );
 

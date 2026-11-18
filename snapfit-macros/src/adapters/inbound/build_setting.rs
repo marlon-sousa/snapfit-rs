@@ -2,7 +2,7 @@
 
 use quote::ToTokens;
 
-use super::darling_models::{BuildMeta, FunctionNameMeta};
+use super::darling_models::{BuildMeta, BuildWord, FunctionNameMeta};
 use crate::adapters::syntax::BuilderSyntax;
 use crate::domain::{
     BuilderMethods, Construction, Constructor, DependencyName, DomainError, FunctionName,
@@ -52,10 +52,11 @@ pub(super) fn field_construction(
     let name = dependency.clone();
     match build {
         None => Ok(WrittenBuild::default()),
-        Some(BuildMeta::Word(word)) if word == "builder" => {
-            builder::methods(dependency, &word, &[]).map(WrittenBuild::builder)
-        }
-        Some(BuildMeta::Word(word)) => mode(dependency, &word).map(WrittenBuild::of),
+        Some(BuildMeta::Word { word, written }) => mode(dependency, word, &written),
+        Some(BuildMeta::UnknownWord(word)) => Err(DomainError::UnknownBuild {
+            dependency: name,
+            written: word.to_string(),
+        }),
         Some(BuildMeta::Builder { word, settings }) => {
             builder::methods(dependency, &word, &settings).map(WrittenBuild::builder)
         }
@@ -73,17 +74,21 @@ pub(super) fn field_construction(
     }
 }
 
-/// `build = default` or `factory`; `constructor` without its function's
-/// name, and any other word, are refused.
-fn mode(dependency: &DependencyName, word: &syn::Ident) -> Result<Construction, DomainError> {
-    let dependency = dependency.clone();
-    match word.to_string().as_str() {
-        "default" => Ok(Construction::Constructor(Constructor::Default)),
-        "factory" => Ok(Construction::Factory),
-        "constructor" => Err(DomainError::ConstructorWithoutName { dependency }),
-        written => Err(DomainError::UnknownBuild {
-            dependency,
-            written: written.to_string(),
+/// `build = default`, `factory` or `builder`, whose default functions are
+/// spelt at the word; `constructor` without its function's name is refused.
+fn mode(
+    dependency: &DependencyName,
+    word: BuildWord,
+    written: &syn::Ident,
+) -> Result<WrittenBuild, DomainError> {
+    match word {
+        BuildWord::Default => Ok(WrittenBuild::of(Construction::Constructor(
+            Constructor::Default,
+        ))),
+        BuildWord::Factory => Ok(WrittenBuild::of(Construction::Factory)),
+        BuildWord::Builder => builder::methods(dependency, written, &[]).map(WrittenBuild::builder),
+        BuildWord::Constructor => Err(DomainError::ConstructorWithoutName {
+            dependency: dependency.clone(),
         }),
     }
 }
@@ -120,7 +125,10 @@ pub(super) fn leaf_constructor(
 ) -> Result<(Constructor, Option<syn::Ident>), DomainError> {
     match leaf_build {
         None => Ok((Constructor::New, None)),
-        Some(BuildMeta::Word(word)) if word == "default" => Ok((Constructor::Default, None)),
+        Some(BuildMeta::Word {
+            word: BuildWord::Default,
+            ..
+        }) => Ok((Constructor::Default, None)),
         Some(BuildMeta::Constructor(FunctionNameMeta::Bare(ident))) => {
             FunctionName::new(ident.to_string()).map(|name| (Constructor::Named(name), Some(ident)))
         }
@@ -133,7 +141,7 @@ pub(super) fn leaf_constructor(
 /// The value as the user wrote it, for a message that quotes it.
 fn written(build: &BuildMeta) -> String {
     match build {
-        BuildMeta::Word(word) => word.to_string(),
+        BuildMeta::Word { written, .. } | BuildMeta::UnknownWord(written) => written.to_string(),
         BuildMeta::Builder { settings, .. } => format!("builder({})", written_settings(settings)),
         BuildMeta::Constructor(function) => format!("constructor({})", written_function(function)),
         BuildMeta::Quoted(text) => format!("\"{text}\""),

@@ -64,7 +64,10 @@ fn a_dependency_attribute_reads_parent_deps_and_a_factory() {
     );
     assert_eq!(
         meta.build,
-        Some(BuildMeta::Word(quote::format_ident!("factory")))
+        Some(BuildMeta::Word {
+            word: BuildWord::Factory,
+            written: quote::format_ident!("factory"),
+        })
     );
 
     let bad_call: syn::Attribute = parse_quote!(#[singleton(deps = [other(db)])]);
@@ -73,10 +76,17 @@ fn a_dependency_attribute_reads_parent_deps_and_a_factory() {
 
 #[test]
 fn a_build_value_keeps_every_shape_the_user_can_write() {
-    let cases: [(syn::Attribute, BuildMeta); 4] = [
+    let cases: [(syn::Attribute, BuildMeta); 5] = [
         (
             parse_quote!(#[singleton(build = default)]),
-            BuildMeta::Word(quote::format_ident!("default")),
+            BuildMeta::Word {
+                word: BuildWord::Default,
+                written: quote::format_ident!("default"),
+            },
+        ),
+        (
+            parse_quote!(#[singleton(build = factroy)]),
+            BuildMeta::UnknownWord(quote::format_ident!("factroy")),
         ),
         (
             parse_quote!(#[singleton(build = constructor("connect"))]),
@@ -115,7 +125,6 @@ fn a_labelled_dependency_reads_its_setter_and_its_field() {
     );
 }
 
-
 #[test]
 fn builder_reads_its_word_and_its_settings_as_written() {
     let attr: syn::Attribute = parse_quote!(#[singleton(build = builder(start = make))]);
@@ -126,6 +135,22 @@ fn builder_reads_its_word_and_its_settings_as_written() {
         Some(BuildMeta::Builder {
             word: quote::format_ident!("builder"),
             settings: vec![parse_quote!(start = make)],
+        })
+    );
+}
+
+#[test]
+fn darling_reads_a_build_word_only_from_a_string_so_the_bare_word_is_handed_to_it() {
+    assert_eq!(
+        BuildWord::from_string("factory").ok(),
+        Some(BuildWord::Factory)
+    );
+    assert!(BuildWord::from_expr(&parse_quote!(factory)).is_err());
+    assert_eq!(
+        BuildMeta::from_expr(&parse_quote!(factory)).ok(),
+        Some(BuildMeta::Word {
+            word: BuildWord::Factory,
+            written: quote::format_ident!("factory"),
         })
     );
 }

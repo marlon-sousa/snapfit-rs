@@ -10,7 +10,12 @@ use syn::punctuated::Punctuated;
 /// other shape is turned into an error when it is read.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::adapters::inbound) enum BuildMeta {
-    Word(syn::Ident),
+    /// One of the words darling knows, with the word as written, for its span.
+    Word {
+        word: BuildWord,
+        written: syn::Ident,
+    },
+    UnknownWord(syn::Ident),
     /// `builder(...)`: the word, for the span of its default functions, and
     /// its settings as written.
     Builder {
@@ -22,13 +27,25 @@ pub(in crate::adapters::inbound) enum BuildMeta {
     Invalid(String),
 }
 
+/// The bare words `build` and `leaf_build` take, matched by darling.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromMeta)]
+#[darling(rename_all = "snake_case")]
+pub(in crate::adapters::inbound) enum BuildWord {
+    Default,
+    Factory,
+    Builder,
+    /// `constructor` without the function's name in brackets.
+    Constructor,
+}
+
 impl FromMeta for BuildMeta {
+    /// darling's derive reads a unit variant only from a quoted string and
+    /// does not allow `from_expr` beside one, so the bare word is handed to
+    /// the derived [`BuildWord`] here.
     fn from_expr(expr: &syn::Expr) -> darling::Result<Self> {
         Ok(match expr {
-            syn::Expr::Path(_) => single_word(expr).map_or_else(
-                || Self::Invalid(quote!(#expr).to_string()),
-                |word| Self::Word(word.clone()),
-            ),
+            syn::Expr::Path(_) => single_word(expr)
+                .map_or_else(|| Self::Invalid(quote!(#expr).to_string()), Self::from_word),
             syn::Expr::Call(call) => Self::from_call(call),
             syn::Expr::Lit(syn::ExprLit {
                 lit: syn::Lit::Str(text),
@@ -40,6 +57,16 @@ impl FromMeta for BuildMeta {
 }
 
 impl BuildMeta {
+    fn from_word(written: &syn::Ident) -> Self {
+        BuildWord::from_string(&written.to_string()).map_or_else(
+            |_| Self::UnknownWord(written.clone()),
+            |word| Self::Word {
+                word,
+                written: written.clone(),
+            },
+        )
+    }
+
     /// `constructor(...)` or `builder(...)`; any other call is not a build.
     fn from_call(call: &syn::ExprCall) -> Self {
         match single_word(&call.func) {

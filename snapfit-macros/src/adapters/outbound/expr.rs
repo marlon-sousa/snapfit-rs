@@ -114,7 +114,10 @@ fn builder_call(
 ) -> TokenStream {
     let (start, finish) = match &field.builder {
         Some(builder) => (builder.start.clone(), builder.finish.clone()),
-        None => (function_ident(&methods.start), function_ident(&methods.finish)),
+        None => (
+            function_ident(&methods.start),
+            function_ident(&methods.finish),
+        ),
     };
     let setters = &field.setters;
     quote_spanned!(finish.span()=> <#target>::#start()#(.#setters(#args))*.#finish())

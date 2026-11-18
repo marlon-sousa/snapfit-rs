@@ -19,7 +19,7 @@ workspace = true
 proc-macro = true
 
 [dependencies]
-darling = "0.20"
+darling = "0.21.3"
 derive-new = { workspace = true }
 derive_more = { workspace = true }
 heck = "0.5"
