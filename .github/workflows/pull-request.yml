@@ -33,9 +33,9 @@ jobs:
             --jq '.[] | select(.parents | length == 1) | .commit.message | sub("^\\s+"; "") | split("\n") | first')
           # Counted, never printed: a subject is the author's text, and a line
           # of the log starting with "::" would run as a workflow command.
-          others=$(printf '%s\n' "$subjects" | grep -c -v -E '^(test(\([^)]*\))?:|$)' || true)
+          others=$(printf '%s\n' "$subjects" | grep -c -v -E '^(test(\([^)]*\))?:|$)') || [ $? -eq 1 ]
           if [ "$others" -gt 0 ]; then
-            echo "$others commits are not tests, so the description names an issue."
+            echo "Commits that are not tests: $others, so the description must name an issue."
             echo "need-issue=true" >> "$GITHUB_OUTPUT"
           else
             echo "Every commit is a test, so no issue is needed."
