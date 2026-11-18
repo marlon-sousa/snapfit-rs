@@ -48,7 +48,7 @@ Most Rust applications eventually face three unsatisfying choices for wiring com
 <!-- snapfit:releases -->
 
 <!-- github-only -->
-* **Current Version:** `0.1.0-alpha.2`, a pre-release on GitHub only. Read the book sources in [`book/chapters/`](book/chapters/README.md) or run every book example with `cargo xtask book-check`.
+* **Current Version:** `0.1.0-alpha.2`, a pre-release on GitHub only. Read the book sources in [`book/chapters/`](https://github.com/marlon-sousa/snapfit-rs/blob/main/book/chapters/README.md) or run every book example with `cargo xtask book-check`.
 <!-- end github-only -->
 
 ---
@@ -147,17 +147,17 @@ Trait dispatch (`#[dispatch(...)]`), test overrides (`fork_with()`), request-sco
 This crate requires **Rust 1.85.0** or higher (Rust 2024 edition), which CI checks.
 
 <!-- github-only -->
-The toolchain snapfit is developed with, a recent stable Rust, is pinned in [`rust-toolchain.toml`](rust-toolchain.toml).
+The toolchain snapfit is developed with, a recent stable Rust, is pinned in [`rust-toolchain.toml`](https://github.com/marlon-sousa/snapfit-rs/blob/main/rust-toolchain.toml).
 
 ---
 
 ## Internal Repository Documentation
 
-* [The Snapfit Book (`book/`)](book/chapters/README.md): step-by-step guide with compiled, verified examples.
-* [Specification & API Guide (`docs/SPEC.md`)](docs/SPEC.md): functional specification, attribute syntax, and lifecycles.
-* [Architecture (`docs/ARCHITECTURE.md`)](docs/ARCHITECTURE.md): how the code is organised and written: module roles, the typed model, errors and tests.
-* [Development Workflow (`docs/WORKFLOW.md`)](docs/WORKFLOW.md): stacked PR roadmap, Double-Loop BDD, and agentic review loops.
-* [Contributing rules (`AGENTS.md`)](AGENTS.md): the rules every change follows, for people and agents alike, and the checklist every pull request is reviewed against.
+* [The Snapfit Book (`book/`)](https://github.com/marlon-sousa/snapfit-rs/blob/main/book/chapters/README.md): step-by-step guide with compiled, verified examples.
+* [Specification & API Guide (`docs/SPEC.md`)](https://github.com/marlon-sousa/snapfit-rs/blob/main/docs/SPEC.md): functional specification, attribute syntax, and lifecycles.
+* [Architecture (`docs/ARCHITECTURE.md`)](https://github.com/marlon-sousa/snapfit-rs/blob/main/docs/ARCHITECTURE.md): how the code is organised and written: module roles, the typed model, errors and tests.
+* [Development Workflow (`docs/WORKFLOW.md`)](https://github.com/marlon-sousa/snapfit-rs/blob/main/docs/WORKFLOW.md): stacked PR roadmap, Double-Loop BDD, and agentic review loops.
+* [Contributing rules (`AGENTS.md`)](https://github.com/marlon-sousa/snapfit-rs/blob/main/AGENTS.md): the rules every change follows, for people and agents alike, and the checklist every pull request is reviewed against.
 <!-- end github-only -->
 
 ---
