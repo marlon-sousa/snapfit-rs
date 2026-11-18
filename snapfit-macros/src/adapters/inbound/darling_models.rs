@@ -102,10 +102,7 @@ impl FromMeta for BuildMeta {
         Ok(match expr {
             syn::Expr::Path(path) if path.qself.is_none() => path.path.get_ident().map_or_else(
                 || Self::Invalid(quote!(#path).to_string()),
-                |ident| {
-                    BuildWord::from_string(&ident.to_string())
-                        .map_or_else(|_| Self::UnknownWord(ident.clone()), Self::Word)
-                },
+                |ident| word_of(ident).map_or_else(|| Self::UnknownWord(ident.clone()), Self::Word),
             ),
             syn::Expr::Call(call) => match called_word(&call.func) {
                 Some(BuildWord::Constructor) => {
@@ -123,13 +120,14 @@ impl FromMeta for BuildMeta {
     }
 }
 
+fn word_of(ident: &syn::Ident) -> Option<BuildWord> {
+    BuildWord::from_string(&ident.to_string()).ok()
+}
+
 /// The word a call such as `constructor(connect)` is made of, when it is one.
 fn called_word(func: &syn::Expr) -> Option<BuildWord> {
     match func {
-        syn::Expr::Path(path) => path
-            .path
-            .get_ident()
-            .and_then(|ident| BuildWord::from_string(&ident.to_string()).ok()),
+        syn::Expr::Path(path) => path.path.get_ident().and_then(word_of),
         _ => None,
     }
 }
