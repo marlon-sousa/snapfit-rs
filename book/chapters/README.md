@@ -1,6 +1,6 @@
 # Contents
 
-**The Snapfit Book** for Rust (`v0.1.0`), in reading order. It follows the plan in [BOOK.md](../BOOK.md) and the directive layout in [FORMAT.md](../FORMAT.md). Every program the chapters show is complete: those in [examples](../examples/) run with `cargo run -p snapfit_book --example <name>` from the repository root.
+**The Snapfit Book** for Rust (`0.1`), in reading order. It follows the plan in [BOOK.md](../BOOK.md) and the directive layout in [FORMAT.md](../FORMAT.md). Every program the chapters show is complete: those in [examples](../examples/) run with `cargo run -p snapfit_book --example <name>` from the repository root.
 
 ## Welcome
 

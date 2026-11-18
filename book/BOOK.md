@@ -32,7 +32,7 @@ Every example in the book belongs to one small online shop processing customer o
 2. it loads shop configuration (`ShopConfig`) and tax rates (`TaxRateTable`);
 3. it connects to catalog and order databases (`Database`), including separate read and write replicas (`read_db` and `write_db`).
 
-Every chapter teaches only the stable API of `0.1.0`: nothing behind the `unstable` feature, and nothing planned for a later release. Every chapter's example is a complete, self-contained Rust program in `book/examples/` that compiles, runs, and prints deterministic output.
+Every chapter teaches only the stable API of `0.1`: nothing behind the `unstable` feature, and nothing planned for a later release. Every chapter's example is a complete, self-contained Rust program in `book/examples/` that compiles, runs, and prints deterministic output.
 
 ### The shape of a chapter
 
@@ -55,7 +55,7 @@ The book does not open with `snapfit`. Part 1 follows the shop without it: servi
 
 Each edition teaches only what its release does. Where an experienced reader would ask for something the release does not do, the book says so in one sentence, and may say that it could come in a later version, without promising what or when.
 
-## Contents (`v0.1.0`)
+## Contents (`0.1`)
 
 ### Welcome
 
@@ -76,11 +76,11 @@ Problem chapters. The shop without `snapfit`, one step at a time, until what is 
 ### Part 2: Snapfit
 
 4. **Why we built Snapfit** (`04-why-we-built-snapfit.md`): The shop of Chapter 3 built by a `#[container]`, what the macro does, every problem of Part 1 mapped to the chapter that answers it, and a comparison with the shapes of Chapter 3 (`ch04_why_snapfit.rs`).
-* **What this version supports** (`what-this-version-supports.md`): Who `0.1.0` is for, what it does, what it does not do, and the plan for small, frequent releases.
+* **What this version supports** (`what-this-version-supports.md`): Who `0.1` is for, what it does, what it does not do, and the plan for small, frequent releases.
 
 ### Part 3: Wiring a container
 
-Covers every stable feature of `v0.1.0`, one per chapter:
+Covers every stable feature of `0.1`, one per chapter:
 
 5. **Installing Snapfit and your first singleton** (`05-installing-and-first-singleton.md`): Adding `snapfit` to `Cargo.toml`, declaring a leaf `#[singleton]`, instantiating the container with `new()`, and verifying pointer identity across `get_<name>()` calls (`ch05_first_singleton.rs`).
 6. **Pure domain types, one container** (`06-pure-domain-types.md`): Shows that domain structs need zero macros or traits — the exact same structs can be constructed directly in a unit test or wired by a `#[container]` (`ch06_pure_domain.rs`).
@@ -101,4 +101,4 @@ Covers every stable feature of `v0.1.0`, one per chapter:
 
 ### Held back for a later edition
 
-Transient dependencies and asynchronous containers work in `0.1.0` but only behind the `unstable` feature, so their chapters are not part of the `v0.1.0` edition. Their drafts, examples and expected output are kept in [`unreleased/`](unreleased/README.md) and return as Part 3 chapters when those APIs are stabilised.
+Transient dependencies and asynchronous containers work in `0.1` but only behind the `unstable` feature, so their chapters are not part of the `0.1` editions. Their drafts, examples and expected output are kept in [`unreleased/`](unreleased/README.md) and return as Part 3 chapters when those APIs are stabilised.

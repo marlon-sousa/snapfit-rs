@@ -1,6 +1,6 @@
 # Cheat sheet
 
-Every container attribute and field attribute in `snapfit` `0.1.0`, with a link to the chapter that teaches it.
+Every container attribute and field attribute in `snapfit` `0.1`, with a link to the chapter that teaches it.
 
 ## Container attributes (`#[container(...)]`)
 

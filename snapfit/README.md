@@ -107,7 +107,7 @@ fn main() {
 
 ---
 
-## What 0.1.0 Supports
+## What 0.1 Supports
 
 * **Plain domain types:** services, repositories and controllers need no macros or framework traits.
 * **Compile-time graph checks:** unknown dependencies and cycles, such as `service_a` depending on `service_b` which depends on `service_a`, fail `cargo build`, each reported at its field and all of them in one compile. Fields are visited in the order they are declared, and the fields each one needs are built before it.

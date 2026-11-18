@@ -87,7 +87,7 @@ There's a second question hidden in the first one: where should the code that bu
 
 Think of a restaurant. How a dish is cooked belongs to the chef's recipe, whichever restaurant serves it. Which supplier the vegetables come from belongs to the restaurant's manager. Keep each decision where it belongs, and both are easy to change.
 
-In `0.1.0`, a factory builds one field from the inputs its `deps` list. Fields that can fail while they are built, such as a connection that may be refused, aren't supported yet; a later version may add them.
+In `0.1`, a factory builds one field from the inputs its `deps` list. Fields that can fail while they are built, such as a connection that may be refused, aren't supported yet; a later version may add them.
 
 ## Which problem this solves
 

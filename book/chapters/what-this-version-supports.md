@@ -1,10 +1,10 @@
 # What this version supports
 
-This edition of **The Snapfit Book** covers `snapfit` **`0.1.0`**. It needs Rust **`1.85.0`** or newer, and your own crate can use any edition from 2018 on.
+This edition of **The Snapfit Book** covers the **`0.1`** releases of `snapfit`. It needs Rust **`1.85.0`** or newer, and your own crate can use any edition from 2018 on.
 
-## Who 0.1.0 is for
+## Who 0.1 is for
 
-`0.1.0` fits small and medium applications whose components can be built synchronously when the program starts: command-line tools, background workers, and web services whose clients and connection pools are created without waiting, such as an HTTP client or a database pool that connects lazily. It does one thing, and does it well: it builds a graph of shared components from one struct, and checks that graph while the program compiles.
+`0.1` fits small and medium applications whose components can be built synchronously when the program starts: command-line tools, background workers, and web services whose clients and connection pools are created without waiting, such as an HTTP client or a database pool that connects lazily. It does one thing, and does it well: it builds a graph of shared components from one struct, and checks that graph while the program compiles.
 
 ## What it does
 
@@ -21,7 +21,7 @@ This edition of **The Snapfit Book** covers `snapfit` **`0.1.0`**. It needs Rust
 
 ## What it doesn't do
 
-If you have used dependency injection before, some questions probably came to mind while reading. Here are the ones that usually come first, and how `0.1.0` answers them:
+If you have used dependency injection before, some questions probably came to mind while reading. Here are the ones that usually come first, and how `0.1` answers them:
 
 1. **Can a constructor fail?** No. A constructor, a factory or a builder returns the value, not a `Result`. A component that can't start, such as a database that is down, can only panic, so the program stops at startup.
 2. **Can a constructor wait for something?** No. Constructors are synchronous, so a client that has to be awaited before it is usable can't be a field of the container.
@@ -31,4 +31,4 @@ If you have used dependency injection before, some questions probably came to mi
 6. **Can a test replace one field of a container?** No. A test that needs different components declares its own container ([Chapter 11](11-choosing-an-implementation.md)).
 7. **Can a container be generic?** No. `struct ShopContainer<T>` is refused.
 
-Some of these may come in later versions. We plan small, frequent releases rather than one large one, because `0.1.0` is already useful as it is. We don't promise what each release will hold, or when.
+Some of these may come in later versions. We plan small, frequent releases rather than one large one, because `0.1` is already useful as it is. We don't promise what each release will hold, or when.
