@@ -32,15 +32,16 @@ jobs:
           subjects=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PULL/commits" --paginate \
             --jq '.[] | select(.parents | length == 1) | .commit.message | sub("^\\s+"; "") | split("\n") | first')
           files=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PULL/files" --paginate \
-            --jq '.[] | .filename, .previous_filename // empty')
+            --jq '.[].filename')
           # Counted, never printed: a subject is the author's text, and a line
           # of the log starting with "::" would run as a workflow command.
           others=$(printf '%s\n' "$subjects" | grep -c -v -E '^(test(\([^)]*\))?:|$)') || [ $? -eq 1 ]
+          manifests=$(printf '%s\n' "$files" | grep -c -E '(^|/)Cargo\.toml$') || [ $? -eq 1 ]
           if [ "$others" -gt 0 ]; then
             echo "Commits that are not tests: $others, so the description must name an issue."
             echo "need-issue=true" >> "$GITHUB_OUTPUT"
-          elif printf '%s\n' "$files" | grep -q -E '(^|/)Cargo\.toml$'; then
-            echo "A Cargo.toml changes, which holds a decision on dependencies, so the description must name an issue."
+          elif [ "$manifests" -gt 0 ]; then
+            echo "Cargo.toml files changed: $manifests, so the description must name an issue."
             echo "need-issue=true" >> "$GITHUB_OUTPUT"
           else
             echo "Every commit is a test and no Cargo.toml changes, so no issue is needed."
