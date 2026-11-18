@@ -28,7 +28,7 @@ The manual for anyone, human or agent, changing snapfit. [docs/WORKFLOW.md](docs
 
 Every pull request is reviewed by an independent reviewer before it is opened, one given the change, not its author's reasoning. A later push to an open pull request is reviewed the same way while its CI runs. An agent's `.claude/skills/review-change` says how to start and resume the reviewer. The reviewer is given this section in full, the documents under "What to read", the issues the change belongs to, the commits to review and the draft pull request description. For each item, it lists every place in the diff where the item applies, not only the first, and checks each against the rule it names.
 
-1. Every behaviour the change adds or changes, against docs/SPEC.md and its issue, and against rules 1 to 4 above: its scenario, its fixture, its regression test, its gate.
+1. Every behaviour the change adds or changes, against docs/SPEC.md and its issues, and against rules 1 to 4 above: its scenario, its fixture, its regression test, its gate.
 2. Every diagnostic the change adds or changes, against rule 5 above and docs/ARCHITECTURE.md, "Errors": its words, the field it points at, and that it is reported with the other problems found, not instead of them.
 3. Every generated item the change adds or changes, against rule 6 above and docs/ARCHITECTURE.md, "Generated code": its name, its hygiene, and the expansion tests that pin it.
 4. `snapfit-macros/src/lib.rs` and `snapfit/src/lib.rs`, against docs/ARCHITECTURE.md, "Folders and files", rule 1: no new bare `pub` other than the macros and the runtime crate's agreed API.
