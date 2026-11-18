@@ -112,3 +112,16 @@ fn darling_reads_a_build_word_only_from_a_string_so_the_bare_word_is_handed_to_i
         Some(BuildMeta::Word(BuildWord::Factory))
     );
 }
+
+#[test]
+fn a_dependency_attribute_knows_async_by_its_own_name_only() {
+    let hidden: syn::Attribute = parse_quote!(#[singleton(is_async)]);
+    let removed: syn::Attribute = parse_quote!(#[singleton(constructor = connect)]);
+
+    assert!(DependencyAttrMeta::from_attribute(&hidden).is_err());
+    assert!(matches!(
+        DependencyAttrMeta::from_attribute(&removed),
+        Err(AttributeProblem::Unreadable(message))
+            if message.contains("`async`") && !message.contains("is_async")
+    ));
+}

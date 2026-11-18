@@ -2,7 +2,8 @@
 
 use darling::FromMeta;
 use darling::ast::NestedMeta;
-use proc_macro2::{Ident, TokenStream, TokenTree};
+use derive_more::Display;
+use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Token;
 use syn::punctuated::Punctuated;
@@ -64,7 +65,7 @@ impl FromMeta for ParentTypeMeta {
 pub(super) struct DependencyAttrMeta {
     #[darling(default)]
     pub(super) deps: PrerequisiteList,
-    #[darling(default)]
+    #[darling(default, rename = "async")]
     pub(super) is_async: bool,
     #[darling(default)]
     pub(super) build: Option<BuildMeta>,
@@ -85,9 +86,9 @@ pub(super) enum BuildMeta {
 }
 
 /// The bare words `build` and `leaf_build` take, matched by darling.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, FromMeta, strum::Display)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromMeta, Display)]
 #[darling(rename_all = "snake_case")]
-#[strum(serialize_all = "snake_case")]
+#[display(rename_all = "snake_case")]
 pub(super) enum BuildWord {
     Default,
     Factory,
@@ -97,9 +98,6 @@ pub(super) enum BuildWord {
 }
 
 impl FromMeta for BuildMeta {
-    /// darling's derive reads a unit variant only from a quoted string and
-    /// does not allow `from_expr` beside one, so the bare word is handed to
-    /// the derived [`BuildWord`] here.
     fn from_expr(expr: &syn::Expr) -> darling::Result<Self> {
         Ok(match expr {
             syn::Expr::Path(path) if path.qself.is_none() => path.path.get_ident().map_or_else(
@@ -109,10 +107,13 @@ impl FromMeta for BuildMeta {
                         .map_or_else(|_| Self::UnknownWord(ident.clone()), Self::Word)
                 },
             ),
-            syn::Expr::Call(call) if is_named(&call.func, "constructor") => {
-                Self::Constructor(FunctionNameMeta::from_arguments(&call.args))
-            }
-            syn::Expr::Call(call) if is_named(&call.func, "builder") => Self::Builder,
+            syn::Expr::Call(call) => match called_word(&call.func) {
+                Some(BuildWord::Constructor) => {
+                    Self::Constructor(FunctionNameMeta::from_arguments(&call.args))
+                }
+                Some(BuildWord::Builder) => Self::Builder,
+                _ => Self::Invalid(quote!(#call).to_string()),
+            },
             syn::Expr::Lit(syn::ExprLit {
                 lit: syn::Lit::Str(text),
                 ..
@@ -122,8 +123,15 @@ impl FromMeta for BuildMeta {
     }
 }
 
-fn is_named(func: &syn::Expr, name: &str) -> bool {
-    matches!(func, syn::Expr::Path(path) if path.path.is_ident(name))
+/// The word a call such as `constructor(connect)` is made of, when it is one.
+fn called_word(func: &syn::Expr) -> Option<BuildWord> {
+    match func {
+        syn::Expr::Path(path) => path
+            .path
+            .get_ident()
+            .and_then(|ident| BuildWord::from_string(&ident.to_string()).ok()),
+        _ => None,
+    }
 }
 
 /// The argument of `constructor(...)`, with its span. Only one bare function
@@ -168,23 +176,8 @@ impl DependencyAttrMeta {
     }
 
     fn from_tokens(tokens: TokenStream) -> Result<Self, AttributeProblem> {
-        let normalized = normalize_async_keyword(tokens);
-        let nested = NestedMeta::parse_meta_list(normalized).map_err(unreadable)?;
+        let nested = NestedMeta::parse_meta_list(tokens).map_err(unreadable)?;
         Self::from_list(&nested).map_err(unreadable)
-    }
-}
-
-/// `async` is a keyword, which darling cannot read as a field name.
-fn normalize_async_keyword(tokens: TokenStream) -> TokenStream {
-    tokens.into_iter().map(async_as_is_async).collect()
-}
-
-fn async_as_is_async(tree: TokenTree) -> TokenTree {
-    match tree {
-        TokenTree::Ident(ident) if ident == "async" => {
-            TokenTree::Ident(Ident::new("is_async", ident.span()))
-        }
-        tree => tree,
     }
 }
 
