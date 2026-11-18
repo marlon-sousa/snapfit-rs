@@ -73,21 +73,43 @@ name: ch11_trait_object_field
 
 The container builds a plain field by calling a constructor of its type, and a trait object has no constructor: there is nothing to call. So the field is refused, and the message tells us what to do instead. Choosing an implementation is exactly the wiring logic that [Chapter 10](10-passing-dependencies-by-name.md) said belongs in a factory.
 
-Here is the configuration, which says which provider to use:
+Here is the configuration, which says which provider to use. To keep the example short it derives `Default`, which asks for the fake; a real `ShopConfig` would read the setting in its constructor, from an environment variable for example:
 
 ```example
-name: ch11_choosing_an_implementation
+name: ch11_configured_payments
 region: config
 ```
 
 And the container, whose factory reads the configuration and picks the gateway:
 
 ```example
-name: ch11_choosing_an_implementation
+name: ch11_configured_payments
 region: configured
 ```
 
-The last lines of the output show it at work. The configuration asks for the fake, so `orders` charges through the fake. And because a factory is an ordinary function, the last line calls it on its own, with a configuration that asks for Stripe, without building any container.
+Because a factory is an ordinary function, we can also call it on its own, with a configuration that asks for Stripe, without building any container. That's handy in a test:
+
+```example
+name: ch11_configured_payments
+region: factory_alone
+```
+
+Let's run it:
+
+```example
+name: ch11_configured_payments
+region: run
+```
+
+It prints:
+
+```output
+name: ch11_configured_payments
+```
+
+The configuration asks for the fake, so `orders` charges through the fake, and the factory on its own picks Stripe when asked.
+
+You may recognise that `match` from [Chapter 2](02-choosing-between-implementations.md), where a closed list of providers made every service change when a provider was added. Here the list lives in one place only, the wiring. Adding a provider means a new type and one more line in this factory; `OrderService` and every other service stay as they are.
 
 Think of a theatre with an understudy. The play is the same every night, and the part is the same, but which actor walks on is decided that evening, by the stage manager, from the evening's call sheet. `OrderService` is the play: it doesn't care who plays the gateway.
 

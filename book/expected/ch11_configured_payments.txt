@@ -1,0 +1,3 @@
+configured order: fake gateway pretended to charge 4500 cents
+configured gateway: fake gateway pretended to charge 100 cents
+factory alone: Stripe charged 100 cents

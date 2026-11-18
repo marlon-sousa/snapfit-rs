@@ -47,10 +47,10 @@ You can copy this section into your project's `AGENTS.md`:
 ```markdown
 ## Dependency Injection (`snapfit`) Rules
 
-1. **Zero Domain Pollution:** Domain structs, services, repositories, and controllers must remain 100% pure Rust with standard `pub fn new(...)` (or named) constructors. Never add `snapfit` attributes or framework traits to domain types.
+1. **Zero Domain Pollution:** Domain structs, services, repositories, and controllers must remain 100% pure Rust with standard `pub fn new(...)` (or named) constructors. Never add `snapfit` attributes or framework traits to domain types; a builder crate's attribute the team chose, such as bon's `#[builder]`, is fine.
 2. **Centralized Container Manifest:** Declare every singleton (`#[singleton]`) and dependency edge (`deps = [...]`) inside the `#[container]` struct.
 3. **Named Edges Over Wrapper Types:** When wiring multiple instances of the same type (such as `read_db` and `write_db`), declare separate named fields on the container rather than creating wrapper newtypes.
-4. **Same-Typed Dependencies by Name:** When a constructor takes two or more dependencies of the same type, build the field with `build = builder` or `build = factory`, never with positional `deps`, so a swapped pair cannot compile.
+4. **Same-Typed Dependencies by Name:** When a constructor takes two or more dependencies of the same type, build the field with `build = builder` or `build = factory`, never with positional `deps`, so the order of `deps` no longer decides who gets what. Prefer a builder, where the compiler checks every setter's name; in a factory, name every input where it is passed.
 5. **Logic Where It Belongs:** Logic about what a type is stays in its constructor or builder; logic about how the application is wired, such as choosing an implementation from configuration, goes in a factory next to the container.
 ```
 

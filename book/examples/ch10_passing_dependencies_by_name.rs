@@ -50,7 +50,7 @@ pub struct SalesReport {
 
 #[bon::bon]
 impl SalesReport {
-    #[builder]
+    #[builder(start_fn = builder)]
     pub fn new(live: Arc<Database>, ledger: Arc<Database>) -> Self {
         let summary = format!(
             "today's sales from {}, totals checked against {}",

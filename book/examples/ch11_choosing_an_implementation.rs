@@ -96,44 +96,6 @@ pub struct TestShopContainer {
 }
 // ANCHOR_END: containers
 
-// ANCHOR: config
-#[derive(Clone, Copy, Default)]
-pub enum PaymentProvider {
-    Stripe,
-    #[default]
-    Fake,
-}
-
-#[derive(Clone, Default)]
-pub struct ShopConfig {
-    pub payments: PaymentProvider,
-}
-// ANCHOR_END: config
-
-// ANCHOR: configured
-#[container]
-pub struct ConfiguredShopContainer {
-    #[singleton(build = default)]
-    config: ShopConfig,
-
-    #[singleton(deps = [config], build = factory)]
-    payments: Arc<dyn PaymentGateway>,
-
-    #[singleton(deps = [payments])]
-    orders: Arc<OrderService>,
-}
-
-impl ConfiguredShopContainerFactories for ConfiguredShopContainer {
-    fn build_payments(inputs: ConfiguredShopContainerPaymentsInputs) -> Arc<dyn PaymentGateway> {
-        let ConfiguredShopContainerPaymentsInputs { config } = inputs;
-        match config.payments {
-            PaymentProvider::Stripe => Arc::new(StripeGateway::new()),
-            PaymentProvider::Fake => Arc::new(FakeGateway::new()),
-        }
-    }
-}
-// ANCHOR_END: configured
-
 // ANCHOR: run
 fn main() {
     let shop = ShopContainer::new();
@@ -143,18 +105,5 @@ fn main() {
     let test_shop = TestShopContainer::new();
     println!("test {}", test_shop.get_orders().place_order(4500));
     println!("test {}", test_shop.get_refunds().refund(500));
-
-    let configured = ConfiguredShopContainer::new();
-    println!("configured {}", configured.get_orders().place_order(4500));
-    println!("configured gateway: {}", configured.get_payments().charge(100));
-
-    let stripe_config = ShopConfig {
-        payments: PaymentProvider::Stripe,
-    };
-    let inputs = ConfiguredShopContainerPaymentsInputs {
-        config: stripe_config,
-    };
-    let gateway = ConfiguredShopContainer::build_payments(inputs);
-    println!("factory alone: {}", gateway.charge(100));
 }
 // ANCHOR_END: run

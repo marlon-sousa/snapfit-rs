@@ -9,7 +9,7 @@ So far every component had a constructor called `new`, and every field was an `A
 3. `CatalogDb` isn't built with `new`. Its constructor is called `from_tax_table`, because that is what it does.
 4. `ShippingClient` builds its endpoint from the catalog database, in a constructor called `for_catalog`.
 
-Here they are, still plain Rust, together with `GiftWrapOptions`, which we'll need in a moment:
+Here they are, still plain Rust:
 
 ```example
 name: ch07_wiring_and_constructors
@@ -53,11 +53,24 @@ Notice where the knowledge lives. `ShippingClient` knows how to make a shipping 
 Some containers hold many small settings structs, and most of them simply derive `Default`. Writing `build = default` on every one of them gets old quickly. Let's say it once, for the whole container:
 
 ```example
-name: ch07_wiring_and_constructors
-region: leaf_build
+name: ch07_leaf_build
+region: container
 ```
 
-`leaf_build = default` changes how the container builds its leaves: the fields that need nothing and say nothing about how they are built. `discounts` and `gift_wrap` are built with `Default`. `tax` still wants its own constructor, which gives the shop its 10% rate, so it says `build = constructor(new)`, and a field's own `build` always wins. The last line of the output shows both.
+Let's run it:
+
+```example
+name: ch07_leaf_build
+region: run
+```
+
+It prints:
+
+```output
+name: ch07_leaf_build
+```
+
+`leaf_build = default` changes how the container builds its leaves: the fields that need nothing and say nothing about how they are built. `discounts`, and `gift_wrap`, a new settings struct that also derives `Default`, are built with `Default`, so both lists are empty. `tax` still wants its own constructor, which gives the shop its 10% rate, so it says `build = constructor(new)`, and a field's own `build` always wins.
 
 Think of a hotel that makes every bed with the same white sheets unless the guest asked for something else when booking. The housekeeping rule is written once, and the guests with a wish write it on their own card. Without `leaf_build`, the container behaves as before, and calls `new` on every field that says nothing.
 

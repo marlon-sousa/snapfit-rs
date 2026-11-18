@@ -57,20 +57,6 @@ pub struct ShopContainer {
 }
 // ANCHOR_END: container
 
-// ANCHOR: swapped
-#[container]
-pub struct SwappedShopContainer {
-    #[singleton(build = constructor(replica))]
-    read_db: Arc<Database>,
-
-    #[singleton(build = constructor(primary))]
-    write_db: Arc<Database>,
-
-    #[singleton(deps = [write_db, read_db])]
-    order_store: Arc<CqrsOrderStore>,
-}
-// ANCHOR_END: swapped
-
 // ANCHOR: run
 fn main() {
     let container = ShopContainer::new();
@@ -82,13 +68,5 @@ fn main() {
         "distinct allocations: {}",
         !Arc::ptr_eq(&read_db, &write_db)
     );
-    run_swapped();
 }
 // ANCHOR_END: run
-
-// ANCHOR: run_swapped
-fn run_swapped() {
-    let container = SwappedShopContainer::new();
-    println!("swapped: {}", container.get_order_store().describe_routing());
-}
-// ANCHOR_END: run_swapped

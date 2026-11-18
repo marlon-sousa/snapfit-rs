@@ -1,0 +1,3 @@
+discount codes: 0
+gift papers: 0
+tax rate: 10%

@@ -44,16 +44,22 @@ Remember the service locator of [Chapter 3](03-who-builds-everything.md), which 
 Point 2 deserves a second look. `deps` passes the databases in the order it lists them, and both have the same type. So what happens if someone, one busy afternoon, writes the names the other way round? Let's try it:
 
 ```example
-name: ch09_multiple_instances
-region: swapped
+name: ch09_swapped_deps
+region: container
 ```
 
 ```example
-name: ch09_multiple_instances
-region: run_swapped
+name: ch09_swapped_deps
+region: run
 ```
 
-It compiles without a single warning, and the last line of the output shows what we got: reads now go to the primary, and writes go to the replica. That's the problem we called **arguments by position** in [Chapter 3](03-who-builds-everything.md). Naming components by field fixed the locator's problem, but a constructor still receives its arguments in order, and the compiler checks their types, not which one we meant. The next chapter shows two ways to pass dependencies by name, so that their order no longer matters.
+It compiles without a single warning. Let's run it:
+
+```output
+name: ch09_swapped_deps
+```
+
+Reads now go to the primary, and writes go to the replica. That's the problem we called **arguments by position** in [Chapter 3](03-who-builds-everything.md). Naming components by field fixed the locator's problem, but a constructor still receives its arguments in order, and the compiler checks their types, not which one we meant. The next chapter shows two ways to pass dependencies by name, so that their order no longer matters.
 
 ## Which problem this solves
 

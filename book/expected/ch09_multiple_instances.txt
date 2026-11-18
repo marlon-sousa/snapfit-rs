@@ -1,3 +1,2 @@
 reads go to replica-ro, writes go to primary-rw
 distinct allocations: true
-swapped: reads go to primary-rw, writes go to replica-ro
