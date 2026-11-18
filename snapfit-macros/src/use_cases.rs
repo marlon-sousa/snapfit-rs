@@ -5,6 +5,7 @@ mod declaration_rules;
 mod derive_container;
 mod execution;
 mod feature_gate;
+mod repeats;
 mod resolver;
 
 pub(crate) use derive_container::plan_container;

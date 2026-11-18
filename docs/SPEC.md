@@ -349,7 +349,7 @@ pub struct Shop {
 Because all dependencies and their prerequisites are declared within the struct, the procedural macro checks the whole graph at compile time:
 
 1. **Construction order:** Each field's `deps = [...]` names the fields it needs. The macro visits the fields in the order they are declared and builds each one after the fields it needs, so the construction order follows the declaration wherever the graph allows it. Declaring a field before the fields it needs is allowed.
-2. **Unknown dependencies:** A `deps` entry that names no field of the container is refused, naming every unknown entry of that field and every field the container can wire.
+2. **Unknown dependencies:** A `deps` entry that names no field of the container is refused, naming every unknown entry of that field once, even one it lists twice, and every field the container can wire.
 3. **Cycles:** A field that needs itself, directly or through other fields, is refused. The message reads as a sentence, without arrows, so that a screen reader speaks it naturally, and it points at the first field of the cycle in declaration order:
 
 ```text
