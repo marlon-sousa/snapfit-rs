@@ -98,7 +98,7 @@ A slice is only ready for human merge when:
 - [ ] **100% Tests Pass:** All unit and BDD tests pass in `cargo test`.
 - [ ] **Zero Compiler Leaks:** `cargo xtask arch-check` confirms zero `syn`, `quote`, or `darling` imports in `domain/` or `use_cases/`.
 - [ ] **Rules Followed:** every behaviour has its scenario or fixture, and every fixed bug its regression test, as [AGENTS.md](../AGENTS.md), "Rules", asks.
-- [ ] **Green CI:** every check of the CI and pull request workflows passes, including the tests on Linux, macOS and Windows and on the minimum supported Rust.
+- [ ] **Green CI:** every check of the CI and pull request workflows passes, and of the release checks workflow when it runs, including the tests on Linux, macOS and Windows and on the minimum supported Rust.
 - [ ] **Every checkbox ticked:** the description has no unticked checkbox, such as a manual check with a screen reader.
 - [ ] **Independent Review Approval:** the reviewer agent's verdict on the latest push is approve.
 
@@ -117,7 +117,7 @@ To eliminate environmental drift between local development and CI, all quality c
 | `fmt` | rustfmt compliance. |
 | `clippy` | clippy with every warning an error, on the default and the `unstable` builds. |
 | `arch` | no compiler type in `domain/` or `use_cases/`, no `mod.rs`, and files under about 200 lines. |
-| `test` | every unit test and Gherkin scenario, on the default and the `unstable` builds. |
+| `test` | every unit test and Gherkin scenario, on the default and the `unstable` builds, and every doctest, such as the README's example. |
 | `doc` | the documentation of both builds, with every warning an error; docs.rs documents the default build only, the stable API. |
 | `deny` | the licences, advisories and sources of the dependencies, as `deny.toml` allows them. It needs cargo-deny, installed with `cargo install cargo-deny --version 0.20.2 --locked`. |
 | `package` | snapfit and snapfit-macros built from their packages alone, as crates.io receives them, with `cargo publish --workspace --dry-run`. |
@@ -136,6 +136,7 @@ Every action a workflow uses is pinned to a commit, with its version in a commen
 * **`.github/workflows/pull-request.yml`**, on every pull request, whatever its base: the description names an open issue of this repository, unless every commit other than a merge is a `test` and no `Cargo.toml` or `Cargo.lock` changes, and neither the description nor a commit message closes an issue of another repository, with the `pr-has-issue` and `no-cross-repo-closing` actions of itinera-dev/actions; every commit message keeps the convention of section 3, and the description has no unticked checkbox. Ticking a checkbox runs only this workflow again.
 * **`.github/workflows/weekly.yml`**, each Monday: the `test` mode on Rust beta, so that a change in the next Rust that breaks snapfit, such as a compiler message a compile-fail fixture checks, is known before it is released.
 * **`.github/workflows/release.yml`**, on a tag `v<version>`: section 9.
+* **`.github/workflows/release-checks.yml`**, on a pull request that changes how releases are made, and called by the release workflow: the release tools and the crates' packages, as section 9 says.
 * **`.github/workflows/site.yml`**, called by the release workflow for a release, or run by hand with a release's version: publishes that release's README front page and book edition onto the `site` branch, as section 8 says.
 
 ---
@@ -168,13 +169,14 @@ Once the pull request has merged, the maintainer tags the commit the merge put o
 
 1. **release gate**, which refuses the tag unless it is `v` and the version in `Cargo.toml`, its commit is on `main`, and `CHANGELOG.md` has notes for the version, reporting every reason, and tells whether the version goes to crates.io and to the site;
 2. **checks**, every job of `ci.yml` again on the tagged commit;
-3. **release tools**, the release gate, the crates.io rule and the site rule against their fixtures under `.github/release/`;
-4. **the crates' packages**, the `.crate` files of snapfit-macros and snapfit;
-5. **crates.io**, for a version that goes there, once every job before it passed;
-6. **GitHub release**, with the `create-release` action of [itinera-dev/actions](https://github.com/itinera-dev/actions): the version's section of `CHANGELOG.md` as its notes, a pre-release for a version such as `0.2.0-rc.1`, and the packages attached;
-7. **the site**, for a version without a pre-release part only, once the GitHub release exists: the site workflow publishes the release's book edition and front page, as section 8 says. The gate tells which versions do, with `.github/release/site.sh`, which the release tools check too.
+3. **release checks**, the release checks workflow:
+   * **release tools**, the release gate, the crates.io rule and the site rule against their fixtures under `.github/release/`;
+   * **the crates' packages**, the `.crate` files of snapfit-macros and snapfit;
+4. **crates.io**, for a version that goes there, once every job before it passed;
+5. **GitHub release**, with the `create-release` action of [itinera-dev/actions](https://github.com/itinera-dev/actions): the version's section of `CHANGELOG.md` as its notes, a pre-release for a version such as `0.2.0-rc.1`, and the packages attached;
+6. **the site**, for a version without a pre-release part only, once the GitHub release exists: the site workflow publishes the release's book edition and front page, as section 8 says. The gate tells which versions do, with `.github/release/site.sh`, which the release tools check too.
 
-A pull request that changes how releases are made runs the release tools and packs the crates, without releasing anything.
+A pull request that changes how releases are made, such as a change to the release workflows, `.github/release/`, `cliff.toml`, the root `Cargo.toml`, `Cargo.lock` or the toolchain, runs the same release checks workflow on its own, without releasing anything. The release workflow runs only on a tag, so a pull request lists none of its jobs.
 
 ### Publishing to crates.io
 

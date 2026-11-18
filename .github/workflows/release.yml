@@ -2,35 +2,24 @@ name: Release
 
 # Releases a version on a tag v<version>, as docs/WORKFLOW.md, section 9, says.
 
+# Only a tag: a pull request runs release-checks.yml, which this workflow calls.
 on:
   push:
     tags: ["v*"]
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - .github/workflows/release.yml
-      - .github/release/**
-      - cliff.toml
-      - Cargo.toml
-      - Cargo.lock
-      - rust-toolchain.toml
 
 permissions:
   contents: read
 
 concurrency:
   group: release-${{ github.ref }}
-  # A release, once started, is never cut short by another run.
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   CARGO_TERM_COLOR: always
-  TAG: ${{ github.event_name == 'push' && github.ref_name || '' }}
+  TAG: ${{ github.ref_name }}
 
 jobs:
   gate:
     name: release gate
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     outputs:
       crates-io: ${{ steps.crates-io.outputs.publish }}
@@ -57,37 +46,17 @@ jobs:
     needs: gate
     uses: ./.github/workflows/ci.yml
 
-  release-tools:
-    name: release tools, against their fixtures
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: rustup toolchain install
-      - run: .github/release/test-gate.sh
-      - run: .github/release/test-crates-io.sh
-      - run: .github/release/test-site.sh
-
-  package:
-    name: the crates' packages
-    needs: release-tools
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: rustup toolchain install
-      - run: cargo package --package snapfit-macros --package snapfit --locked
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: release-assets
-          path: target/package/*.crate
-          if-no-files-found: error
+  release-checks:
+    name: release checks
+    uses: ./.github/workflows/release-checks.yml
 
   publish:
     # Trusted publishing, as docs/WORKFLOW.md, section 9, says: crates.io trusts
     # this workflow in the crates-io environment, which only v* tags may use,
     # and gives it a short-lived token.
     name: crates.io
-    if: github.event_name == 'push' && needs.gate.outputs.crates-io == 'true'
-    needs: [gate, ci, package]
+    if: needs.gate.outputs.crates-io == 'true'
+    needs: [gate, ci, release-checks]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: crates-io
@@ -110,11 +79,11 @@ jobs:
     # A job whose needs failed is skipped too, so a skipped crates.io job alone
     # does not say the rest passed.
     if: >-
-      github.event_name == 'push' && !cancelled()
-      && needs.ci.result == 'success' && needs.package.result == 'success'
+      !cancelled()
+      && needs.ci.result == 'success' && needs.release-checks.result == 'success'
       && (needs.publish.result == 'success'
         || (needs.publish.result == 'skipped' && needs.gate.outputs.crates-io == 'false'))
-    needs: [gate, ci, package, publish]
+    needs: [gate, ci, release-checks, publish]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -133,7 +102,7 @@ jobs:
     # The book edition and front page of a release without a pre-release part,
     # once its GitHub release exists, as docs/WORKFLOW.md, section 9, says.
     if: >-
-      github.event_name == 'push' && !cancelled()
+      !cancelled()
       && needs.release.result == 'success' && needs.gate.outputs.site == 'true'
     needs: [gate, release]
     permissions:
