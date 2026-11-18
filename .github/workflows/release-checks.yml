@@ -1,0 +1,55 @@
+name: Release checks
+
+# The checks of how releases are made, as docs/WORKFLOW.md, section 9, says:
+# on a pull request that changes them, and called by release.yml for every
+# release, so that both run the same checks.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - .github/workflows/release.yml
+      - .github/workflows/release-checks.yml
+      - .github/release/**
+      - cliff.toml
+      - Cargo.toml
+      - Cargo.lock
+      - rust-toolchain.toml
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-checks-${{ github.ref }}
+  # Called by a release, it is never cut short by another run.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release-tools:
+    name: release tools, against their fixtures
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: rustup toolchain install
+      - run: .github/release/test-gate.sh
+      - run: .github/release/test-crates-io.sh
+      - run: .github/release/test-site.sh
+
+  package:
+    # Its .crate files are the assets of the GitHub release that release.yml makes.
+    name: the crates' packages
+    needs: release-tools
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: rustup toolchain install
+      - run: cargo package --package snapfit-macros --package snapfit --locked
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-assets
+          path: target/package/*.crate
+          if-no-files-found: error

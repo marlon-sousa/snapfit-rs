@@ -18,8 +18,8 @@ A procedural macro does no input or output: it is a pure function from tokens to
 - **`book/`**, the crate `snapfit_book`: The Snapfit Book, whose chapters, examples, recorded outputs and compile-error fixtures `cargo xtask book-check` verifies. [book/BOOK.md](../book/BOOK.md) describes it.
 - **`site/`**, the Astro site that renders the README as its front page and each edition of the book, checked by `npm run verify` and published onto the `site` branch by the site workflow.
 - **`xtask/`** and **`scripts/gate.py`**, the quality gate, `cargo xtask ci`, whose checks CI runs, the tests on Linux, macOS and Windows; [WORKFLOW.md](WORKFLOW.md), section 7, lists them.
-- **`.github/release/`**, the release gate and its fixtures, which the release workflow runs, as [WORKFLOW.md](WORKFLOW.md), section 9, says.
-- **`.github/workflows/`**, the CI, pull request, weekly, release and site workflows, as [WORKFLOW.md](WORKFLOW.md), section 7, lists them.
+- **`.github/release/`**, the release gate and its fixtures, which the release and release checks workflows run, as [WORKFLOW.md](WORKFLOW.md), section 9, says.
+- **`.github/workflows/`**, the CI, pull request, weekly, release, release checks and site workflows, as [WORKFLOW.md](WORKFLOW.md), section 7, lists them.
 - **`clippy.toml`**, what clippy allows in tests.
 - **`deny.toml`**, what cargo-deny allows of the dependencies.
 - **`cliff.toml`** and **`CHANGELOG.md`**, the template git-cliff writes a release's notes with, and the notes of every release.
