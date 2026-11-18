@@ -36,7 +36,7 @@ A procedural macro does no input or output: it is a pure function from tokens to
 
 ## Module roles
 
-Every module plays one role, and says which on the first line of its `//!` doc comment, such as `//! Policy: whether the container is built at once by new() or awaited through init().`
+Every module plays one role, and says which on the first line of its `//!` doc comment, such as `//! Policy: whether the container is built at once by new() or awaited through init().` A `lib.rs` whose documentation is the README, such as `snapfit/src/lib.rs`, is the exception: docs.rs shows that documentation as the crate's front page, so it says its role in a plain `//` comment on its first line.
 
 1. **Entity**: data and the invariants it keeps, in `domain/`: the names, the declaration, the plan, the build.
 2. **Error**: what makes snapfit refuse a container, in `domain/errors.rs`, as "Errors" below describes.
@@ -44,11 +44,11 @@ Every module plays one role, and says which on the first line of its `//!` doc c
 4. **Service**: `use_cases/derive_container.rs`, which runs the policies over one declaration and gathers their problems.
 5. **Adapter**: the code that speaks `syn`, `darling` and `quote`, in `adapters/`: the inbound adapter, the outbound adapter, and the syntax they share. Pure code that only one adapter uses to speak its library, such as reading a type's shape, is a private submodule of that adapter.
 6. **Handler**: `expansion.rs`, the way in, which turns a macro's tokens into calls to the adapters and the service, and their results into tokens.
-7. **Facade**: `lib.rs`, which holds only the macro, a one-line call to the handler.
+7. **Facade**: the `lib.rs` of snapfit-macros and of snapfit. In snapfit-macros it holds only the macro, a one-line call to the handler; in snapfit, the runtime crate's public API, the re-exports of the `Container` trait and the macro.
 
 A submodule that serves a single module, such as the resolver's walk state, plays its parent's role and says so on its role line.
 
-Layering goes one way. The facade calls the handler; the handler calls the adapters and the service; the service calls policies; policies use entities and errors; adapters use entities and errors, never a policy or the service. No module reaches around another into its internals.
+Layering goes one way. snapfit-macros' facade calls the handler; the handler calls the adapters and the service; the service calls policies; policies use entities and errors; adapters use entities and errors, never a policy or the service. No module reaches around another into its internals.
 
 ## The typed model
 

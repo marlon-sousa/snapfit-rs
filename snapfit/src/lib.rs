@@ -1,3 +1,5 @@
+// Facade: snapfit's public API, the re-exports of the `Container` trait and of the `container` macro.
+
 #![doc = include_str!("../README.md")]
 #![deny(warnings)]
 
