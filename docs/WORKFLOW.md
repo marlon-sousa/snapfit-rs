@@ -117,7 +117,7 @@ To eliminate environmental drift between local development and CI, all quality c
 | `fmt` | rustfmt compliance. |
 | `clippy` | clippy with every warning an error, on the default and the `unstable` builds. |
 | `arch` | no compiler type in `domain/` or `use_cases/`, no `mod.rs`, and files under about 200 lines. |
-| `test` | every unit test and Gherkin scenario, on the default and the `unstable` builds. |
+| `test` | every unit test and Gherkin scenario, on the default and the `unstable` builds, and every doctest, such as the README's example. |
 | `doc` | the documentation of both builds, with every warning an error; docs.rs documents the default build only, the stable API. |
 | `deny` | the licences, advisories and sources of the dependencies, as `deny.toml` allows them. It needs cargo-deny, installed with `cargo install cargo-deny --version 0.20.2 --locked`. |
 | `package` | snapfit and snapfit-macros built from their packages alone, as crates.io receives them, with `cargo publish --workspace --dry-run`. |

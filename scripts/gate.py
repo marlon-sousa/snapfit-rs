@@ -137,6 +137,8 @@ def checks() -> dict[str, list[Step]]:
         "arch": [check_architectural_invariants],
         "test": [
             command(["cargo", "test", "--workspace", "--all-targets", "--locked"]),
+            # `--all-targets` leaves doctests out, such as the README's example.
+            command(["cargo", "test", "--workspace", "--doc", "--locked"]),
             command(["cargo", "test", "-p", "snapfit_bdd", "--features", "unstable", "--locked"]),
         ],
         # The default build is what docs.rs documents; the unstable build must document cleanly too.
