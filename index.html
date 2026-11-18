@@ -1,0 +1,162 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="theme-color" content="#fbf9f4" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#171a19" media="(prefers-color-scheme: dark)"><title>snapfit</title><meta name="description" content="snapfit is a zero-cost, compile-time verified, pure-Rust dependency injection framework."><link rel="canonical" href="https://marlon-sousa.github.io/snapfit-rs/"><link rel="icon" type="image/svg+xml" href="/snapfit-rs/favicon.svg"><link rel="alternate" type="text/markdown" title="This page in Markdown" href="/snapfit-rs/index.md"><link rel="stylesheet" href="/snapfit-rs/_astro/Base.DTadlXKB.css"></head><body><a class="skip-link" href="#main">Skip to the text</a><header class="masthead"><div class="masthead__inner"><p class="masthead__book"><a class="masthead__title" href="/snapfit-rs/">snapfit</a></p><div class="masthead__nav"><nav aria-label="Site"><ul><li><span aria-current="page">Home</span></li><li><a href="/snapfit-rs/book/v0.1.0/">Book (v0.1.0)</a></li><li><a href="/snapfit-rs/releases/">Releases</a></li><li><a href="https://github.com/marlon-sousa/snapfit-rs">GitHub</a></li></ul></nav></div></div></header><main id="main" tabindex="-1" class="page"><article class="prose"><h1 id="snapfit-snapfit-rs">snapfit (<code>snapfit-rs</code>)</h1>
+<blockquote>
+<p><strong>Zero-Cost, Compile-Time Verified, Pure-Rust Dependency Injection Framework</strong></p>
+</blockquote>
+<p>Its source, its issues, and how to contribute are in <a href="https://github.com/marlon-sousa/snapfit-rs">its repository on GitHub</a>.</p>
+<hr>
+<h2 id="what-is-snapfit">What is <code>snapfit</code>?</h2>
+<p><code>snapfit</code> is a compile-time verified dependency injection framework designed specifically for idiomatic Rust.</p>
+<p>Unlike dependency injection frameworks ported from Java (Spring, Dagger) or C# (.NET) that scatter <code>#[inject]</code> and <code>#[component]</code> attributes across your business logic, or dynamic service locators that rely on <code>TypeMap</code> and <code>dyn Any</code> downcasting at runtime, <code>snapfit</code> inverts the dependency declaration: <strong>the container struct declares the wiring, leaving your domain structs 100% pure Rust.</strong></p>
+<hr>
+<h2 id="why-snapfit">Why snapfit?</h2>
+<p>Most Rust applications eventually face three unsatisfying choices for wiring components:</p>
+<ol>
+<li><strong>Invasive component macros (<code>#[inject]</code>, <code>#[component]</code>):</strong> Every service, repository, and controller has to import DI macros and derive framework traits. Your domain is coupled to the DI framework, and seeing the whole dependency graph requires opening dozens of files.</li>
+<li><strong>Dynamic <code>TypeMap</code> service locators (<code>Arc&#x3C;dyn Any + Send + Sync></code>):</strong> Missing dependencies fail at runtime, resolution pays lookup and downcasting overhead, and registering two instances of the same type (<code>read_db: Database</code> and <code>write_db: Database</code>) silently overwrites the first unless you invent wrapper newtypes.</li>
+<li><strong>Hand-rolled <code>main.rs</code> initialization chains:</strong> Dozens of manual <code>Arc::clone</code> calls obscure which components are shared singletons and what depends on what.</li>
+</ol>
+<div class="table-scroll" role="group" tabindex="0" aria-label="Table: Guarantee, Traditional Component DI, Dynamic TypeMap Locators, snapfit"><table>
+<thead>
+<tr>
+<th align="left">Guarantee</th>
+<th align="left">Traditional Component DI</th>
+<th align="left">Dynamic <code>TypeMap</code> Locators</th>
+<th align="left"><code>snapfit</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left"><strong>Domain pollution</strong></td>
+<td align="left">Macros and traits on every service</td>
+<td align="left">Services or handlers pull from locator</td>
+<td align="left"><strong>Zero</strong>: domain structs are plain Rust</td>
+</tr>
+<tr>
+<td align="left"><strong>Where the graph lives</strong></td>
+<td align="left">Scattered across dozens of files</td>
+<td align="left">Hidden inside runtime registration calls</td>
+<td align="left"><strong>One central <code>#[container]</code> struct</strong></td>
+</tr>
+<tr>
+<td align="left"><strong>Multiple instances of one type</strong></td>
+<td align="left">Requires qualifier macros on structs</td>
+<td align="left">Overwrites previous entry unless wrapped in newtypes</td>
+<td align="left"><strong>Native</strong>: edges name container fields (<code>deps = [read_db, write_db]</code>)</td>
+</tr>
+<tr>
+<td align="left"><strong>Cycle &#x26; missing-dep detection</strong></td>
+<td align="left">Build script or runtime failure</td>
+<td align="left">Panics or returns <code>None</code> at runtime</td>
+<td align="left"><strong>Compile-time</strong>, with the error on the offending field</td>
+</tr>
+<tr>
+<td align="left"><strong>Resolution cost</strong></td>
+<td align="left">Vtable or generated factory</td>
+<td align="left">Hash lookup + <code>dyn Any</code> downcast</td>
+<td align="left"><strong>Zero-cost</strong> direct getters (<code>get_&#x3C;name>()</code>)</td>
+</tr>
+</tbody>
+</table></div>
+<hr>
+<h2 id="releases-and-the-snapfit-book">Releases and The Snapfit Book</h2>
+<p><strong>The Snapfit Book</strong> walks through the framework step by step with complete, compiled Rust programs for each release.</p>
+<div class="table-scroll" role="group" tabindex="0" aria-label="Table: Version, Book Edition, Release Notes, Highlights"><table>
+<thead>
+<tr>
+<th align="left">Version</th>
+<th align="left">Book Edition</th>
+<th align="left">Release Notes</th>
+<th align="left">Highlights</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left"><strong>v0.1.0</strong> (2026-11-18)</td>
+<td align="left"><a href="/snapfit-rs/book/v0.1.0/">Read the Book (v0.1.0)</a></td>
+<td align="left"><a href="https://github.com/marlon-sousa/snapfit-rs/releases/tag/v0.1.0">Release notes on GitHub</a></td>
+<td align="left">Compile-time verified dependency injection with pure-Rust domain types: singletons wired by name, each built with its constructor, Default, a factory or its type's builder, and unknown dependencies and cycles reported at compile time.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Browse <a href="/snapfit-rs/releases/">all releases and editions</a>.</p>
+<hr>
+<h2 id="quick-look">Quick Look</h2>
+<pre class="shiki shiki-themes github-light-default github-dark-default" style="background-color:#ffffff;--shiki-dark-bg:#0d1117;color:#1f2328;--shiki-dark:#e6edf3" tabindex="0" role="group" aria-label="Code listing 1"><code><span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">use</span><span style="color:#953800;--shiki-dark:#FFA657"> std</span><span style="color:#CF222E;--shiki-dark:#FF7B72">::</span><span style="color:#953800;--shiki-dark:#FFA657">sync</span><span style="color:#CF222E;--shiki-dark:#FF7B72">::</span><span style="color:#953800;--shiki-dark:#FFA657">Arc</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">;</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">use</span><span style="color:#953800;--shiki-dark:#FFA657"> snapfit</span><span style="color:#CF222E;--shiki-dark:#FF7B72">::</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">container;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6E7781;--shiki-dark:#8B949E">// 1. Your domain types are plain Rust: no macros, no framework traits.</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> struct</span><span style="color:#953800;--shiki-dark:#FFA657"> Config</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">    pub</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> database_url</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> String</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">,</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">impl</span><span style="color:#953800;--shiki-dark:#FFA657"> Config</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">    pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> fn</span><span style="color:#8250DF;--shiki-dark:#D2A8FF"> new</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">() </span><span style="color:#CF222E;--shiki-dark:#FF7B72">-></span><span style="color:#0550AE;--shiki-dark:#79C0FF"> Self</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#0550AE;--shiki-dark:#79C0FF">        Self</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> { database_url</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#0A3069;--shiki-dark:#A5D6FF"> "postgres://localhost/shop"</span><span style="color:#CF222E;--shiki-dark:#FF7B72">.</span><span style="color:#8250DF;--shiki-dark:#D2A8FF">to_string</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">() }</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    }</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> struct</span><span style="color:#953800;--shiki-dark:#FFA657"> Database</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">    pub</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> url</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> String</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">,</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">impl</span><span style="color:#953800;--shiki-dark:#FFA657"> Database</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">    pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> fn</span><span style="color:#8250DF;--shiki-dark:#D2A8FF"> connect</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(config</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> Arc</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">&#x3C;</span><span style="color:#953800;--shiki-dark:#FFA657">Config</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">>) </span><span style="color:#CF222E;--shiki-dark:#FF7B72">-></span><span style="color:#0550AE;--shiki-dark:#79C0FF"> Self</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#0550AE;--shiki-dark:#79C0FF">        Self</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> { url</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> config</span><span style="color:#CF222E;--shiki-dark:#FF7B72">.</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">database_url</span><span style="color:#CF222E;--shiki-dark:#FF7B72">.</span><span style="color:#8250DF;--shiki-dark:#D2A8FF">clone</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">() }</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    }</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> struct</span><span style="color:#953800;--shiki-dark:#FFA657"> UserService</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    db</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> Arc</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">&#x3C;</span><span style="color:#953800;--shiki-dark:#FFA657">Database</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">>,</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">impl</span><span style="color:#953800;--shiki-dark:#FFA657"> UserService</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">    pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> fn</span><span style="color:#8250DF;--shiki-dark:#D2A8FF"> new</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(db</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> Arc</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">&#x3C;</span><span style="color:#953800;--shiki-dark:#FFA657">Database</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">>) </span><span style="color:#CF222E;--shiki-dark:#FF7B72">-></span><span style="color:#0550AE;--shiki-dark:#79C0FF"> Self</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#0550AE;--shiki-dark:#79C0FF">        Self</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> { db }</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    }</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6E7781;--shiki-dark:#8B949E">// 2. The container declares the dependency graph in one place:</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">#[container]</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> struct</span><span style="color:#953800;--shiki-dark:#FFA657"> AppContainer</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#6E7781;--shiki-dark:#8B949E">    // Leaf singleton: calls Config::new()</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    #[singleton]</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    config</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> Arc</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">&#x3C;</span><span style="color:#953800;--shiki-dark:#FFA657">Config</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">>,</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6E7781;--shiki-dark:#8B949E">    // Named constructor: calls Database::connect(config)</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    #[singleton(deps </span><span style="color:#CF222E;--shiki-dark:#FF7B72">=</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> [config], build </span><span style="color:#CF222E;--shiki-dark:#FF7B72">=</span><span style="color:#8250DF;--shiki-dark:#D2A8FF"> constructor</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(connect))]</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    db</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> Arc</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">&#x3C;</span><span style="color:#953800;--shiki-dark:#FFA657">Database</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">>,</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6E7781;--shiki-dark:#8B949E">    // Calls UserService::new(db)</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    #[singleton(deps </span><span style="color:#CF222E;--shiki-dark:#FF7B72">=</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> [db])]</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    users</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> Arc</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">&#x3C;</span><span style="color:#953800;--shiki-dark:#FFA657">UserService</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">>,</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6E7781;--shiki-dark:#8B949E">// 3. Build once, then use the typed getters:</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">fn</span><span style="color:#8250DF;--shiki-dark:#D2A8FF"> main</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">() {</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">    let</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> container </span><span style="color:#CF222E;--shiki-dark:#FF7B72">=</span><span style="color:#953800;--shiki-dark:#FFA657"> AppContainer</span><span style="color:#CF222E;--shiki-dark:#FF7B72">::</span><span style="color:#8250DF;--shiki-dark:#D2A8FF">new</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">();</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">    let</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> users </span><span style="color:#CF222E;--shiki-dark:#FF7B72">=</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> container</span><span style="color:#CF222E;--shiki-dark:#FF7B72">.</span><span style="color:#8250DF;--shiki-dark:#D2A8FF">get_users</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">();</span></span>
+<span class="line"><span style="color:#8250DF;--shiki-dark:#D2A8FF">    assert!</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(</span><span style="color:#953800;--shiki-dark:#FFA657">Arc</span><span style="color:#CF222E;--shiki-dark:#FF7B72">::</span><span style="color:#8250DF;--shiki-dark:#D2A8FF">ptr_eq</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(</span><span style="color:#CF222E;--shiki-dark:#FF7B72">&#x26;</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">container</span><span style="color:#CF222E;--shiki-dark:#FF7B72">.</span><span style="color:#8250DF;--shiki-dark:#D2A8FF">get_db</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(), </span><span style="color:#CF222E;--shiki-dark:#FF7B72">&#x26;</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">users</span><span style="color:#CF222E;--shiki-dark:#FF7B72">.</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">db));</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">}</span></span></code></pre>
+<hr>
+<h2 id="what-010-supports">What 0.1.0 Supports</h2>
+<ul>
+<li><strong>Plain domain types:</strong> services, repositories and controllers need no macros or framework traits.</li>
+<li><strong>Compile-time graph checks:</strong> unknown dependencies and cycles, such as <code>service_a</code> depending on <code>service_b</code> which depends on <code>service_a</code>, fail <code>cargo build</code>, each reported at its field and all of them in one compile. Fields are visited in the order they are declared, and the fields each one needs are built before it.</li>
+<li><strong>Typed getters:</strong> <code>get_&#x3C;name>()</code> returns the declared type with no <code>dyn Any</code> and no forced <code>Arc&#x3C;T></code> (any <code>T: Clone</code> works).</li>
+<li><strong>Named edges:</strong> two dependencies of the same type (<code>read_db</code> and <code>write_db</code>) are wired by field name, without wrapper newtypes.</li>
+<li><strong>Named constructors:</strong> <code>build = constructor(connect)</code> calls <code>Type::connect(...)</code> instead of <code>Type::new(...)</code>.</li>
+<li><strong>Defaults:</strong> <code>build = default</code> calls <code>Default::default()</code> for a type that only implements <code>Default</code>, and <code>#[container(leaf_build = default)]</code> does it for every field without <code>deps</code> or a <code>build</code> of its own.</li>
+<li><strong>Factories:</strong> <code>build = factory</code> has the container call a <code>build_&#x3C;name></code> method you write in the generated <code>&#x3C;Container>Factories</code> trait, which receives the field's <code>deps</code> by name in one struct; it builds trait-object fields and anything a plain constructor cannot.</li>
+<li><strong>Builders:</strong> <code>build = builder</code> calls <code>Type::builder()</code>, passes each of the field's <code>deps</code> to the setter of its name, and finishes with <code>.build()</code>. A label, <code>deps = [disk = folder_files]</code>, passes a dependency to a setter with another name, and <code>build = builder(start = draft, finish = publish)</code> names other functions. Any builder works, written by hand or generated by a crate such as <code>bon</code> or <code>typed-builder</code>; with a typestate builder, a missing setter is a compile error too.</li>
+</ul>
+<hr>
+<h2 id="minimum-supported-rust-version-msrv">Minimum Supported Rust Version (MSRV)</h2>
+<p>This crate requires <strong>Rust 1.85.0</strong> or higher (Rust 2024 edition), which CI checks.</p>
+<hr>
+<h2 id="license">License</h2>
+<p>Dual-licensed under either of:</p>
+<ul>
+<li>Apache License, Version 2.0 (<a href="https://github.com/marlon-sousa/snapfit-rs/blob/main/LICENSE-APACHE">LICENSE-APACHE</a> or <a href="https://www.apache.org/licenses/LICENSE-2.0">https://www.apache.org/licenses/LICENSE-2.0</a>)</li>
+<li>MIT license (<a href="https://github.com/marlon-sousa/snapfit-rs/blob/main/LICENSE-MIT">LICENSE-MIT</a> or <a href="https://opensource.org/licenses/MIT">https://opensource.org/licenses/MIT</a>)</li>
+</ul>
+<p>at your option.</p></article></main><footer class="site-footer"><div class="site-footer__inner"><p><a href="/snapfit-rs/">snapfit</a> is a zero-cost, compile-time verified, pure-Rust dependency injection framework. Read <a href="/snapfit-rs/book/v0.1.0/">The Snapfit Book (v0.1.0)</a> or browse <a href="/snapfit-rs/releases/">all releases</a>.</p><p>For agents: <a href="/snapfit-rs/book/v0.1.0/llms.txt">llms.txt</a>, and <a href="/snapfit-rs/index.md">this page in Markdown</a>.</p><p><a href="https://github.com/marlon-sousa/snapfit-rs">Source on GitHub</a>, licensed under <a href="https://github.com/marlon-sousa/snapfit-rs/blob/v0.1.0/LICENSE-APACHE">Apache 2.0</a> or <a href="https://github.com/marlon-sousa/snapfit-rs/blob/v0.1.0/LICENSE-MIT">MIT</a>.</p></div></footer><script type="module" src="/snapfit-rs/_astro/Base.astro_astro_type_script_index_0_lang.Doi2bAkh.js"></script></body></html>

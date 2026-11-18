@@ -1,0 +1,8 @@
+[
+  {
+    "version": "v0.1.0",
+    "date": "2026-11-18",
+    "summary": "Compile-time verified dependency injection with pure-Rust domain types: singletons wired by name, each built with its constructor, Default, a factory or its type's builder, and unknown dependencies and cycles reported at compile time.",
+    "prerelease": false
+  }
+]
