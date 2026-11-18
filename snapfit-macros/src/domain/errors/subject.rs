@@ -28,6 +28,7 @@ impl DomainError {
             | Self::TraitObjectWithoutFactory { dependency }
             | Self::InvalidBuilderSetting { dependency, .. }
             | Self::LabelWithoutBuilder { dependency, .. }
+            | Self::RepeatedPrerequisite { dependency, .. }
             | Self::DuplicateSetter { dependency, .. } => Some(dependency),
             Self::RequiresUnstable { feature } | Self::NotYetImplemented { feature } => {
                 feature.dependency()

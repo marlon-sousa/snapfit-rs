@@ -108,6 +108,22 @@ Feature: Container Dependency Resolution
     And the error should point at line 17 of the fixture
     And the error should point at line 20 of the fixture
 
+  @v0_1_0 @regression
+  Scenario: Each field listed more than once in deps is refused once
+    Given an invalid container fixture "repeated_deps"
+    When the fixture is compiled
+    Then compilation should fail with "field 'cache' lists 'config' in deps more than once; list each dependency once"
+    And compilation should fail with "field 'cache' lists 'store' in deps more than once; list each dependency once"
+    And the compiler should report 2 errors
+    And the error should point at line 16 of the fixture
+
+  @v0_1_0 @regression
+  Scenario: deps written in parentheses is refused, saying to write square brackets
+    Given an invalid container fixture "parenthesised_deps"
+    When the fixture is compiled
+    Then compilation should fail with "field 'mailer': 'deps(config)' writes its fields in parentheses; write them in square brackets: deps = [config]"
+    And the error should point at line 12 of the fixture
+
   @v0_1_0
   Scenario Outline: APIs that are not stable in 0.1.0 require the unstable feature
     Given an invalid container fixture "<fixture>"

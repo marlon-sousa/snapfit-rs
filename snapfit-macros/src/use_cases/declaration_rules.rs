@@ -1,6 +1,5 @@
 //! Policy: what a declaration may not combine, whichever build of snapfit runs.
 
-use std::collections::HashSet;
 use std::iter;
 
 use crate::domain::{
@@ -8,13 +7,17 @@ use crate::domain::{
     DomainError, Prerequisite, SetterName,
 };
 
+mod repeats;
 #[cfg(test)]
 mod tests;
+
+use repeats::{Repeats, repeats};
 
 /// Every rule a dependency breaks: a transient is read through a synchronous
 /// getter, so it cannot be awaited; `Default::default()` takes no
 /// prerequisites and cannot be awaited; only a builder has setters for a
-/// label to name, and each setter takes one dependency.
+/// label to name, and each setter takes one dependency; and no field is
+/// passed twice to the same setter.
 pub(crate) fn rule_violations<C, F>(container: &ContainerDeclaration<C, F>) -> Vec<DomainError> {
     container
         .dependencies
@@ -44,8 +47,30 @@ fn violations_of<F>(dependency: &DependencyDeclaration<F>) -> Vec<DomainError> {
     [async_transient, default_with_dependencies, async_default]
         .into_iter()
         .flatten()
+        .chain(repeated_prerequisites(dependency))
         .chain(setter_violations(dependency))
         .collect()
+}
+
+fn repeated_prerequisites<F>(dependency: &DependencyDeclaration<F>) -> Vec<DomainError> {
+    iter::repeat(&dependency.name)
+        .zip(uses(&dependency.prerequisites).repeated)
+        .map(repeated_prerequisite)
+        .collect()
+}
+
+/// Each prerequisite as the field it passes and the setter that takes it.
+fn uses(prerequisites: &[Prerequisite]) -> Repeats<(&DependencyName, SetterName)> {
+    repeats(prerequisites.iter().map(field_and_setter))
+}
+
+fn repeated_prerequisite(
+    (dependency, (prerequisite, _)): (&DependencyName, (&DependencyName, SetterName)),
+) -> DomainError {
+    DomainError::RepeatedPrerequisite {
+        dependency: dependency.clone(),
+        prerequisite: prerequisite.clone(),
+    }
 }
 
 fn setter_violations<F>(dependency: &DependencyDeclaration<F>) -> Vec<DomainError> {
@@ -62,31 +87,19 @@ fn setter_violations<F>(dependency: &DependencyDeclaration<F>) -> Vec<DomainErro
     }
 }
 
-/// Each setter more than one prerequisite is passed to, once, in the order
-/// its second use comes.
+/// Each setter more than one field is passed to, once, in the order its
+/// second use comes. A field passed twice to the same setter is reported as
+/// a repeated prerequisite, not as a second use of its setter.
 fn repeated_setters(prerequisites: &[Prerequisite]) -> Vec<SetterName> {
-    prerequisites
-        .iter()
-        .map(Prerequisite::setter)
-        .fold(Setters::default(), Setters::with)
-        .repeated
+    repeats(uses(prerequisites).distinct.into_iter().map(setter_of)).repeated
 }
 
-/// The setters of a builder chain read so far.
-#[derive(Default)]
-struct Setters {
-    seen: HashSet<SetterName>,
-    repeated: Vec<SetterName>,
+fn field_and_setter(prerequisite: &Prerequisite) -> (&DependencyName, SetterName) {
+    (&prerequisite.field, prerequisite.setter())
 }
 
-impl Setters {
-    fn with(mut self, setter: SetterName) -> Self {
-        let is_repeat = !self.seen.insert(setter.clone());
-        if is_repeat && !self.repeated.contains(&setter) {
-            self.repeated.push(setter);
-        }
-        self
-    }
+fn setter_of((_, setter): (&DependencyName, SetterName)) -> SetterName {
+    setter
 }
 
 fn duplicate_setter((dependency, setter): (&DependencyName, SetterName)) -> DomainError {
