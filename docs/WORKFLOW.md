@@ -185,7 +185,7 @@ crates.io's trusted publishing lets the workflow publish without a token, but it
 
 Every change starts as an issue, and is agreed there before any code is written: building the wrong thing is the expensive mistake, and the issue is the cheapest place to find it. The issues are also the record of every decision taken about snapfit, what it does and how it is built and released, so that a decision can be found again by its kind.
 
-The one exception is a change whose commits, merges aside, are all `test` commits and that changes no `Cargo.toml`. It changes neither what snapfit does nor how its code is organised or released, so it holds no decision of its own: what it checks was agreed already. A change that adds or changes a dependency, even one used only by tests, holds a decision, such as which crate and at which version, so it needs an `architecture` issue.
+The one exception is a change whose commits, merges aside, are all `test` commits. It changes neither what snapfit does nor how its code is organised or released, so it holds no decision of its own: what it checks was agreed already. A test that needs a new dependency, even one used only by tests, is not that exception: choosing a crate is an `architecture` decision, which starts from its issue. The pull request workflow asks for an issue whenever a `Cargo.toml` changes.
 
 * **A feature** says what is wanted and why, and what it must not break, such as a generated name. It can be short; the details are worked out in the issue.
 * **A bug** says what happened, what was expected, and the smallest container that shows it.
