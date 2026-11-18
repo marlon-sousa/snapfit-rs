@@ -82,7 +82,7 @@ pub(crate) enum DomainError {
     },
 
     #[error(
-        "build \"{written}\" on field '{dependency}' must be written without quotes, such as build = factory"
+        "build \"{written}\" on field '{dependency}' must be written without quotes: build = {written}"
     )]
     QuotedBuild {
         dependency: DependencyName,
@@ -103,7 +103,7 @@ pub(crate) enum DomainError {
     ConstructorWithoutName { dependency: DependencyName },
 
     #[error(
-        "leaf_build = {written} cannot build the container's fields that have no deps; write leaf_build = default, or leaf_build = constructor(open) to call a function of that name"
+        "leaf_build = {written} cannot build the container's fields that have no deps; write leaf_build = default, or leaf_build = constructor with the function's name in brackets, such as leaf_build = constructor(open)"
     )]
     InvalidLeafBuild { written: String },
 
@@ -137,7 +137,13 @@ pub(crate) enum DomainError {
     AsyncTransient { dependency: DependencyName },
 
     #[error(
-        "field '{dependency}' has a trait-object type, which has no constructor; add build = factory to the field and build it in the build_{dependency} method of the container's factories trait"
+        "async dependency '{dependency}' cannot be built with build = default, because Default::default() cannot be awaited"
+    )]
+    AsyncDefault { dependency: DependencyName },
+
+    #[error(
+        "field '{dependency}' has a trait-object type, which has no constructor; add build = factory to the field and build it in the build_{} method of the container's factories trait",
+        .dependency.without_raw_prefix()
     )]
     TraitObjectWithoutFactory { dependency: DependencyName },
 
@@ -171,6 +177,7 @@ impl DomainError {
             | Self::NotAFunctionName { dependency, .. }
             | Self::AsyncDependencyInSyncContainer { dependency }
             | Self::AsyncTransient { dependency }
+            | Self::AsyncDefault { dependency }
             | Self::TraitObjectWithoutFactory { dependency } => Some(dependency),
             Self::RequiresUnstable { feature } | Self::NotYetImplemented { feature } => {
                 feature.dependency()

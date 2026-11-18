@@ -9,7 +9,7 @@ mod tests;
 
 /// Every rule a dependency breaks: a transient is read through a synchronous
 /// getter, so it cannot be awaited, and `Default::default()` takes no
-/// prerequisites.
+/// prerequisites and cannot be awaited.
 pub(crate) fn rule_violations<C, F>(container: &ContainerDeclaration<C, F>) -> Vec<DomainError> {
     container
         .dependencies
@@ -32,7 +32,11 @@ fn violations_of<F>(dependency: &DependencyDeclaration<F>) -> Vec<DomainError> {
                 dependency: name.clone(),
             }
         });
-    [async_transient, default_with_dependencies]
+    let async_default =
+        (is_default && dependency.execution.is_async()).then(|| DomainError::AsyncDefault {
+            dependency: name.clone(),
+        });
+    [async_transient, default_with_dependencies, async_default]
         .into_iter()
         .flatten()
         .collect()

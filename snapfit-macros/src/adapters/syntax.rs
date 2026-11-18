@@ -9,6 +9,8 @@ pub(crate) struct ContainerSyntax {
     pub(crate) ident: syn::Ident,
     pub(crate) vis: syn::Visibility,
     pub(crate) attrs: Vec<syn::Attribute>,
+    /// The function of `leaf_build = constructor(...)` as the user wrote it.
+    pub(crate) leaf_constructor: Option<syn::Ident>,
 }
 
 /// One field, without snapfit's own attributes.
@@ -18,8 +20,7 @@ pub(crate) struct FieldSyntax {
     pub(crate) ty: syn::Type,
     /// `T` when the field's type is `Arc<T>`, otherwise the field's type.
     pub(crate) arc_inner: syn::Type,
-    /// The function of `build = constructor(...)` as the user wrote it, with
-    /// its span, so that an editor completing inside the attribute sees it.
+    /// The function of `build = constructor(...)` as the user wrote it.
     pub(crate) constructor: Option<syn::Ident>,
     pub(crate) vis: syn::Visibility,
     pub(crate) attrs: Vec<syn::Attribute>,

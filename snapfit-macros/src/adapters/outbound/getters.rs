@@ -14,7 +14,7 @@ mod tests;
 pub(super) fn emit_getters_impl(plan: &Plan) -> TokenStream {
     let container_ident = &plan.syntax.ident;
     let site = Site {
-        container: container_ident,
+        container: &plan.syntax,
         source: ValueSource::SelfFields,
     };
     let getters = plan

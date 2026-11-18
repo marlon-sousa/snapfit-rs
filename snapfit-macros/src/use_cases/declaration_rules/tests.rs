@@ -51,3 +51,17 @@ fn default_is_refused_with_deps_and_accepted_without() {
         }]
     );
 }
+
+#[test]
+fn default_on_an_async_dependency_is_refused() {
+    let mut rates = dependency("rates", &[]);
+    rates.construction = Some(Construction::Constructor(Constructor::Default));
+    rates.execution = Execution::Async;
+
+    assert_eq!(
+        rule_violations(&container(vec![rates])),
+        [DomainError::AsyncDefault {
+            dependency: DependencyName::new("rates").unwrap()
+        }]
+    );
+}

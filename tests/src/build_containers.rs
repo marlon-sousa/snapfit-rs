@@ -88,3 +88,40 @@ pub mod leaves {
         invoicer: Arc<Invoicer>,
     }
 }
+
+/// Leaves opened by a constructor the container names once, beside a leaf
+/// whose own `build` wins.
+pub mod archive {
+    use snapfit::container;
+
+    #[derive(Clone)]
+    pub struct Shelf {
+        pub opened_by: &'static str,
+    }
+
+    impl Shelf {
+        pub fn open() -> Self {
+            Self { opened_by: "open" }
+        }
+    }
+
+    impl Default for Shelf {
+        fn default() -> Self {
+            Self {
+                opened_by: "default",
+            }
+        }
+    }
+
+    #[container(leaf_build = constructor(open))]
+    pub struct Archive {
+        #[singleton]
+        books: Shelf,
+
+        #[singleton]
+        maps: Shelf,
+
+        #[singleton(build = default)]
+        spare: Shelf,
+    }
+}

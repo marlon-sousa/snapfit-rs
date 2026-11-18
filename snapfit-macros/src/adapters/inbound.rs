@@ -25,37 +25,55 @@ pub(crate) fn parse_attribute(
     item: &syn::ItemStruct,
 ) -> Result<Declaration, DomainErrors> {
     let header = container_meta(args, &item.attrs)
-        .and_then(|meta| container_header(item, meta))
-        .map_err(DomainErrors::from);
+        .map_err(DomainErrors::from)
+        .and_then(|meta| container_header(item, meta));
     let (mut container, dependencies) = DomainErrors::both(header, parse_fields(&item.fields))?;
     container.dependencies = dependencies;
     Ok(container)
 }
 
+/// The container's name and settings, or every setting that cannot be read.
 fn container_header(
     item: &syn::ItemStruct,
     meta: ContainerAttrMeta,
-) -> Result<Declaration, DomainError> {
-    let name = ContainerName::new(item.ident.to_string())?;
-    let mut container = ContainerDeclaration::new(name, container_syntax(item));
-    container.type_parameters = type_parameters(&item.generics);
-    container.mode = meta.mode.as_deref().map(execution_of).transpose()?;
-    container.parent = meta
+) -> Result<Declaration, DomainErrors> {
+    let name = ContainerName::new(item.ident.to_string()).map_err(DomainErrors::from);
+    let mode = meta
+        .mode
+        .as_deref()
+        .map(execution_of)
+        .transpose()
+        .map_err(DomainErrors::from);
+    let parent = meta
         .parent
         .map(|parent| TypeName::new(parent.0))
-        .transpose()?;
+        .transpose()
+        .map_err(DomainErrors::from);
+    let leaf = build_setting::leaf_constructor(meta.leaf_build).map_err(DomainErrors::from);
+    let ((name, mode), (parent, (leaf_constructor, leaf_ident))) = DomainErrors::both(
+        DomainErrors::both(name, mode),
+        DomainErrors::both(parent, leaf),
+    )?;
+    let mut container = ContainerDeclaration::new(name, container_syntax(item, leaf_ident));
+    container.type_parameters = type_parameters(&item.generics);
+    container.mode = mode;
+    container.parent = parent;
     container.introspection = if meta.introspection {
         Introspection::On
     } else {
         Introspection::Off
     };
-    container.leaf_constructor = build_setting::leaf_constructor(meta.leaf_build)?;
+    container.leaf_constructor = leaf_constructor;
     Ok(container)
 }
 
-fn container_syntax(item: &syn::ItemStruct) -> ContainerSyntax {
+fn container_syntax(
+    item: &syn::ItemStruct,
+    leaf_constructor: Option<syn::Ident>,
+) -> ContainerSyntax {
     ContainerSyntax {
         ident: item.ident.clone(),
+        leaf_constructor,
         vis: item.vis.clone(),
         attrs: item
             .attrs

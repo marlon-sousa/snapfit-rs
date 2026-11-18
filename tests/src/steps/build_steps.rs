@@ -87,3 +87,17 @@ fn then_leaves_built_by_default(world: &mut ContainerWorld) {
     ));
     let _clock = billing.get_clock();
 }
+
+#[when("the archive container whose leaf_build is constructor(open) is instantiated")]
+fn when_archive_instantiated(world: &mut ContainerWorld) {
+    world.built.instantiate_archive();
+}
+
+#[then("its leaves should be opened by open, and its leaf that says build = default should not be")]
+fn then_leaves_opened_by_open(world: &mut ContainerWorld) {
+    let archive = world.built.archive();
+
+    assert_eq!(archive.get_books().opened_by, "open");
+    assert_eq!(archive.get_maps().opened_by, "open");
+    assert_eq!(archive.get_spare().opened_by, "default");
+}

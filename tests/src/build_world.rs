@@ -1,12 +1,13 @@
 //! The containers whose fields say how they are built, kept apart from the rest of the world.
 
-use crate::build_containers::{leaves, named};
+use crate::build_containers::{archive, leaves, named};
 use crate::factory_containers::{orders, payments};
 
 #[derive(Default)]
 pub struct BuildContainers {
     books: Option<named::Books>,
     billing: Option<leaves::Billing>,
+    archive: Option<archive::Archive>,
     shop: Option<orders::Shop>,
     store: Option<payments::Store>,
 }
@@ -14,6 +15,16 @@ pub struct BuildContainers {
 impl BuildContainers {
     pub fn instantiate_books(&mut self) {
         self.books = Some(named::Books::new());
+    }
+
+    pub fn instantiate_archive(&mut self) {
+        self.archive = Some(archive::Archive::new());
+    }
+
+    pub fn archive(&self) -> &archive::Archive {
+        self.archive
+            .as_ref()
+            .expect("the Archive container must be instantiated before Then assertions")
     }
 
     pub fn instantiate_billing(&mut self) {

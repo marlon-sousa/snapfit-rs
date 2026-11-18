@@ -94,7 +94,8 @@ pub(crate) struct DependencyDeclaration<F> {
     pub(crate) construction: Option<Construction>,
     #[new(default)]
     pub(crate) shape: TypeShape,
-    /// Siblings passed to the constructor or builder, in order.
+    /// The siblings the field is built from: passed to a constructor in order,
+    /// and by name to a factory.
     #[new(default)]
     pub(crate) prerequisites: Vec<DependencyName>,
     /// `parent(name)` entries of `deps`, which name a parent container's dependency.

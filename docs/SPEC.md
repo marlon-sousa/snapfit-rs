@@ -72,6 +72,7 @@ These are compile errors that point at the offending field or container, instead
 * **Trait-object fields** (`Arc<dyn PaymentGateway>`) without `build = factory`: a trait object has no constructor to call. The error, the same on both builds, tells the user to build the field with a factory (§5.B), whatever wrapper held the trait object. Holding the concrete type (`Arc<StripeGateway>`) still works, and a constructor that takes `Arc<dyn PaymentGateway>` accepts that field, because Rust converts the `Arc` where the generated code passes it. `#[dispatch(...)]` is another way once implemented.
 * **`build` values that are not a way of building** (§5), and **`constructor(...)` values that are not a plain function name** (`"connect()"`, `Db::connect`).
 * **`build = default` with `deps`**: `Default::default()` takes nothing, so the field's `deps` would never be passed.
+* **`build = default` on an async dependency** (unstable): `Default::default()` cannot be awaited.
 * **`build = factory` on an async dependency** (unstable): planned, refused as not implemented yet, because a factory that awaits needs an async trait method, designed with `#[async_container]` ([#37](https://github.com/marlon-sousa/snapfit-rs/issues/37)).
 
 ---
@@ -149,7 +150,7 @@ The settings are the arguments of the one `#[container(...)]` that declares the 
 | **`#[singleton(deps = [a, b])]`** | **Singleton (With Dependencies)** | Stored in container struct. Created at boot passing dependencies in order. |
 | **`#[transient]`** | **Transient** | **Stripped from struct memory storage.** Reconstructed on each `get_<name>()`. |
 | **`#[transient(deps = [a])]`** | **Transient (With Dependencies)** | **Stripped from struct memory storage.** Reconstructed on each `get_<name>()` passing `a`. |
-| **`#[singleton(deps = [...], build = ...)]`** | **Singleton (Built Another Way)** | Stored in container struct. Built once at boot by `Default::default()`, a named constructor, a factory or a builder (§5). |
+| **`#[singleton(deps = [...], build = ...)]`** | **Singleton (Built Another Way)** | Stored in container struct. Built once at boot by `Default::default()`, a named constructor, a factory, or a builder once implemented (§5). |
 | **`#[singleton(deps = [...], build = factory)]`** | **Factory** | Stored in container struct. Built once at boot by the user's `build_<name>` method of the generated `<ContainerName>Factories` trait. |
 | **`#[dispatch(ImplA, ImplB)]`** | **Static Trait (Planned)** | Auto-generates `enum_dispatch` and **rewrites the struct field type** to the enum. |
 | **`#[external]`** | **External Input (Planned)** | Passed as a parameter to `new(...)` / `init(...)` and exposed as a wireable leaf node in the DAG. |
@@ -213,9 +214,9 @@ Each field is built one way, which its `build` setting chooses. The value is a b
 
 `Type` is the field's type, or `T` when the field holds `Arc<T>`, in which case the value is wrapped in `Arc::new`. A word that is none of these, such as `build = factroy`, is refused at the field, naming the ways the build accepts and suggesting `build = constructor(factroy)`. A quoted value, such as `build = "factory"`, is refused with the same value unquoted.
 
-A container can say once how its leaves are built: `#[container(leaf_build = default)]` builds every field that has no `deps` and no `build` of its own as if it said `build = default`, which suits a project whose leaf types all derive `Default`. `leaf_build` takes the values a leaf can take, `default` or `constructor(<fn>)`; leaving it out is `constructor(new)`, the behaviour above. A field's own `build` always wins, a field with `deps` is never affected, and every field still needs its `#[singleton]`. Any other value, such as `leaf_build = factory`, is refused at the container's name.
+A container can say once how its leaves are built: `#[container(leaf_build = default)]` builds every field that has no `deps` and no `build` of its own as if it said `build = default`, which suits a project whose leaf types all derive `Default`. `leaf_build` applies to synchronous fields only, because `Default::default()` and a constructor chosen for the whole container cannot be awaited; an async field keeps its own constructor. `leaf_build` takes the values a leaf can take, `default` or `constructor(<fn>)`; leaving it out is `constructor(new)`, the behaviour above. `leaf_build` only changes the default for leaves, such as from `new` to `default`: a field's own `build` always wins, so a leaf that says `build = constructor(sandbox)` is still built by `sandbox`; a field with `deps` is never affected; and every field still needs its `#[singleton]`. Any other value, such as `leaf_build = factory`, is refused at the container's name.
 
-Where the user names a function, as in `build = constructor(connect)`, the generated code calls it with the user's own token, keeping its position, so that an editor completing or hovering inside the attribute sees the type's real functions.
+Where the user names a function, as in `build = constructor(connect)` or `leaf_build = constructor(open)`, the generated code calls it with the user's own token, keeping its position, so that an editor completing or hovering inside the attribute sees the type's real functions.
 
 ### A. Standard Constructors (`::new`, `default`, `constructor(...)`)
 For standard structs implementing `new(...)`, prerequisites are declared via `deps = [...]` and mapped in sequence:
@@ -299,6 +300,7 @@ Some dependencies need a hand-written way of being built: a constructor whose ar
 * **Inputs by name:** the inputs struct has one `pub` field for each `deps` entry, with that dependency's name and the type of its container field, holding a clone of the singleton, or a fresh value of a transient (unstable). The method always takes the struct, even when the field has no `deps`, so that adding a dependency never changes its signature. The inputs are passed by name, not by position, because Rust does not check parameter names in a trait impl: a method whose two `Arc<Database>` parameters were swapped would compile. With a struct, a misspelt, missing or swapped name is a compile error.
 * **The graph stays in `deps`:** a factory receives only what its `deps` names, so the construction order, the unknown-dependency and the cycle checks of §6 apply to it as to any field.
 * **Visibility:** the trait and the inputs structs have the container's visibility.
+* **One name per inputs struct:** two factory fields whose names give the same PascalCase, such as `db2` and `db_2`, generate the same inputs struct name, which rustc reports as defined twice; rename one of the fields.
 * **Conditional Generation:** if no field of the container says `build = factory`, neither the trait nor any inputs struct is generated.
 * **The compiler checks the rest:** forgetting the `impl`, leaving out a method, or returning the wrong type is rustc's own error about the trait. A missing `impl` is reported at the factory field.
 * **Transients (unstable):** a `#[transient(build = factory)]` field is built by its factory on every `get_<name>()`, which receives `&self`'s singletons as its inputs.
@@ -306,7 +308,7 @@ Some dependencies need a hand-written way of being built: a constructor whose ar
 * **Absolute Zero Domain Pollution:** services, repositories and controllers remain plain Rust with no framework dependencies.
 
 ### C. Builders (`build = builder`, planned)
-Many types are built through a builder, such as the ones `bon` and `typed-builder` generate. `build = builder` calls the type's builder, with one setter for each dependency, so the dependencies are passed by name and their order never matters:
+Many types are built through a builder. No builder crate is required: any type works whose start function returns a value with the named setters and a finish method that returns the type, whether the builder is written by hand or generated by a crate such as `bon` or `typed-builder`. `build = builder` calls the type's builder, with one setter for each dependency, so the dependencies are passed by name and their order never matters:
 
 ```rust
 #[container]
@@ -326,9 +328,9 @@ pub struct Shop {
 * **One setter per dependency:** `deps = [read_db, write_db]` calls `.read_db(...)` and `.write_db(...)`, each with a clone of the singleton, or a fresh transient (unstable).
 * **Labels rename a setter:** `deps = [disk = folder_files]` calls `.disk(...)` with `folder_files`. A label is accepted only with `build = builder`; on any other field it is refused at the field, because a constructor or a factory has no setters to name.
 * **Start and finish:** the chain starts with `Type::builder()` and ends with `.build()`, which must return the value itself. `builder(start = new_builder, finish = done)` names other functions for a builder that uses them.
-* **The compiler checks the rest:** a missing, unknown or misspelt setter is the builder crate's own compile error.
+* **The compiler checks the rest:** an unknown or misspelt setter is rustc's own error. A missing or repeated setter is a compile error only with a typestate builder, such as those `bon` and `typed-builder` generate.
 
-Until this is implemented, `build = builder` is refused as planned, naming the field.
+Until this is implemented, `build = builder` and `build = builder(...)` are refused as planned, naming the field, and its dependency labels and `builder(start, finish)` settings come with it.
 
 ---
 

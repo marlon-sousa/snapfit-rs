@@ -26,6 +26,19 @@ Feature: Choosing how a field is built
     Then its leaves should be built by Default, its mailer by its own constructor, and its invoicer by new
 
   @v0_1_0
+  Scenario: A container's leaf_build can name a constructor for every leaf
+    When the archive container whose leaf_build is constructor(open) is instantiated
+    Then its leaves should be opened by open, and its leaf that says build = default should not be
+
+  @v0_1_0
+  Scenario: A bad leaf_build is reported together with the container's other bad settings
+    Given an invalid container fixture "several_container_settings"
+    When the fixture is compiled
+    Then compilation should fail with "invalid container mode 'threaded': write mode = "sync", or leave mode out"
+    And compilation should fail with "leaf_build = factory cannot build the container's fields that have no deps"
+    And the compiler should report 2 errors
+
+  @v0_1_0
   Scenario Outline: A build setting that cannot be followed is refused at its field
     Given an invalid container fixture "<fixture>"
     When the fixture is compiled
@@ -35,8 +48,11 @@ Feature: Choosing how a field is built
     Examples:
       | fixture            | line | expected_error                                                                                                                                                  |
       | default_with_deps  | 15   | field 'rates' is built with build = default, which takes no dependencies; remove its deps, or build it another way                                              |
-      | invalid_leaf_build | 7    | leaf_build = factory cannot build the container's fields that have no deps; write leaf_build = default, or leaf_build = constructor(open) to call a function of that name |
+      | invalid_leaf_build | 7    | leaf_build = factory cannot build the container's fields that have no deps; write leaf_build = default, or leaf_build = constructor with the function's name in brackets, such as leaf_build = constructor(open) |
       | unknown_build      | 8    | build = factroy on field 'db' is not a way to build a field; write build = default, build = factory, or build = constructor(factroy) to call a function of that name |
+      | quoted_build       | 9    | build "default" on field 'rates' must be written without quotes: build = default |
+      | constructor_without_name | 8 | build = constructor on field 'db' needs the function's name, such as build = constructor(connect) |
+      | not_a_build        | 8    | build = Database :: connect on field 'db' is not a way to build a field; write build = default, build = factory, or build = constructor(connect) |
 
   @v0_1_0
   Scenario: A misspelt input of a factory is a compile error naming the inputs struct

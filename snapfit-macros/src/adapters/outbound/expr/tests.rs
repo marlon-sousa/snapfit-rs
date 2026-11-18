@@ -9,7 +9,7 @@ fn built(item: syn::ItemStruct, name: &str, source: ValueSource) -> String {
     compact(construct(
         step(&plan, name),
         Site {
-            container: &plan.syntax.ident,
+            container: &plan.syntax,
             source,
         },
     ))

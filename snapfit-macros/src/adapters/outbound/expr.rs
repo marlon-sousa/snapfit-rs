@@ -5,7 +5,7 @@ use quote::{format_ident, quote, quote_spanned};
 use syn::ext::IdentExt;
 
 use super::factories::{inputs_ident, method_ident, trait_ident};
-use crate::adapters::syntax::FieldSyntax;
+use crate::adapters::syntax::{ContainerSyntax, FieldSyntax};
 use crate::domain::{Call, Constructor, FunctionName, Step, Wrapping};
 
 #[cfg(test)]
@@ -24,7 +24,7 @@ pub(super) enum ValueSource {
 /// prerequisites are read from.
 #[derive(Debug, Clone, Copy)]
 pub(super) struct Site<'a> {
-    pub(super) container: &'a syn::Ident,
+    pub(super) container: &'a ContainerSyntax,
     pub(super) source: ValueSource,
 }
 
@@ -44,7 +44,7 @@ pub(super) fn construct(step: &Step<FieldSyntax>, site: Site<'_>) -> TokenStream
                 Wrapping::None => &field.ty,
             };
             (
-                constructor_call(target, constructor, field, args),
+                constructor_call(target, constructor, field, site, args),
                 *wrapping,
             )
         }
@@ -85,9 +85,9 @@ fn factory_call(
     args: impl Iterator<Item = TokenStream>,
 ) -> TokenStream {
     let field = &step.syntax.ident;
-    let factories_trait = trait_ident(site.container);
+    let factories_trait = trait_ident(&site.container.ident);
     let method = method_ident(field);
-    let inputs = inputs_ident(site.container, field);
+    let inputs = inputs_ident(&site.container.ident, field);
     let names = step
         .prerequisites
         .iter()
@@ -96,11 +96,13 @@ fn factory_call(
 }
 
 /// `<T>::new(...)`, `<T as Default>::default()`, or `<T>::connect(...)` with
-/// the user's own `connect`.
+/// the user's own `connect`, from the field's `build` or the container's
+/// `leaf_build`.
 fn constructor_call(
     target: &syn::Type,
     constructor: &Constructor,
     field: &FieldSyntax,
+    site: Site<'_>,
     args: impl Iterator<Item = TokenStream>,
 ) -> TokenStream {
     match constructor {
@@ -109,7 +111,9 @@ fn constructor_call(
         Constructor::Named(function) => {
             let function = field
                 .constructor
-                .clone()
+                .as_ref()
+                .or(site.container.leaf_constructor.as_ref())
+                .cloned()
                 .unwrap_or_else(|| function_ident(function));
             quote!(<#target>::#function(#(#args),*))
         }

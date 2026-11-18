@@ -18,6 +18,7 @@ pub(super) fn field_construction(
     match build {
         None => Ok((None, None)),
         Some(BuildMeta::Word(word)) => mode(dependency, &word).map(without_name),
+        Some(BuildMeta::Builder) => Ok(without_name(Construction::Builder)),
         Some(BuildMeta::Constructor(function)) => {
             function_name(dependency, function).map(named_constructor)
         }
@@ -87,12 +88,15 @@ fn function_name(
 
 /// How `leaf_build = ...` builds a field with no `deps` and no `build` of its
 /// own: `default`, or `constructor(...)`; leaving it out means `new`.
-pub(super) fn leaf_constructor(leaf_build: Option<BuildMeta>) -> Result<Constructor, DomainError> {
+/// The constructor's name comes back as the user wrote it, when there is one.
+pub(super) fn leaf_constructor(
+    leaf_build: Option<BuildMeta>,
+) -> Result<(Constructor, Option<syn::Ident>), DomainError> {
     match leaf_build {
-        None => Ok(Constructor::New),
-        Some(BuildMeta::Word(word)) if word == "default" => Ok(Constructor::Default),
+        None => Ok((Constructor::New, None)),
+        Some(BuildMeta::Word(word)) if word == "default" => Ok((Constructor::Default, None)),
         Some(BuildMeta::Constructor(FunctionNameMeta::Bare(ident))) => {
-            FunctionName::new(ident.to_string()).map(Constructor::Named)
+            FunctionName::new(ident.to_string()).map(|name| (Constructor::Named(name), Some(ident)))
         }
         Some(other) => Err(DomainError::InvalidLeafBuild {
             written: written(&other),
@@ -104,6 +108,7 @@ pub(super) fn leaf_constructor(leaf_build: Option<BuildMeta>) -> Result<Construc
 fn written(build: &BuildMeta) -> String {
     match build {
         BuildMeta::Word(word) => word.to_string(),
+        BuildMeta::Builder => "builder(...)".to_string(),
         BuildMeta::Constructor(function) => format!("constructor({})", written_function(function)),
         BuildMeta::Quoted(text) => format!("\"{text}\""),
         BuildMeta::Invalid(text) => text.clone(),

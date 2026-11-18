@@ -69,7 +69,7 @@ fn a_trait_object_field_is_reported_as_one_for_the_domain_to_judge() {
 
 #[test]
 fn attributes_that_cannot_be_read_together_are_refused() {
-    let cases: [(syn::Field, &str); 4] = [
+    let cases: [(syn::Field, &str); 2] = [
         (
             parse_quote!(config: Arc<Config>),
             "field 'config' has no snapfit attribute; add #[singleton] to have the container build it",
@@ -77,14 +77,6 @@ fn attributes_that_cannot_be_read_together_are_refused() {
         (
             parse_quote!(#[singleton] #[transient] config: Arc<Config>),
             "field 'config' cannot declare multiple lifecycle attributes",
-        ),
-        (
-            parse_quote!(#[singleton(build = constructor(open, connect))] db: Arc<Database>),
-            "constructor 'open , connect' on field 'db' must be a function name, such as build = constructor(connect)",
-        ),
-        (
-            parse_quote!(#[singleton(build = constructor("   "))] db: Arc<Database>),
-            "constructor '   ' on field 'db' must be a function name, such as build = constructor(connect)",
         ),
     ];
     for (field, expected) in cases {

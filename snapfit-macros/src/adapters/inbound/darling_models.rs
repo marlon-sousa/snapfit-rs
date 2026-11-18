@@ -70,12 +70,13 @@ pub(super) struct DependencyAttrMeta {
     pub(super) build: Option<BuildMeta>,
 }
 
-/// The value of `build = ...` as the user wrote it: a bare word, or
-/// `constructor(...)`. The field parser turns every other shape into an
-/// error that names the field.
+/// The value of `build = ...` or `leaf_build = ...` as the user wrote it: a
+/// bare word, `constructor(...)` or `builder(...)`, whose arguments the
+/// builder reads. Every other shape is turned into an error when it is read.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum BuildMeta {
     Word(syn::Ident),
+    Builder,
     Constructor(FunctionNameMeta),
     Quoted(String),
     Invalid(String),
@@ -88,9 +89,10 @@ impl FromMeta for BuildMeta {
                 || Self::Invalid(quote!(#path).to_string()),
                 |ident| Self::Word(ident.clone()),
             ),
-            syn::Expr::Call(call) if is_constructor(&call.func) => {
+            syn::Expr::Call(call) if is_named(&call.func, "constructor") => {
                 Self::Constructor(FunctionNameMeta::from_arguments(&call.args))
             }
+            syn::Expr::Call(call) if is_named(&call.func, "builder") => Self::Builder,
             syn::Expr::Lit(syn::ExprLit {
                 lit: syn::Lit::Str(text),
                 ..
@@ -100,13 +102,12 @@ impl FromMeta for BuildMeta {
     }
 }
 
-fn is_constructor(func: &syn::Expr) -> bool {
-    matches!(func, syn::Expr::Path(path) if path.path.is_ident("constructor"))
+fn is_named(func: &syn::Expr, name: &str) -> bool {
+    matches!(func, syn::Expr::Path(path) if path.path.is_ident(name))
 }
 
-/// The argument of `constructor(...)`, kept with its span so that the
-/// generated call points back at it. Only one bare function name
-/// (`constructor(connect)`) is accepted.
+/// The argument of `constructor(...)`, with its span. Only one bare function
+/// name (`constructor(connect)`) is accepted.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum FunctionNameMeta {
     Bare(syn::Ident),
@@ -116,8 +117,8 @@ pub(super) enum FunctionNameMeta {
 
 impl FunctionNameMeta {
     fn from_arguments(args: &Punctuated<syn::Expr, Token![,]>) -> Self {
-        match args.iter().collect::<Vec<_>>().as_slice() {
-            [argument] => Self::from_argument(argument),
+        match (args.first(), args.len()) {
+            (Some(argument), 1) => Self::from_argument(argument),
             _ => Self::Invalid(quote!(#args).to_string()),
         }
     }

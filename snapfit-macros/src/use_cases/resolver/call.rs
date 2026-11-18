@@ -35,9 +35,11 @@ pub(super) fn call_for<F>(
 }
 
 /// The field's own `build`; without one, the container's `leaf_build` for a
-/// field with no `deps`, and the type's own `new` for any other.
+/// synchronous field with no `deps`, and the type's own `new` for any other.
 fn construction_of<F>(dependency: &DependencyDeclaration<F>, leaf: &Constructor) -> Construction {
-    let is_leaf = dependency.prerequisites.is_empty() && dependency.parent_prerequisites.is_empty();
+    let is_leaf = dependency.prerequisites.is_empty()
+        && dependency.parent_prerequisites.is_empty()
+        && dependency.execution.is_sync();
     match (&dependency.construction, is_leaf) {
         (Some(construction), _) => construction.clone(),
         (None, true) => Construction::Constructor(leaf.clone()),

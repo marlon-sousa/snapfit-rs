@@ -72,4 +72,9 @@ impl<K: NameKind> Name<K> {
     pub(crate) fn as_str(&self) -> &str {
         &self.text
     }
+
+    /// The name without the `r#` of a raw identifier, as generated names spell it.
+    pub(crate) fn without_raw_prefix(&self) -> &str {
+        self.text.strip_prefix("r#").unwrap_or(&self.text)
+    }
 }

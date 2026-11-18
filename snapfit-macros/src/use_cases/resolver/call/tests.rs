@@ -85,3 +85,14 @@ fn leaf_build_applies_only_to_fields_with_no_deps_and_no_build_of_their_own() {
     );
     assert_eq!(call_for(&own_build, &leaf), Ok(constructor(Wrapping::None)));
 }
+
+#[test]
+fn leaf_build_leaves_an_async_leaf_to_its_own_constructor() {
+    let mut async_leaf = dependency(TypeShape::Value, None);
+    async_leaf.execution = crate::domain::Execution::Async;
+
+    assert_eq!(
+        call_for(&async_leaf, &Constructor::Default),
+        Ok(constructor(Wrapping::None))
+    );
+}

@@ -72,3 +72,21 @@ fn a_container_attribute_after_the_macro_is_a_second_declaration() {
         ["multiple #[container] attributes are not allowed"]
     );
 }
+
+#[test]
+fn every_bad_container_setting_is_reported_with_the_bad_fields() {
+    let input: syn::ItemStruct = parse_quote! {
+        struct Shop {
+            config: Arc<Config>,
+        }
+    };
+
+    let errors = messages(
+        parse_attribute(quote!(mode = "threaded", leaf_build = factory), &input).unwrap_err(),
+    );
+
+    assert_eq!(errors.len(), 3, "{errors:?}");
+    assert!(errors[0].starts_with("invalid container mode 'threaded'"));
+    assert!(errors[1].starts_with("leaf_build = factory cannot build"));
+    assert!(errors[2].starts_with("field 'config' has no snapfit attribute"));
+}

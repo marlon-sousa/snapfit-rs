@@ -26,7 +26,7 @@ If you have used dependency injection before, some questions probably came to mi
 1. **Can a constructor fail?** No. A constructor returns the value, not a `Result`. A component that can't start, such as a database that is down, can only panic, so the program stops at startup.
 2. **Can a constructor wait for something?** No. Constructors are synchronous, so a client that has to be awaited before it is usable can't be a field of the container.
 3. **Can I pass values in?** No. `new()` takes no arguments. A configuration component reads its own settings, for example from environment variables, in its constructor.
-4. **Can a field be a trait object?** No. A field typed `Arc<dyn PaymentGateway>` is refused, because the container has no constructor to call for it. Give the field the concrete type, and let the services take the trait object ([Chapter 10](10-choosing-an-implementation.md)).
+4. **Can a field be a trait object?** Only when you build it yourself, with `build = factory`: the container then calls a function you write. Without one, a field typed `Arc<dyn PaymentGateway>` is refused, because the container has no constructor to call for it. The simplest way is to give the field the concrete type, and let the services take the trait object ([Chapter 10](10-choosing-an-implementation.md)).
 5. **Can a field give me a new value each time?** No. Every component is shared.
 6. **Can a test replace one field of a container?** No. A test that needs different components declares its own container ([Chapter 10](10-choosing-an-implementation.md)).
 7. **Can a container be generic?** No. `struct ShopContainer<T>` is refused.

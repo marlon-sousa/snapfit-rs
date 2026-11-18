@@ -61,7 +61,7 @@ fn emit_async_init_impl(plan: &Plan) -> TokenStream {
 /// Binds every singleton in construction order, then assembles `Self`.
 fn emit_construction_body(plan: &Plan) -> TokenStream {
     let site = Site {
-        container: &plan.syntax.ident,
+        container: &plan.syntax,
         source: ValueSource::Locals,
     };
     let bindings = plan.singletons().map(|step| binding(step, site));
