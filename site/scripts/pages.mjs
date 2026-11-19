@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { base, build, chapters, root } from '../book.config.mjs';
-import { DIST, fileFor, findPages } from './serve.mjs';
+import { DIST, fileFor, findPages, linkTargets } from './serve.mjs';
 
 const problems = [];
 
@@ -72,9 +72,9 @@ for (const { page, file } of pages) {
 			problems.push(`${page} has the relative ${attribute} "${url}"; links in the site are absolute.`);
 			continue;
 		}
-		const target = fileFor(path);
-		if (!target || !existsSync(target)) {
-			problems.push(`${page} links to ${url}, which was not built.`);
+		const target = linkTargets(path, edition, process.env.SNAPFIT_PUBLISHED_PAGES).find((file) => existsSync(file));
+		if (!target) {
+			problems.push(`${page} links to ${url}, which was not built and is not among the pages already published.`);
 		} else if (fragment && target.endsWith('.html') && !idsOf(target).has(fragment)) {
 			problems.push(`${page} links to ${url}, and there is no "${fragment}" on that page.`);
 		}

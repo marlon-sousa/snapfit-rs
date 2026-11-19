@@ -31,10 +31,24 @@ export async function findPages(dir = DIST) {
 	return pages.sort();
 }
 
-export function fileFor(path) {
+export function fileFor(path, folder = DIST) {
 	if (path !== base && !path.startsWith(`${base}/`)) return undefined;
 	const inside = decodeURIComponent(path.slice(base.length)) || '/';
-	return inside.endsWith('/') ? join(DIST, inside, 'index.html') : join(DIST, inside);
+	return inside.endsWith('/') ? join(folder, inside, 'index.html') : join(folder, inside);
+}
+
+/**
+ * The files a link to `path` may lead to: the one in this build, and, for a book edition other than
+ * `edition`, the one in `published`, the site branch's pages, which keep every edition published before.
+ *
+ * @param {string} path
+ * @param {string} edition The path of the edition this build makes, such as `/snapfit-rs/book/v0.1.1/`.
+ * @param {string | undefined} published
+ * @returns {string[]}
+ */
+export function linkTargets(path, edition, published) {
+	const older = published && path.startsWith(`${base}/book/v`) && !path.startsWith(edition);
+	return [fileFor(path), older ? fileFor(path, published) : undefined].filter((file) => file !== undefined);
 }
 
 export async function serve() {

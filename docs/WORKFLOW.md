@@ -139,7 +139,7 @@ Every action a workflow uses is pinned to a commit, with its version in a commen
 * **`.github/workflows/weekly.yml`**, each Monday: the `test` mode on Rust beta, so that a change in the next Rust that breaks snapfit, such as a compiler message a compile-fail fixture checks, is known before it is released.
 * **`.github/workflows/release.yml`**, on a tag `v<version>`: section 9.
 * **`.github/workflows/release-checks.yml`**, on a pull request that changes how releases are made, and called by the release workflow: the release tools and the crates' packages, as section 9 says.
-* **`.github/workflows/site.yml`**, called by the release workflow for a release, or run by hand with a release's version: publishes that release's README front page and book edition onto the `site` branch, as section 8 says.
+* **`.github/workflows/site.yml`**, called by the release workflow for a release, or run by hand with a release's version: publishes that release's README front page and book edition onto the `site` branch, as section 8 says. The README and the book come from the release's tag, and the site's tools and `site/releases.json` from the commit the workflow runs on, so a fix to the tools, run by hand from `main`, can publish the newest release, whose tag holds the old tools. Run for an older release, it would put that release's README on the front page. The page check finds the editions published before on the `site` branch, which it does not build again.
 
 ---
 
