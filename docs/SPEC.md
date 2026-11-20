@@ -18,6 +18,7 @@ This document describes the full design. Only part of it ships as a stable API i
 | Builders: `build = builder`, dependency labels and `builder(start = ..., finish = ...)` | Stable | §5.C |
 | Compile-time missing-dependency and cycle detection | Stable | §6 |
 | `Container` trait, `new()`, `Default` | Stable | §2 |
+| Fallible fields: `fallible = true`, `try_new()`, the `FallibleContainer` trait and `BuildError` | Not in 0.1.0; stable from 0.2.0 | §5.D |
 | Async containers: `mode = "async"`, `#[singleton(async)]`, `init().await` (sequential) | Unstable | §8 |
 | `#[transient]` dependencies | Unstable | §4 |
 | Concurrent async boot (`join!` over independent async singletons) | Planned | §8 |
@@ -40,7 +41,7 @@ snapfit = { version = "0.1", features = ["unstable"] }
 
 These items existed before 0.1.0 but nothing generated or used them, so they were removed rather than shipped as unused public API. Each one comes back with the feature that needs it:
 
-* **`AsyncContainer` trait** (`fn init() -> impl Future<Output = Result<Self, Self::Error>>`): return with stabilised async containers. The generated `init()` currently returns `Box<dyn Error + Send + Sync>`, which cannot satisfy the old `Error: std::error::Error` bound, so the error type must be designed first (ideally naming which dependency failed).
+* **`AsyncContainer` trait**: the removed trait, whose `init()` returned `impl Future<Output = Result<Self, Self::Error>>`, is to return with stabilised async containers, in a new shape. The generated `init()` currently returns `Box<dyn Error + Send + Sync>`, which cannot satisfy the old `Error: std::error::Error` bound. The error type is now designed: `init()` is to return `BuildError` (§5.D), which names the field that failed, and `async` is to stop implying that a field can fail, which `fallible = true` says instead ([#56](https://github.com/marlon-sousa/snapfit-rs/issues/56)). The traits are then to mirror the synchronous pair `Container` and `FallibleContainer`: `AsyncContainer`, whose `init()` resolves to `Self`, for an async container with no fallible field, and `AsyncFallibleContainer`, whose `init()` resolves to `Result<Self, BuildError>`, for one with a fallible field.
 * **`introspection` module** (`GraphDescriptor`, `NodeDescriptor`, `EdgeDescriptor`): return with `introspection = true`.
 * **`SnapfitError` and the `Error` alias** (`ResolutionFailed`, `MissingDependency`, `InitializationFailed`): return when async initialization errors get dependency context.
 * **`ConstructionPlan::parallel_batches`** (groups of independent async singletons): the planner computed them but the generator never used them. They return with concurrent async boot.
@@ -80,6 +81,10 @@ These are compile errors that point at the offending field or container, instead
 * **A repeated `deps` entry**, the same field passed again to the same setter, such as `deps = [config, config]` or `deps = [disk = folder_files, disk = folder_files]`: it is refused at the field, once for each entry repeated ([#69](https://github.com/marlon-sousa/snapfit-rs/issues/69)). A builder may still pass one field to two setters, such as `deps = [reader = pool, writer = pool]`.
 * **Two `deps` entries that pass different fields to the same builder setter**, and **`builder(...)` settings other than `start` and `finish` with a bare function name each.**
 * **`build = builder` on an async dependency** (unstable): planned, refused as not implemented yet, like an async factory.
+* **A bare `fallible`, and a `fallible` that is not `true` or `false`** (`fallible = "true"`, `fallible(true)`): refused at the field, asking for `fallible = true` (§5.D).
+* **`build = default` with `fallible = true`**: `Default::default()` cannot fail.
+* **A fallible field that `leaf_build` would build**: a synchronous field with no `deps` and no `build` of its own, in a container whose `leaf_build` is not `constructor(new)`, is refused at the field, asking for a `build` of its own (§5.D).
+* **`fallible = true` on a transient** (unstable): planned, refused as not implemented yet, because a getter promises to return the value itself (§3).
 
 ---
 
@@ -141,7 +146,7 @@ pub struct AppContainer {
 
 | Setting | Options | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **`mode`** | `"async"`, `"sync"` | `"sync"` *(or auto `"async"` if any field is `async`)* | Controls whether the container produces `pub async fn init() -> Result<Self, ...>` or synchronous `pub fn new() -> Self`. |
+| **`mode`** | `"async"`, `"sync"` | `"sync"` *(or auto `"async"` if any field is `async`)* | Controls whether the container produces `pub async fn init() -> Result<Self, ...>` or synchronous `pub fn new() -> Self`, or `pub fn try_new() -> Result<Self, snapfit::BuildError>` when a field is fallible (§5.D). |
 | **`parent`** | Type Identifier | None | Marks this container as a Child Scope copying/inheriting singletons from a parent container. |
 | **`leaf_build`** | `default`, `constructor(<fn>)` | `constructor(new)` | How every field with no `deps` and no `build` of its own is built (§5). |
 | **`introspection`** | `bool` | `false` | When `true`, generates `.dependency_graph()` and runtime inspection methods for BDD testing or runtime visualization. |
@@ -158,6 +163,7 @@ The settings are the arguments of the one `#[container(...)]` that declares the 
 | **`#[transient(deps = [a])]`** | **Transient (With Dependencies)** | **Stripped from struct memory storage.** Reconstructed on each `get_<name>()` passing `a`. |
 | **`#[singleton(deps = [...], build = ...)]`** | **Singleton (Built Another Way)** | Stored in container struct. Built once at boot by `Default::default()`, a named constructor, a factory, or a builder (§5). |
 | **`#[singleton(deps = [...], build = factory)]`** | **Factory** | Stored in container struct. Built once at boot by the user's `build_<name>` method of the generated `<ContainerName>Factories` trait. |
+| **`#[singleton(fallible = true, ...)]`** | **Fallible Singleton** | Stored in container struct. Built once at boot by its `build`, or its type's `new`, which returns a `Result`; the container is then built by `try_new()` (§5.D). |
 | **`#[dispatch(ImplA, ImplB)]`** | **Static Trait (Planned)** | Auto-generates `enum_dispatch` and **rewrites the struct field type** to the enum. |
 | **`#[external]`** | **External Input (Planned)** | Passed as a parameter to `new(...)` / `init(...)` and exposed as a wireable leaf node in the DAG. |
 | *(Unannotated field)* | **Pre-Init Computed (Planned)** | Populated via an optional `before_init` hook prior to DAG wiring and exposed as a wireable node in the DAG. |
@@ -199,7 +205,7 @@ The `#[container]` attribute macro actively shapes the memory layout of the gene
 
 | Lifecycle | Declaration | Storage in Container Struct | Resolution Behavior |
 | :--- | :--- | :--- | :--- |
-| **Singleton** | `#[singleton]` or `#[singleton(deps = [...])]` | **Stored in struct.** | Constructed once during `init()`/`new()`. Returned by `.clone()`. |
+| **Singleton** | `#[singleton]` or `#[singleton(deps = [...])]` | **Stored in struct.** | Constructed once during `init()`, `new()` or `try_new()`. Returned by `.clone()`. |
 | **Transient** | `#[transient]` or `#[transient(deps = [...])]` | **Stripped from struct memory.** | **Zero struct bytes allocated.** Reconstructed on every `get_<name>()` call. |
 | **Static Trait** | `#[dispatch(...)] name: dyn Trait` | **Field rewritten to static enum.** | Enum generated via `enum_dispatch`; zero heap allocation or vtable overhead. |
 | **Scoped** | `#[container(parent = ...)]` | Inherited / Scope-local. | Clones/borrows parent singletons and instantiates request-local instances. |
@@ -222,7 +228,7 @@ Each field is built one way, which its `build` setting chooses. The value is a b
 
 `Type` is the field's type, or `T` when the field holds `Arc<T>`, in which case the value is wrapped in `Arc::new`. A word that is none of these, such as `build = factroy`, is refused at the field, naming the ways the build accepts and suggesting `build = constructor(factroy)`. A quoted value, such as `build = "factory"`, is refused with the same value unquoted.
 
-A container can say once how its leaves are built: `#[container(leaf_build = default)]` builds every field that has no `deps` and no `build` of its own as if it said `build = default`, which suits a project whose leaf types all derive `Default`. `leaf_build` applies to synchronous fields only, because `Default::default()` and a constructor chosen for the whole container cannot be awaited; an async field keeps its own constructor. `leaf_build` takes the values a leaf can take, `default` or `constructor(<fn>)`; leaving it out is `constructor(new)`, the behaviour above. `leaf_build` only changes the default for leaves, such as from `new` to `default`: a field's own `build` always wins, so a leaf that says `build = constructor(sandbox)` is still built by `sandbox`; a field with `deps` is never affected; and every field still needs its `#[singleton]`. Any other value, such as `leaf_build = factory`, is refused at the container's name.
+A container can say once how its leaves are built: `#[container(leaf_build = default)]` builds every field that has no `deps` and no `build` of its own as if it said `build = default`, which suits a project whose leaf types all derive `Default`. `leaf_build` applies to synchronous fields only, because `Default::default()` and a constructor chosen for the whole container cannot be awaited; an async field keeps its own constructor. A fallible leaf that `leaf_build` would build is refused (§5.D). `leaf_build` takes the values a leaf can take, `default` or `constructor(<fn>)`; leaving it out is `constructor(new)`, the behaviour above. `leaf_build` only changes the default for leaves, such as from `new` to `default`: a field's own `build` always wins, so a leaf that says `build = constructor(sandbox)` is still built by `sandbox`; a field with `deps` is never affected; and every field still needs its `#[singleton]`. Any other value, such as `leaf_build = factory`, is refused at the container's name.
 
 A field and a `deps` entry, label included, are named as Rust reads them: a raw identifier names the same field as the plain word, so `r#config` and `config` are one field, and messages name it without the `r#` ([#83](https://github.com/marlon-sousa/snapfit-rs/issues/83)).
 
@@ -306,7 +312,7 @@ Some dependencies need a hand-written way of being built: a constructor whose ar
    }
    ```
 
-* **Names:** the trait is `<ContainerName>Factories`. Each method is `build_<field>`, an associated function with no `self`, because the container does not exist yet while it is being built, and it returns the field's type exactly as declared. Each inputs struct is `<ContainerName><Field>Inputs`, the field's name in PascalCase (`order_store` gives `ShopOrderStoreInputs`).
+* **Names:** the trait is `<ContainerName>Factories`. Each method is `build_<field>`, an associated function with no `self`, because the container does not exist yet while it is being built, and it returns the field's type exactly as declared, or a `Result` of it for a fallible field (§5.D). Each inputs struct is `<ContainerName><Field>Inputs`, the field's name in PascalCase (`order_store` gives `ShopOrderStoreInputs`).
 * **Inputs by name:** the inputs struct has one `pub` field for each `deps` entry, with that dependency's name and the type of its container field, holding a clone of the singleton, or a fresh value of a transient (unstable). The method always takes the struct, even when the field has no `deps`, so that adding a dependency never changes its signature. The inputs are passed by name, not by position, because Rust does not check parameter names in a trait impl: a method whose two `Arc<Database>` parameters were swapped would compile. With a struct, a misspelt, missing or swapped name is a compile error.
 * **The graph stays in `deps`:** a factory receives only what its `deps` names, so the construction order, the unknown-dependency and the cycle checks of §6 apply to it as to any field.
 * **Visibility:** the trait and the inputs structs have the container's visibility.
@@ -344,6 +350,46 @@ pub struct Shop {
 * **Trait objects:** a trait-object field has no type to call `builder()` on, so `build = builder` on it is refused with the trait-object error of §0, which points to a factory.
 * **Async (unstable):** `build = builder` on an async dependency is planned, refused as not implemented yet, for the same reason as an async factory.
 * **No dependency on a builder crate:** snapfit only writes the chain of calls. The builder crate, if any, is the user's own dependency.
+
+### D. Fallible fields (`fallible = true`)
+Reading a configuration file, opening a socket or checking a setting can fail without being async. A field whose constructor, builder or factory can fail says so with `fallible = true`, and the container is then built by `try_new()`, which returns the first failure instead of `Self`:
+
+```rust
+#[container]
+pub struct AppContainer {
+    // Calls ShopConfig::load(), which returns Result<ShopConfig, ConfigError>
+    #[singleton(fallible = true, build = constructor(load))]
+    config: Arc<ShopConfig>,
+
+    // Calls Database::connect(config.clone()), which returns Result<Database, io::Error>
+    #[singleton(deps = [config], fallible = true, build = constructor(connect))]
+    db: Arc<Database>,
+
+    // Infallible, as before: calls OrderService::new(db.clone())
+    #[singleton(deps = [db])]
+    orders: Arc<OrderService>,
+}
+
+use std::error::Error;
+
+match AppContainer::try_new() {
+    Ok(app) => serve(app.get_orders()),
+    Err(error) => match error.source() {
+        Some(cause) => eprintln!("{error}: {cause}"),
+        None => eprintln!("{error}"),
+    },
+}
+```
+
+* **The setting:** `fallible = true` or `fallible = false`, a boolean value as the other settings take; leaving it out is `fallible = false`. A bare `fallible`, and any value other than `true` or `false`, is refused at the field, asking for `fallible = true`.
+* **What builds the field returns a `Result`:** `Type::new(...)`, `build = constructor(<fn>)`, the builder's finish method, or the factory, returns `Result<T, E>`, where `T` is what an infallible field's would return (`T` for an `Arc<T>` field, which is wrapped in `Arc::new` after it succeeds) and `E` is the user's own error, anything that converts into `Box<dyn Error + Send + Sync>`, such as any `Error + Send + Sync + 'static` type, `String` or `anyhow::Error`. A fallible field whose builder returns a plain value is a compile error at its `fallible` setting, which says that the field is marked `fallible = true`, so what builds it must return a `Result`. A `Result` whose error does not convert, such as `Result<T, ()>`, is rustc's own error about that conversion, at the same place. A `Result` whose value is not `T`, such as `Result<Settings, E>` for an `Arc<Config>` field, is rustc's own mismatched types error, which names both types. The services stay plain Rust: none of them names a snapfit type.
+* **Factories:** the `build_<field>` method of a fallible field returns `Result<FieldType, Box<dyn Error + Send + Sync>>`, where `FieldType` is the field's type exactly as declared; `?` turns any error into that box inside the method.
+* **`try_new()` instead of `new()`:** a synchronous container with at least one fallible field generates `pub fn try_new() -> Result<Self, snapfit::BuildError>`, implements `snapfit::FallibleContainer`, and has no `new()`, no `Default` and no `Container`, which promise a container that cannot fail. A container with no fallible field generates exactly what it did before. The getters are the same in both: `get_<field>()` returns the value itself, because a container that exists has built every field.
+* **The first failure stops the build:** fields are built in the order of §6, each after the fields it needs. When one fails, `try_new()` returns at once; the fields already built are dropped, and the ones after it are never built.
+* **`snapfit::BuildError`:** the generated code wraps the field's own error into a `BuildError`, because only it knows which field failed. Its message is a sentence, such as "snapfit could not build the field `db` of `AppContainer`"; `container()` and `field()` name them, without the `r#` of a raw identifier; and `source()` is the field's error, kept whole, so that it can be logged, or downcast to its own type when it is an error type. It is `Send + Sync + 'static`, and `#[non_exhaustive]`, so that later versions can add to it.
+* **`leaf_build` cannot build a fallible field:** a synchronous fallible field with no `deps` and no `build` of its own, in a container whose `leaf_build` is not `constructor(new)`, is refused at the field, because the function chosen for every leaf returns the value itself, and building the field another way than `leaf_build` says would mislead the reader of the container. The error asks for a `build` of the field's own, such as `build = constructor(new)`, or for `fallible = true` to go.
+* **Refused:** `build = default` with `fallible = true`, because `Default::default()` cannot fail; a fallible leaf that `leaf_build` would build, as above; and `fallible = true` on a transient (unstable), planned and refused as not implemented yet, because a getter promises to return the value itself (§3).
+* **Async containers (unstable):** a fallible field of an async container is wrapped into a `BuildError` the same way, after its `.await` when it is async, and `init()` returns it boxed, as it returns every error today.
 
 ---
 
