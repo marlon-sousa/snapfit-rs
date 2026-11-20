@@ -39,6 +39,7 @@ Most Rust applications eventually face three unsatisfying choices for wiring com
 
 | Version | Book Edition | Release Notes | Highlights |
 | :--- | :--- | :--- | :--- |
+| **v0.1.1** (2026-11-20) | [Read the Book (v0.1.1)](https://marlon-sousa.github.io/snapfit-rs/book/v0.1.1/) | [Release notes on GitHub](https://github.com/marlon-sousa/snapfit-rs/releases/tag/v0.1.1) | snapfit v0.1.1 release and verified edition of The Snapfit Book. |
 | **v0.1.0** (2026-11-18) | [Read the Book (v0.1.0)](https://marlon-sousa.github.io/snapfit-rs/book/v0.1.0/) | [Release notes on GitHub](https://github.com/marlon-sousa/snapfit-rs/releases/tag/v0.1.0) | Compile-time verified dependency injection with pure-Rust domain types: singletons wired by name, each built with its constructor, Default, a factory or its type's builder, and unknown dependencies and cycles reported at compile time. |
 
 Browse [all releases and editions](https://marlon-sousa.github.io/snapfit-rs/releases/).
@@ -109,7 +110,7 @@ fn main() {
 
 ---
 
-## What 0.1.0 Supports
+## What 0.1 Supports
 
 * **Plain domain types:** services, repositories and controllers need no macros or framework traits.
 * **Compile-time graph checks:** unknown dependencies and cycles, such as `service_a` depending on `service_b` which depends on `service_a`, fail `cargo build`, each reported at its field and all of them in one compile. Fields are visited in the order they are declared, and the fields each one needs are built before it.
