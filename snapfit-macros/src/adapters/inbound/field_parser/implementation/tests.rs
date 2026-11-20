@@ -26,13 +26,14 @@ fn implementation(settings: TokenStream) -> Option<syn::Type> {
 #[test]
 fn implementation_is_read_as_the_type_written_beside_the_other_settings() {
     let disk: syn::Type = parse_quote!(DiskReader);
+    let several: syn::Type = parse_quote!(Cache<Order, Clock>);
     let cases = [
         ("left out", quote!(), None),
         ("alone", quote!(implementation = DiskReader), Some(&disk)),
         (
             "with a type of several parameters",
             quote!(implementation = Cache<Order, Clock>),
-            Some(&parse_quote!(Cache<Order, Clock>)),
+            Some(&several),
         ),
         (
             "between other settings",

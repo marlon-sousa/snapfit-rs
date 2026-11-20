@@ -24,9 +24,3 @@ pub struct Desk {
     #[singleton(implementation = DiskReader, build = factory)]
     reader: Arc<dyn Reader>,
 }
-
-impl DeskFactories for Desk {
-    fn build_reader(_: DeskReaderInputs) -> Arc<dyn Reader> {
-        Arc::new(DiskReader::new())
-    }
-}
