@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
 import { stripReadmeMarkdown } from '../src/lib/readme-strip.mjs';
+import { DIST, linkTargets } from './serve.mjs';
 
 test('stripReadmeMarkdown strips github-only, unwraps site-only, and expands releases marker', () => {
 	const input = [
@@ -111,5 +112,25 @@ test('publish.sh creates orphan site branch and preserves older book editions an
 		);
 	} finally {
 		rmSync(scratch, { recursive: true, force: true });
+	}
+});
+
+test('a link to an edition published before is looked for on the site branch too', () => {
+	const edition = '/snapfit-rs/book/v0.1.1/';
+	const published = '/site-pages';
+	const cases = [
+		[
+			'an older edition, with the site branch open',
+			'/snapfit-rs/book/v0.1.0/',
+			published,
+			[join(DIST, 'book/v0.1.0/index.html'), join(published, 'book/v0.1.0/index.html')],
+		],
+		['an older edition, with no site branch', '/snapfit-rs/book/v0.1.0/', undefined, [join(DIST, 'book/v0.1.0/index.html')]],
+		['the edition being built', `${edition}welcome-to-snapfit/`, published, [join(DIST, 'book/v0.1.1/welcome-to-snapfit/index.html')]],
+		['the book index, which every build makes', '/snapfit-rs/book/', published, [join(DIST, 'book/index.html')]],
+		['a page outside the site', '/elsewhere/', published, []],
+	];
+	for (const [name, path, folder, files] of cases) {
+		assert.deepEqual(linkTargets(path, edition, folder), files, name);
 	}
 });
