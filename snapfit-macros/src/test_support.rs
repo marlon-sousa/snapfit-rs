@@ -71,6 +71,15 @@ pub(crate) fn container<F>(
     container
 }
 
+/// What a `macro_rules!` passes for `$e:expr`: the expression in an invisible group.
+pub(crate) fn through_a_macro(tokens: proc_macro2::TokenStream) -> proc_macro2::TokenStream {
+    proc_macro2::TokenTree::Group(proc_macro2::Group::new(
+        proc_macro2::Delimiter::None,
+        tokens,
+    ))
+    .into()
+}
+
 /// Tokens as text without whitespace, so that a test compares code, not layout.
 pub(crate) fn compact(tokens: impl ToString) -> String {
     tokens.to_string().split_whitespace().collect()

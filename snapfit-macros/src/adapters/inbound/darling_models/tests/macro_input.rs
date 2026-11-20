@@ -5,12 +5,7 @@ use syn::parse_quote;
 
 use super::super::*;
 use super::sibling;
-
-/// What a `macro_rules!` passes for `$e:expr`: the expression in an invisible group.
-fn through_a_macro(tokens: proc_macro2::TokenStream) -> proc_macro2::TokenStream {
-    let group = proc_macro2::Group::new(proc_macro2::Delimiter::None, tokens);
-    quote!(#group)
-}
+use crate::test_support::through_a_macro;
 
 #[test]
 fn a_build_passed_through_a_macro_is_read_as_if_written_by_hand() {

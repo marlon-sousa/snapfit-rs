@@ -32,7 +32,7 @@ A procedural macro does no input or output: it is a pure function from tokens to
 2. The handler, `expansion.rs`, parses the tokens with `syn`, asks the inbound adapter for the container's declaration, asks the `plan_container` service for its plan, and asks the outbound adapter for the tokens of that plan. When any step finds problems, it asks the outbound adapter for one compiler error per problem instead, and keeps the struct as written.
 3. The inbound adapter, `adapters/inbound`, reads the struct with `syn` and the attributes with `darling` into a `ContainerDeclaration`, and reports every field it cannot read.
 4. The service, `use_cases/derive_container.rs`, runs every policy over the declaration: the feature gate, the declaration rules, the container's execution and the resolver, which orders the dependencies and links each step to the steps it needs. It reports every problem the policies find together.
-5. The outbound adapter, `adapters/outbound`, writes the struct, `new()` or `init()`, the `Default` and `Container` impls and the getters from the plan with `quote`, or writes the compiler errors.
+5. The outbound adapter, `adapters/outbound`, writes the struct, `new()` with the `Default` and `Container` impls, or `try_new()` with the `FallibleContainer` impl, or `init()`, and the getters, from the plan with `quote`, or writes the compiler errors.
 
 ## Module roles
 
@@ -76,7 +76,7 @@ Layering goes one way. snapfit-macros' facade calls the handler; the handler cal
 - **No `unsafe` code**: `[workspace.lints]` forbids it.
 - **Reuse before writing.** Look first at the standard library, then at the crates already depended on, then at well-known crates. Write it ourselves only when none fits, or when a crate would replace only a couple of lines. A crate is judged by what it replaces across the code, not only by its first use.
 - **Derive what a derive produces.** Errors derive with `thiserror`; `Display` with `derive_more`; a constructor that only assigns fields with `derive-new`; an enum's `is_*` predicates with `strum`'s `EnumIs`. An impl is written by hand only when it needs logic.
-- **Types hold every constraint they can.** An enum for a closed set of values, never a string or a `bool` standing for one: `Lifecycle`, `Execution`, `Construction`, `TypeShape`, `TypeParameters`, `Introspection`, `FeatureGate`, `Feature`. A newtype for a name with rules of its own: `Name<K>`, never blank, whose kind keeps a dependency's name from being passed as a function's. A doc comment stating a constraint the type could enforce means the type is wrong. A newtype never derives `Deref`, which is for smart pointers.
+- **Types hold every constraint they can.** An enum for a closed set of values, never a string or a `bool` standing for one: `Lifecycle`, `Execution`, `Fallibility`, `Construction`, `TypeShape`, `TypeParameters`, `Introspection`, `FeatureGate`, `Feature`. A newtype for a name with rules of its own: `Name<K>`, never blank, whose kind keeps a dependency's name from being passed as a function's. A doc comment stating a constraint the type could enforce means the type is wrong. A newtype never derives `Deref`, which is for smart pointers.
 - **A chain of iterator adapters reads as a sentence of names**, such as `.filter(is_async).map(async_in_sync_container)`. A closure in a chain is one call, one method call, one field read or one comparison with a value it captures; a closure that negates, matches, computes or builds a value becomes a named function.
 - **Iterating to get a result uses adapters, not a `for` loop.** A `for` loop stays only when its body acts on each item, such as visiting each dependency or asserting in a test.
 - **Every line does something.** No line that changes nothing.
@@ -90,8 +90,8 @@ Layering goes one way. snapfit-macros' facade calls the handler; the handler cal
 
 ## Generated code
 
-- **Generated names are a promise.** `new()`, `init()`, `get_<field>()` and the `Default` and `Container` impls are the public face of every container; changing how any of them is named or typed is agreed with the maintainer first.
-- **Hygiene.** Generated code names everything by an absolute path, such as `::std::sync::Arc` and `::snapfit::Container`, and binds each singleton to a local named `__snapfit_<field>` with the field's span, so it never clashes with anything the user has in scope.
+- **Generated names are a promise.** `new()`, `try_new()`, `init()`, `get_<field>()` and the `Default`, `Container` and `FallibleContainer` impls are the public face of every container; changing how any of them is named or typed is agreed with the maintainer first.
+- **Hygiene.** Generated code names everything by an absolute path, such as `::std::sync::Arc` and `::snapfit::Container`, and binds each singleton to a local named `__snapfit_<field>` with the field's span, and what builds a fallible field to `__snapfit_built`, its value to `__snapfit_value` and its error to `__snapfit_error`, inside a block of its own, so it never clashes with anything the user has in scope.
 - **Construction order** is the order the fields are declared, each after the fields it needs, as SPEC.md, §6, says.
 
 ## Comments

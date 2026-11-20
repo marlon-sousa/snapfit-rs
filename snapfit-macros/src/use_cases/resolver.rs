@@ -5,12 +5,14 @@
 mod call;
 mod cycle;
 mod resolved_steps;
+mod step;
 #[cfg(test)]
 mod tests;
 mod walk;
 
 use super::repeats::repeats;
 pub(crate) use resolved_steps::ResolvedSteps;
+use step::step_of;
 use walk::{Declared, OnPath, Outcome, Placed, is_unknown, name_of_outcome};
 
 use std::collections::{HashMap, HashSet};
@@ -125,15 +127,7 @@ impl<F> Resolver<F> {
         let call = call::call_for(&declaration, &self.leaf);
         match (prerequisites, call) {
             (Some(prerequisites), Ok(call)) => {
-                let DependencyDeclaration {
-                    name,
-                    syntax,
-                    lifecycle,
-                    execution,
-                    ..
-                } = declaration;
-                let step = Step::new(name, syntax, lifecycle, execution, call, prerequisites);
-                self.finish(position, Rc::new(step))
+                self.finish(position, Rc::new(step_of(declaration, call, prerequisites)))
             }
             (_, call) => {
                 self.errors.extend(call.err());

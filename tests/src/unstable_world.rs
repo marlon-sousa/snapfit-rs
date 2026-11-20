@@ -1,4 +1,6 @@
-use crate::unstable_build_containers::DepotContainer;
+use std::error::Error;
+
+use crate::unstable_build_containers::{DepotContainer, KioskContainer};
 use crate::unstable_containers::{
     AsyncShopContainer, LayeredShopContainer, TransientFactoryShopContainer, TransientShopContainer,
 };
@@ -10,6 +12,7 @@ pub struct UnstableContainers {
     transient_factory_shop: Option<TransientFactoryShopContainer>,
     layered_shop: Option<LayeredShopContainer>,
     depot: Option<DepotContainer>,
+    kiosk_failure: Option<Box<dyn Error + Send + Sync>>,
 }
 
 impl UnstableContainers {
@@ -25,6 +28,16 @@ impl UnstableContainers {
             .await
             .unwrap_or_else(|err| panic!("DepotContainer::init() failed: {err}"));
         self.depot = Some(container);
+    }
+
+    pub async fn init_kiosk(&mut self) {
+        self.kiosk_failure = KioskContainer::init().await.err();
+    }
+
+    pub fn kiosk_failure(&self) -> &(dyn Error + Send + Sync + 'static) {
+        self.kiosk_failure
+            .as_deref()
+            .expect("KioskContainer must have failed to initialize before Then assertions")
     }
 
     pub fn new_transient_shop(&mut self) {

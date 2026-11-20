@@ -6,7 +6,7 @@ use quote::{format_ident, quote};
 use syn::ext::IdentExt;
 
 use crate::adapters::syntax::{FieldSyntax, Plan};
-use crate::domain::Step;
+use crate::domain::{Fallibility, Step};
 
 #[cfg(test)]
 mod tests;
@@ -57,15 +57,25 @@ pub(super) fn inputs_ident(container: &syn::Ident, field: &syn::Ident) -> syn::I
     format_ident!("{}{}Inputs", container.unraw(), field)
 }
 
-/// `fn build_<field>(inputs: <Container><Field>Inputs) -> <field's type>;`
+/// `fn build_<field>(inputs: <Container><Field>Inputs) -> <field's type>;`,
+/// or a `Result` of it, with a boxed error, for a fallible field.
 fn method(container: &syn::Ident, step: &Step<FieldSyntax>) -> TokenStream {
     let FieldSyntax { ident, ty, .. } = &step.syntax;
     let method = method_ident(ident);
     let inputs = inputs_ident(container, ident);
     let doc = format!("Builds `{}` from its inputs.", ident.unraw());
+    let output = match step.fallibility {
+        Fallibility::Infallible => quote!(#ty),
+        Fallibility::Fallible => quote! {
+            ::std::result::Result<
+                #ty,
+                ::std::boxed::Box<dyn ::std::error::Error + ::std::marker::Send + ::std::marker::Sync>,
+            >
+        },
+    };
     quote! {
         #[doc = #doc]
-        fn #method(inputs: #inputs) -> #ty;
+        fn #method(inputs: #inputs) -> #output;
     }
 }
 

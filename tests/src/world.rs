@@ -45,7 +45,7 @@ pub struct ContainerWorld {
     checkout_container: Option<checkout::CheckoutContainer>,
     pub built: BuildContainers,
     #[cfg(feature = "unstable")]
-    unstable: UnstableContainers,
+    pub unstable: UnstableContainers,
 }
 
 impl ContainerWorld {

@@ -30,6 +30,22 @@ pub(crate) enum Feature {
     AsyncFactory { dependency: DependencyName },
     #[display("build = builder on async dependency '{dependency}'")]
     AsyncBuilder { dependency: DependencyName },
+    #[display("fallible = true on transient dependency '{dependency}'")]
+    FallibleTransient { dependency: DependencyName },
+}
+
+/// What would build a field marked `fallible = true` that cannot fail, with
+/// the way out its error offers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
+pub(crate) enum InfallibleBuild {
+    #[display(
+        "build = default, which cannot fail; remove fallible = true, or build it another way"
+    )]
+    Default,
+    #[display(
+        "the container's leaf_build, since it has no deps and no build of its own, and leaf_build cannot fail; give the field a build of its own, such as build = constructor(new), or remove fallible = true"
+    )]
+    LeafBuild,
 }
 
 impl Feature {
@@ -40,7 +56,8 @@ impl Feature {
             | Self::AsyncDependency { dependency }
             | Self::Transient { dependency }
             | Self::AsyncFactory { dependency }
-            | Self::AsyncBuilder { dependency } => Some(dependency),
+            | Self::AsyncBuilder { dependency }
+            | Self::FallibleTransient { dependency } => Some(dependency),
             Self::ParentContainer
             | Self::Introspection
             | Self::GenericContainer { .. }
@@ -80,6 +97,17 @@ pub(crate) enum AttributeProblem {
         "the deps entry '{_0}' names no single dependency; parent(...) is planned for a future version of snapfit and is not implemented yet"
     )]
     NotAParentDependency(String),
+    #[display(
+        "fallible needs a value; write fallible = true to have the container return the field's error, or leave fallible out"
+    )]
+    BareFallible,
+    #[display(
+        "fallible takes its value after '=', not in parentheses; write fallible = true, or fallible = false"
+    )]
+    FallibleInParentheses,
+    /// The value as written, such as `"yes"`.
+    #[display("fallible takes true or false, not {_0}; write fallible = true, or fallible = false")]
+    NotAFallibleValue(String),
     #[display("invalid container mode '{_0}': write mode = \"sync\", or leave mode out")]
     InvalidMode(String),
     #[display("#[dispatch(...)] requires a parenthesized list of implementation types")]

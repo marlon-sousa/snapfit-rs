@@ -27,6 +27,9 @@ pub(crate) struct FieldSyntax {
     /// The setter each sibling entry of `deps` is passed to, in order, as the
     /// user wrote it: its label, or the entry itself.
     pub(crate) setters: Vec<syn::Ident>,
+    /// The `fallible` word of `fallible = true`, where the field's error is
+    /// wrapped, so that a builder that returns a plain value is reported there.
+    pub(crate) fallible: Option<syn::Ident>,
     pub(crate) vis: syn::Visibility,
     pub(crate) attrs: Vec<syn::Attribute>,
 }

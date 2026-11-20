@@ -11,6 +11,7 @@ fn step(name: &str, lifecycle: Lifecycle) -> Rc<Step<()>> {
         (),
         lifecycle,
         Execution::Sync,
+        Fallibility::Infallible,
         call,
         Vec::new(),
     ))
@@ -22,7 +23,13 @@ fn singletons_are_listed_in_construction_order_without_transients() {
     let request = step("request", Lifecycle::Transient);
     let db = step("db", Lifecycle::Singleton);
     let order = vec![config, request, db];
-    let plan = ConstructionPlan::new((), Execution::Sync, order.clone(), order);
+    let plan = ConstructionPlan::new(
+        (),
+        Execution::Sync,
+        Fallibility::Infallible,
+        order.clone(),
+        order,
+    );
 
     let names: Vec<_> = plan.singletons().map(|step| step.name.as_str()).collect();
 

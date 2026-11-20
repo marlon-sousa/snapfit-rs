@@ -2,6 +2,7 @@ use super::*;
 use crate::domain::{DependencyName, Execution, Lifecycle, SetterName};
 use crate::test_support::{builder, container, dependency, labelled};
 
+mod fallible;
 mod properties;
 
 fn transient(name: &str, execution: Execution) -> DependencyDeclaration<()> {
