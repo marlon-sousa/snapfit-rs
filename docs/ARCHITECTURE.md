@@ -12,7 +12,7 @@ A procedural macro does no input or output: it is a pure function from tokens to
 
 ## The repository
 
-- **`snapfit/`**, the crate users depend on: the `Container` trait and the re-export of the macro. Its `README.md`, which crates.io shows and which is its crate documentation on docs.rs, is written from the root README by `cargo xtask crate-readme` and shows what the site shows, with a link in place of the releases, as [WORKFLOW.md](WORKFLOW.md), section 7, says. `snapfit/src/lib.rs` includes it, so its example is a doctest of `snapfit`. `scripts/crate_readme.py` holds the rules, and `scripts/test_crate_readme.py` tests them.
+- **`snapfit/`**, the crate users depend on: the `Container` and `FallibleContainer` traits, `BuildError`, the re-export of the macro, and, hidden from its documentation in `snapfit::__private`, the `BuildResult` trait the generated code calls to wrap a fallible field's error. Its `README.md`, which crates.io shows and which is its crate documentation on docs.rs, is written from the root README by `cargo xtask crate-readme` and shows what the site shows, with a link in place of the releases, as [WORKFLOW.md](WORKFLOW.md), section 7, says. `snapfit/src/lib.rs` includes it, so its example is a doctest of `snapfit`. `scripts/crate_readme.py` holds the rules, and `scripts/test_crate_readme.py` tests them.
 - **`snapfit-macros/`**, the procedural macro, laid out as the rest of this document describes.
 - **`tests/`**, the crate `snapfit_bdd`: the Gherkin features under `tests/features/` (`stable/`, and `unstable/`, run with the `unstable` feature), their step definitions, the containers they exercise, and the compile-fail fixtures under `tests/fixtures/compile_fail/`, compiled with [compile-outcomes](https://github.com/marlon-sousa/compile-outcomes-rs) against the build of snapfit the suite runs, whose diagnostics the steps check.
 - **`book/`**, the crate `snapfit_book`: The Snapfit Book, whose chapters, examples, recorded outputs and compile-error fixtures `cargo xtask book-check` verifies. [book/BOOK.md](../book/BOOK.md) describes it.
@@ -38,13 +38,13 @@ A procedural macro does no input or output: it is a pure function from tokens to
 
 Every module plays one role, and says which on the first line of its `//!` doc comment, such as `//! Policy: whether the container is built at once by new() or awaited through init().` A `lib.rs` whose documentation is the README, such as `snapfit/src/lib.rs`, is the exception: docs.rs shows that documentation as the crate's front page, so it says its role in a plain `//` comment on its first line.
 
-1. **Entity**: data and the invariants it keeps, in `domain/`: the names, the declaration, the plan, the build.
-2. **Error**: what makes snapfit refuse a container, in `domain/errors.rs`, as "Errors" below describes.
+1. **Entity**: data and the invariants it keeps, in `domain/`: the names, the declaration, the plan, the build. In snapfit, the runtime crate, the traits and types of its API are entities too.
+2. **Error**: what makes snapfit refuse a container, in `domain/errors.rs`, as "Errors" below describes. In snapfit, the runtime crate, `BuildError` is the error a container returns when a field fails to build.
 3. **Policy**: a pure decision about a container, in `use_cases/`: the feature gate, the declaration rules, the execution, the resolver and the call that builds each value.
 4. **Service**: `use_cases/derive_container.rs`, which runs the policies over one declaration and gathers their problems.
 5. **Adapter**: the code that speaks `syn`, `darling` and `quote`, in `adapters/`: the inbound adapter, the outbound adapter, and the syntax they share. Pure code that only one adapter uses to speak its library, such as reading a type's shape, is a private submodule of that adapter.
 6. **Handler**: `expansion.rs`, the way in, which turns a macro's tokens into calls to the adapters and the service, and their results into tokens.
-7. **Facade**: the `lib.rs` of snapfit-macros and of snapfit. In snapfit-macros it holds only the macro, a one-line call to the handler; in snapfit, the runtime crate's public API, the re-exports of the `Container` trait and the macro.
+7. **Facade**: the `lib.rs` of snapfit-macros and of snapfit. In snapfit-macros it holds only the macro, a one-line call to the handler; in snapfit, the runtime crate's public API, the re-exports of the `Container` and `FallibleContainer` traits, `BuildError` and the macro, and the hidden `__private` module of what generated code calls.
 
 A submodule that serves a single module, such as the resolver's walk state, plays its parent's role and says so on its role line.
 

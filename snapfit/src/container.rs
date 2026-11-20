@@ -1,4 +1,7 @@
-/// Implemented by every synchronous `#[container]` struct.
+//! Entity: the trait every synchronous container that cannot fail implements.
+
+/// Implemented by every synchronous `#[container]` struct with no field
+/// marked `fallible = true`.
 ///
 /// The `#[container]` attribute writes the implementation: a container is
 /// built with `new()`, and each of its fields is then read with its
