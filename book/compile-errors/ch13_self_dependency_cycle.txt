@@ -1,5 +1,5 @@
 error: dependency cycle: ledger depends on itself
- --> book/compile-errors/ch12_self_dependency_cycle.rs:8:5
+ --> book/compile-errors/ch13_self_dependency_cycle.rs:8:5
   |
 8 |     #[singleton(deps = [ledger])]
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -38,6 +38,11 @@ Feature: Unstable lifecycles behind the `unstable` feature
     Then its region should be built by Default, and its async warehouse by its own new
 
   @unstable
+  Scenario: An async container returns the error of a fallible field, naming it, from init
+    When the async kiosk whose terminal fails to connect is initialized
+    Then init should return a BuildError naming the terminal of KioskContainer, whose source says the terminal is offline
+
+  @unstable
   Scenario: An async field cannot be built by Default
     Given an invalid container fixture "async_default"
     When the fixture is compiled
@@ -59,6 +64,7 @@ Feature: Unstable lifecycles behind the `unstable` feature
       | generic_container        | 4    | generic parameters on container 'Repo'  |
       | planned_async_factory    | 8    | build = factory on async dependency 'db' |
       | planned_async_builder    | 8    | build = builder on async dependency 'exporter' |
+      | planned_fallible_transient | 16 | fallible = true on transient dependency 'request' |
 
   @unstable @regression
   Scenario: A trait-object field without a factory is told to build it in one, as on the stable build

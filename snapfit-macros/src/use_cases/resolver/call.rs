@@ -3,6 +3,7 @@
 use crate::domain::{
     Call, Construction, Constructor, DependencyDeclaration, DomainError, TypeShape, Wrapping,
 };
+use crate::use_cases::leaf::is_leaf;
 
 /// A constructor or a builder belongs to the type the field holds, or to `T`
 /// when the field holds `Arc<T>`, whose value is then wrapped. A trait object
@@ -36,12 +37,11 @@ fn wrapping_of<F>(dependency: &DependencyDeclaration<F>) -> Result<Wrapping, Dom
 }
 
 /// The field's own `build`; without one, the container's `leaf_build` for a
-/// synchronous field with no `deps`, and the type's own `new` for any other.
+/// leaf, and the type's own `new` for any other field. The declaration rules
+/// refuse a fallible leaf under another `leaf_build` than `new`, so no plan
+/// is emitted for one.
 fn construction_of<F>(dependency: &DependencyDeclaration<F>, leaf: &Constructor) -> Construction {
-    let is_leaf = dependency.prerequisites.is_empty()
-        && dependency.parent_prerequisites.is_empty()
-        && dependency.execution.is_sync();
-    match (&dependency.construction, is_leaf) {
+    match (&dependency.construction, is_leaf(dependency)) {
         (Some(construction), _) => construction.clone(),
         (None, true) => Construction::Constructor(leaf.clone()),
         (None, false) => Construction::Constructor(Constructor::New),

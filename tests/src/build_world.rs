@@ -3,6 +3,7 @@
 use crate::build_containers::{archive, generated, leaves, named};
 use crate::builder_containers::{catalog, handmade, site};
 use crate::factory_containers::{orders, payments};
+use crate::fallible_world::FallibleRuns;
 
 #[derive(Default)]
 pub struct BuildContainers {
@@ -15,6 +16,7 @@ pub struct BuildContainers {
     shelves: Option<catalog::Shelves>,
     reports: Option<handmade::Reports>,
     office: Option<generated::Office>,
+    pub fallible: FallibleRuns,
 }
 
 impl BuildContainers {

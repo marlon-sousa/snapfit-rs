@@ -1,4 +1,5 @@
-//! An async container whose leaf_build skips its async leaf, for the unstable suite.
+//! Async containers whose fields are built another way, for the unstable suite:
+//! one whose leaf_build skips its async leaf, and one whose fallible field fails.
 
 use std::error::Error;
 use std::sync::Arc;
@@ -27,4 +28,21 @@ pub struct DepotContainer {
 
     #[singleton(async)]
     warehouse: Arc<Warehouse>,
+}
+
+pub struct Terminal;
+
+impl Terminal {
+    pub async fn connect(_region: Arc<Region>) -> Result<Self, String> {
+        Err("the terminal is offline".to_string())
+    }
+}
+
+#[container(mode = "async")]
+pub struct KioskContainer {
+    #[singleton(build = default)]
+    region: Arc<Region>,
+
+    #[singleton(deps = [region], async, fallible = true, build = constructor(connect))]
+    terminal: Arc<Terminal>,
 }

@@ -20,6 +20,7 @@ impl DomainError {
             | Self::NotABuild { dependency, .. }
             | Self::ConstructorWithoutName { dependency }
             | Self::DefaultWithDependencies { dependency }
+            | Self::BuildCannotFail { dependency, .. }
             | Self::QuotedFunctionName { dependency, .. }
             | Self::NotAFunctionName { dependency, .. }
             | Self::AsyncDependencyInSyncContainer { dependency }

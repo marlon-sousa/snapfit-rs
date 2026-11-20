@@ -29,6 +29,15 @@ pub(crate) enum Execution {
     Async,
 }
 
+/// Whether what builds a value can fail, `fallible = true`.
+#[derive(EnumIs, Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) enum Fallibility {
+    #[default]
+    Infallible,
+    /// Returns a `Result`, whose error the container's construction returns.
+    Fallible,
+}
+
 #[derive(EnumIs, Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Construction {
     /// An associated function of the dependency's type.
@@ -75,6 +84,17 @@ pub(crate) enum Constructor {
     Named(FunctionName),
 }
 
+impl Constructor {
+    /// The type's own `new`, whether left out or written `constructor(new)`.
+    pub(crate) fn is_new(&self) -> bool {
+        match self {
+            Self::New => true,
+            Self::Named(name) => name.as_str() == "new",
+            Self::Default => false,
+        }
+    }
+}
+
 /// What the field's type is, as far as building it goes.
 #[derive(EnumIs, Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub(crate) enum TypeShape {
@@ -116,6 +136,8 @@ pub(crate) struct DependencyDeclaration<F> {
     pub(crate) lifecycle: Lifecycle,
     #[new(default)]
     pub(crate) execution: Execution,
+    #[new(default)]
+    pub(crate) fallibility: Fallibility,
     /// `build = ...`, absent when the field writes none.
     #[new(default)]
     pub(crate) construction: Option<Construction>,

@@ -1,0 +1,4 @@
+The shop is open: orders are stored at orders.db.internal:5432 and paid through Stripe.
+The shop could not open: snapfit could not build the field `db` of `ShopContainer`.
+The field that failed: db.
+Its own error: nothing answered at orders.db.internal:5432.

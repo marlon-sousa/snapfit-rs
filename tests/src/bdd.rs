@@ -6,6 +6,8 @@ mod builder_containers;
 mod codegen_containers;
 mod containers;
 mod factory_containers;
+mod fallible_containers;
+mod fallible_world;
 mod fixture_outcomes;
 mod services;
 mod stale_library;

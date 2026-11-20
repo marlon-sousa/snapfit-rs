@@ -5,7 +5,7 @@ use std::rc::Rc;
 use derive_new::new;
 use strum::EnumIs;
 
-use crate::domain::declaration::{BuilderMethods, Constructor, Execution, Lifecycle};
+use crate::domain::declaration::{BuilderMethods, Constructor, Execution, Fallibility, Lifecycle};
 use crate::domain::names::DependencyName;
 
 #[cfg(test)]
@@ -39,6 +39,7 @@ pub(crate) struct Step<F> {
     pub(crate) syntax: F,
     pub(crate) lifecycle: Lifecycle,
     pub(crate) execution: Execution,
+    pub(crate) fallibility: Fallibility,
     pub(crate) call: Call,
     /// The steps whose values are passed to the call, in the order `deps` lists them.
     pub(crate) prerequisites: Vec<Rc<Step<F>>>,
@@ -48,6 +49,8 @@ pub(crate) struct Step<F> {
 pub(crate) struct ConstructionPlan<C, F> {
     pub(crate) syntax: C,
     pub(crate) execution: Execution,
+    /// Whether building the container can fail, which a fallible step makes it.
+    pub(crate) fallibility: Fallibility,
     /// Every step after the steps it needs.
     pub(crate) construction_order: Vec<Rc<Step<F>>>,
     /// The same steps, in the order the fields are declared.
