@@ -1,4 +1,4 @@
-error: field 'payments' has a trait-object type, which has no constructor; add build = factory to the field and build it in the build_payments method of the container's factories trait
+error: field 'payments' has a trait-object type, which has no constructor; name the type the container builds, such as implementation = StripeGateway, or add build = factory to the field and build it in the build_payments method of the container's factories trait
   --> book/compile-errors/ch11_trait_object_field.rs:18:5
    |
 18 |     #[singleton]

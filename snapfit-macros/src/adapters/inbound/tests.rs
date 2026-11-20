@@ -65,7 +65,7 @@ fn every_setting_and_field_is_read_into_the_declaration() {
     assert_eq!(controller.lifecycle, Lifecycle::Transient);
     assert_eq!(controller.shape, TypeShape::Value);
 
-    assert_eq!(store.shape, TypeShape::TraitObject);
+    assert_eq!(store.shape, TypeShape::ArcTraitObject);
     assert_eq!(
         store.dispatch,
         Some(EnumDispatch::new(

@@ -3,6 +3,7 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, quote_spanned};
 use syn::ext::IdentExt;
+use syn::spanned::Spanned;
 
 use super::factories::{inputs_ident, method_ident, trait_ident};
 use crate::adapters::syntax::{ContainerSyntax, FieldSyntax};
@@ -58,9 +59,15 @@ pub(super) fn construct(step: &Step<FieldSyntax>, site: Site<'_>) -> TokenStream
         (Execution::Sync, Fallibility::Fallible) => fallible_value(call, step, site),
         (Execution::Sync, Fallibility::Infallible) => call,
     };
-    match wrapping {
-        Wrapping::Arc => quote!(::std::sync::Arc::new(#value)),
-        Wrapping::None => value,
+    match (wrapping, &field.implementation) {
+        // The `Arc` of the implementation is coerced to the field's trait
+        // object, so that an implementation of another trait is reported
+        // at the type `implementation` names.
+        (Wrapping::Arc, Some(implementation)) => {
+            quote_spanned!(implementation.span()=> ::std::sync::Arc::new(#value))
+        }
+        (Wrapping::Arc, None) => quote!(::std::sync::Arc::new(#value)),
+        (Wrapping::None, _) => value,
     }
 }
 
@@ -124,11 +131,13 @@ fn factory_call(
     quote_spanned!(field.span()=> <Self as #factories_trait>::#method(#inputs { #(#names: #args),* }))
 }
 
-/// The type whose function builds the value: `T` when the field holds `Arc<T>`.
+/// The type whose function builds the value: the type `implementation`
+/// names, or `T` when the field holds `Arc<T>`.
 fn target(field: &FieldSyntax, wrapping: Wrapping) -> &syn::Type {
-    match wrapping {
-        Wrapping::Arc => &field.arc_inner,
-        Wrapping::None => &field.ty,
+    match (&field.implementation, wrapping) {
+        (Some(implementation), _) => implementation,
+        (None, Wrapping::Arc) => &field.arc_inner,
+        (None, Wrapping::None) => &field.ty,
     }
 }
 

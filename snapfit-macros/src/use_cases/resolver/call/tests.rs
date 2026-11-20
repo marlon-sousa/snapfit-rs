@@ -3,10 +3,21 @@ use crate::domain::{Constructor, DependencyName, EnumDispatch, Execution, Prereq
 use crate::test_support::{builder, builder_methods};
 
 fn dependency(shape: TypeShape, construction: Option<Construction>) -> DependencyDeclaration<()> {
-    let mut dependency = DependencyDeclaration::new(DependencyName::new("store").unwrap(), ());
+    let mut dependency = DependencyDeclaration::new(store(), ());
     dependency.shape = shape;
     dependency.construction = construction;
     dependency
+}
+
+fn store() -> DependencyName {
+    DependencyName::new("store").unwrap()
+}
+
+fn refusal(problem: TraitObjectProblem) -> DomainError {
+    DomainError::TraitObject {
+        dependency: store(),
+        problem,
+    }
 }
 
 fn constructor(wrapping: Wrapping) -> Call {
@@ -57,12 +68,7 @@ fn a_dispatched_trait_object_is_left_to_the_feature_gate() {
 fn a_trait_object_without_a_factory_is_refused_naming_its_field() {
     let call = call_for(&dependency(TypeShape::TraitObject, None), &Constructor::New);
 
-    assert_eq!(
-        call,
-        Err(DomainError::TraitObjectWithoutFactory {
-            dependency: DependencyName::new("store").unwrap(),
-        })
-    );
+    assert_eq!(call, Err(refusal(TraitObjectProblem::WithoutFactory)));
 }
 
 #[test]
@@ -121,10 +127,62 @@ fn a_trait_object_built_by_a_builder_is_refused_pointing_to_a_factory() {
         &Constructor::New,
     );
 
+    assert_eq!(call, Err(refusal(TraitObjectProblem::WithoutFactory)));
+}
+
+fn named(shape: TypeShape, construction: Option<Construction>) -> DependencyDeclaration<()> {
+    let mut dependency = dependency(shape, construction);
+    dependency.implementation = Implementation::Named;
+    dependency
+}
+
+#[test]
+fn an_arc_of_a_trait_object_is_built_by_the_named_implementation_and_wrapped() {
+    let call = call_for(&named(TypeShape::ArcTraitObject, None), &Constructor::New);
+
+    assert_eq!(call, Ok(constructor(Wrapping::Arc)));
+}
+
+#[test]
+fn an_arc_of_a_trait_object_without_an_implementation_or_factory_is_refused() {
+    let call = call_for(
+        &dependency(TypeShape::ArcTraitObject, None),
+        &Constructor::New,
+    );
+
     assert_eq!(
         call,
-        Err(DomainError::TraitObjectWithoutFactory {
-            dependency: DependencyName::new("store").unwrap(),
-        })
+        Err(refusal(TraitObjectProblem::WithoutImplementation))
     );
+}
+
+#[test]
+fn an_implementation_is_refused_where_it_cannot_be_built() {
+    let cases = [
+        (
+            TypeShape::Value,
+            None,
+            TraitObjectProblem::ImplementationWithoutTraitObject,
+        ),
+        (
+            TypeShape::Arc,
+            None,
+            TraitObjectProblem::ImplementationWithoutTraitObject,
+        ),
+        (
+            TypeShape::TraitObject,
+            None,
+            TraitObjectProblem::ImplementationOutsideArc,
+        ),
+        (
+            TypeShape::ArcTraitObject,
+            Some(Construction::Factory),
+            TraitObjectProblem::ImplementationWithFactory,
+        ),
+    ];
+
+    for (shape, construction, problem) in cases {
+        let call = call_for(&named(shape, construction), &Constructor::New);
+        assert_eq!(call, Err(refusal(problem)), "{shape:?}");
+    }
 }

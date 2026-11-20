@@ -1370,6 +1370,7 @@ dependencies = [
  "cucumber",
  "futures",
  "snapfit",
+ "strum",
  "typed-builder 0.22.0",
 ]
 
