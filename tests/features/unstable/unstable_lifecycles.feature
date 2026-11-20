@@ -67,8 +67,14 @@ Feature: Unstable lifecycles behind the `unstable` feature
       | planned_fallible_transient | 16 | fallible = true on transient dependency 'request' |
 
   @unstable @regression
-  Scenario: A trait-object field without a factory is told to build it in one, as on the stable build
+  Scenario: A trait-object field without a factory is told to name its implementation or build it in a factory, as on the stable build
     Given an invalid container fixture "trait_object_without_factory"
     When the fixture is compiled
-    Then compilation should fail with "field 'store' has a trait-object type, which has no constructor; add build = factory to the field and build it in the build_store method of the container's factories trait"
+    Then compilation should fail with "field 'store' has a trait-object type, which has no constructor; name the type the container builds, such as implementation = StripeGateway, or add build = factory to the field and build it in the build_store method of the container's factories trait"
     And the error should point at line 8 of the fixture
+
+  @unstable
+  Scenario: A transient trait-object field is built afresh from the implementation it names
+    When the desk whose transient reader names its implementation is opened
+    Then every get of its reader should build a new trait object, reading from disk
+    And its report, built from a reader of its own, should read from disk

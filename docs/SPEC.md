@@ -19,6 +19,7 @@ This document describes the full design. Only part of it ships as a stable API i
 | Compile-time missing-dependency and cycle detection | Stable | §6 |
 | `Container` trait, `new()`, `Default` | Stable | §2 |
 | Fallible fields: `fallible = true`, `try_new()`, the `FallibleContainer` trait and `BuildError` | Not in 0.1.0; stable from 0.2.0 | §5.D |
+| Fields typed as their trait: `implementation = <Type>` on an `Arc<dyn Trait>` field | Not in 0.1.0; stable from 0.2.0 | §5.E |
 | Async containers: `mode = "async"`, `#[singleton(async)]`, `init().await` (sequential) | Unstable | §8 |
 | `#[transient]` dependencies | Unstable | §4 |
 | Concurrent async boot (`join!` over independent async singletons) | Planned | §8 |
@@ -71,7 +72,8 @@ These are compile errors that point at the offending field or container, instead
 
 * **Generic containers** (`struct Repo<T>`): planned; the generated `impl` blocks and getters need a design for bounds first.
 * **`#[cfg]` / `#[cfg_attr]` on a dependency field**: conditional dependencies would change the graph per build, so they are refused.
-* **Trait-object fields** (`Arc<dyn PaymentGateway>`) without `build = factory`: a trait object has no constructor or builder to call. The error, the same on both builds, tells the user to build the field with a factory (§5.B), whatever wrapper held the trait object. Holding the concrete type (`Arc<StripeGateway>`) still works, and a constructor that takes `Arc<dyn PaymentGateway>` accepts that field, because Rust converts the `Arc` where the generated code passes it. `#[dispatch(...)]` is another way once implemented.
+* **Trait-object fields without a way to build them**: a trait object has no constructor or builder to call. An `Arc<dyn PaymentGateway>` field that names no `implementation` (§5.E) and has no `build = factory` is refused, and the error offers both. Any other type holding a trait object, such as `Box<dyn PaymentGateway>` or `Arc<Archive<dyn Store>>`, needs `build = factory` (§5.B), and its error says so. Both errors are the same on both builds. Holding the concrete type (`Arc<StripeGateway>`) still works, and a constructor that takes `Arc<dyn PaymentGateway>` accepts that field, because Rust converts the `Arc` where the generated code passes it. `#[dispatch(...)]` is another way once implemented.
+* **An `implementation` that cannot be followed** (§5.E): a bare `implementation`, one in parentheses, a quoted one, one that is no type the container can build (`impl Reader`, `_`, `dyn Reader`, `3`), and a second one, are refused at the field. So are an `implementation` on a field whose type holds no trait object, on a trait object held in anything but an `Arc`, and beside `build = factory`.
 * **`build` values that are not a way of building** (§5), and **`constructor(...)` values that are not a plain function name** (`"connect()"`, `Db::connect`).
 * **`build = default` with `deps`**: `Default::default()` takes nothing, so the field's `deps` would never be passed.
 * **`build = default` on an async dependency** (unstable): `Default::default()` cannot be awaited.
@@ -163,6 +165,7 @@ The settings are the arguments of the one `#[container(...)]` that declares the 
 | **`#[transient(deps = [a])]`** | **Transient (With Dependencies)** | **Stripped from struct memory storage.** Reconstructed on each `get_<name>()` passing `a`. |
 | **`#[singleton(deps = [...], build = ...)]`** | **Singleton (Built Another Way)** | Stored in container struct. Built once at boot by `Default::default()`, a named constructor, a factory, or a builder (§5). |
 | **`#[singleton(deps = [...], build = factory)]`** | **Factory** | Stored in container struct. Built once at boot by the user's `build_<name>` method of the generated `<ContainerName>Factories` trait. |
+| **`#[singleton(implementation = StripeGateway)]`** | **Singleton Typed as its Trait** | An `Arc<dyn Trait>` field, stored as declared. Built once at boot by the named type's `new`, `Default`, named constructor or builder, then wrapped in `Arc::new` (§5.E). |
 | **`#[singleton(fallible = true, ...)]`** | **Fallible Singleton** | Stored in container struct. Built once at boot by its `build`, or its type's `new`, which returns a `Result`; the container is then built by `try_new()` (§5.D). |
 | **`#[dispatch(ImplA, ImplB)]`** | **Static Trait (Planned)** | Auto-generates `enum_dispatch` and **rewrites the struct field type** to the enum. |
 | **`#[external]`** | **External Input (Planned)** | Passed as a parameter to `new(...)` / `init(...)` and exposed as a wireable leaf node in the DAG. |
@@ -347,7 +350,7 @@ pub struct Shop {
 * **Every name is the user's own token:** the setters, the start and the finish are written with the tokens of the attribute (the label, or the `deps` entry when there is none, and the `start`, `finish` or `builder` word), so that rustc's errors about them point inside the attribute and an editor completing there sees the builder's real methods.
 * **The compiler checks the rest:** an unknown or misspelt setter is rustc's own error. A missing or repeated setter is a compile error only with a typestate builder, such as those `bon` and `typed-builder` generate; a hand-written builder decides for itself what a missing setter means.
 * **One setter, one entry:** two `deps` entries that pass different fields to the same setter, such as `[disk = folder_files, disk]`, are refused at the field, naming the setter. The same field passed twice to the same setter is refused as a repeated entry instead (§0), and one field passed to two setters is accepted.
-* **Trait objects:** a trait-object field has no type to call `builder()` on, so `build = builder` on it is refused with the trait-object error of §0, which points to a factory.
+* **Trait objects:** a trait-object field has no type to call `builder()` on. An `Arc<dyn Trait>` field that names its `implementation` (§5.E) calls the implementation's `builder()`; any other trait-object field with `build = builder` is refused with the trait-object error of §0.
 * **Async (unstable):** `build = builder` on an async dependency is planned, refused as not implemented yet, for the same reason as an async factory.
 * **No dependency on a builder crate:** snapfit only writes the chain of calls. The builder crate, if any, is the user's own dependency.
 
@@ -390,6 +393,28 @@ match AppContainer::try_new() {
 * **`leaf_build` cannot build a fallible field:** a synchronous fallible field with no `deps` and no `build` of its own, in a container whose `leaf_build` is not `constructor(new)`, is refused at the field, because the function chosen for every leaf returns the value itself, and building the field another way than `leaf_build` says would mislead the reader of the container. The error asks for a `build` of the field's own, such as `build = constructor(new)`, or for `fallible = true` to go.
 * **Refused:** `build = default` with `fallible = true`, because `Default::default()` cannot fail; a fallible leaf that `leaf_build` would build, as above; and `fallible = true` on a transient (unstable), planned and refused as not implemented yet, because a getter promises to return the value itself (§3).
 * **Async containers (unstable):** a fallible field of an async container is wrapped into a `BuildError` the same way, after its `.await` when it is async, and `init()` returns it boxed, as it returns every error today.
+
+### E. Fields typed as their trait (`implementation = <Type>`)
+A field can be the trait itself, `Arc<dyn PaymentGateway>`, and name the type the container builds for it. Swapping the implementation is then that one word, and the field, its getter, and what every dependent receives keep their types:
+
+```rust
+#[container]
+pub struct ShopContainer {
+    // Calls Arc::new(StripeGateway::new()), seen as Arc<dyn PaymentGateway>
+    #[singleton(implementation = StripeGateway)]
+    payments: Arc<dyn PaymentGateway>,
+
+    // OrderService::new takes Arc<dyn PaymentGateway>
+    #[singleton(deps = [payments])]
+    orders: Arc<OrderService>,
+}
+```
+
+* **The setting:** `implementation = <Type>`, a type written in full, such as `StripeGateway` or `Cache<Order>`, also when a `macro_rules!` passes it as `$t:ty`. A bare `implementation`, an empty one, one in parentheses or in quotes, a type that is no type the container can name or call a constructor of (`impl Trait` or `_` anywhere in it, or a trait object), any other value, and a second `implementation`, are refused at the field, each with every other problem the field has.
+* **Which fields take it:** only a field typed `Arc<dyn Trait>`, through any of the paths of `Arc` that §3 reads and with any bounds on the trait object (`Arc<dyn PaymentGateway + Send + Sync>`). A field whose type holds no trait object, and one that holds its trait object in anything but an `Arc` (`Box<dyn Trait>`, `Arc<Archive<dyn Trait>>`), are refused at the field: the first is built as it is, and the second has no single place to put the implementation.
+* **How it is built:** everything else about the field stays as it is. `build` is read as for an `Arc<T>` field whose `T` is the implementation: its `new` taking `deps` in order, `build = default`, `build = constructor(<fn>)`, or `build = builder`, and `leaf_build` applies to it as a leaf. The value is then wrapped in `Arc::new` and converted to the field's trait object, where an implementation that does not implement the trait is rustc's own error, at the type `implementation` names. `fallible = true` works as §5.D says, and so does `#[transient]` (unstable), which builds a new `Arc` for every get. `build = factory` beside `implementation` is refused, because a factory returns the field itself and has no implementation to call.
+* **What does not change:** the getter returns the field's type exactly as declared, `Arc<dyn Trait>`, and every dependent, factory inputs included, receives a clone of that `Arc`.
+* **Dependents generic over the trait:** a service generic over the trait on its struct, `Ledger<R: Reader>` taking `R`, keeps a concrete field (`ledger: Arc<Ledger<DiskReader>>`) with the reader it takes (`reader: DiskReader`); a plain type alias (`type ShopReader = DiskReader;`) keeps the swap to one line. A service generic only in its constructor, `fn new<R: Reader>(reader: R)`, names no reader in its own type, so its field (`tally: Arc<Tally>`) does not change at a swap. Neither needs anything from snapfit: the macro never rewrites a field's type.
 
 ---
 
@@ -462,7 +487,7 @@ pub struct AppContainer {
 ```
 * **Performance:** 100% static dispatch, compiler-inlined calls, zero `dyn Any`, zero `vtable`.
 * **Trait Annotation Contract:** Because Rust procedural macros operate syntactically and cannot inspect external trait method definitions, static dispatch leverages `enum_dispatch` (which requires `#[enum_dispatch]` on the trait).
-* **When dynamic dispatch is desired (Zero Trait Macros):** Omit `#[dispatch]` and use `Arc<dyn Database + Send + Sync>` directly, built by a factory (`build = factory`, §5.B). This requires zero annotations on the trait definition and supports dynamic plugin architectures.
+* **When dynamic dispatch is desired (Zero Trait Macros):** Omit `#[dispatch]` and use `Arc<dyn Database + Send + Sync>` directly, built from the type its `implementation` names (§5.E) or by a factory (`build = factory`, §5.B). This requires zero annotations on the trait definition and supports dynamic plugin architectures.
 
 ---
 

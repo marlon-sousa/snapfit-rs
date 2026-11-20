@@ -11,6 +11,7 @@ use crate::domain::AttributeProblem;
 mod build_meta;
 mod expressions;
 mod fallible_meta;
+mod implementation_meta;
 mod prerequisites;
 #[cfg(test)]
 mod tests;
@@ -19,6 +20,8 @@ pub(super) use build_meta::{BuildMeta, BuildWord, FunctionNameMeta};
 pub(super) use expressions::single_word;
 use expressions::ungrouped;
 pub(super) use fallible_meta::FallibleMeta;
+use implementation_meta::FieldSettings;
+pub(super) use implementation_meta::ImplementationMeta;
 pub(super) use prerequisites::{PrerequisiteEntry, PrerequisiteList, PrerequisiteMeta};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, FromMeta)]
@@ -76,6 +79,14 @@ pub(super) struct DependencyAttrMeta {
     pub(super) build: Option<BuildMeta>,
     #[darling(default)]
     pub(super) fallible: Option<FallibleMeta>,
+    /// Filled by `FieldSettings`, never by darling.
+    #[darling(skip)]
+    pub(super) implementations: Vec<ImplementationMeta>,
+    /// Never filled: `FieldSettings` takes every `implementation` out
+    /// first. Without it, darling's help for a misspelt setting would leave
+    /// `implementation` out of the settings it offers.
+    #[darling(default, rename = "implementation")]
+    implementation_name: Option<darling::util::Ignored>,
 }
 
 impl DependencyAttrMeta {
@@ -88,22 +99,37 @@ impl DependencyAttrMeta {
     }
 
     fn from_tokens(tokens: TokenStream) -> Result<Self, UnreadableAttribute> {
-        let nested = NestedMeta::parse_meta_list(tokens)
+        let FieldSettings {
+            settings,
+            implementations,
+        } = syn::parse2(tokens)
             .map_err(unreadable)
             .map_err(UnreadableAttribute::alone)?;
-        Self::from_list(&nested).map_err(|err| UnreadableAttribute {
-            problem: unreadable(err),
-            bad_deps: bad_deps(&nested),
+        let meta = match Self::from_list(&settings) {
+            Ok(meta) => meta,
+            Err(err) => {
+                return Err(UnreadableAttribute {
+                    problem: unreadable(err),
+                    bad_deps: bad_deps(&settings),
+                    implementations,
+                });
+            }
+        };
+        Ok(Self {
+            implementations,
+            ..meta
         })
     }
 }
 
-/// A field attribute that does not read, with every bad `deps` entry it
-/// holds, which darling's problem with the rest of it leaves out.
+/// A field attribute that does not read, with every bad `deps` entry and
+/// every `implementation` it holds, which darling's problem with the rest
+/// of it leaves out.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct UnreadableAttribute {
     pub(super) problem: AttributeProblem,
     pub(super) bad_deps: Vec<AttributeProblem>,
+    pub(super) implementations: Vec<ImplementationMeta>,
 }
 
 impl UnreadableAttribute {
@@ -111,6 +137,7 @@ impl UnreadableAttribute {
         Self {
             problem,
             bad_deps: Vec::new(),
+            implementations: Vec::new(),
         }
     }
 }

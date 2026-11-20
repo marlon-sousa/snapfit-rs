@@ -5,6 +5,7 @@ mod accumulated;
 mod parts;
 mod sentences;
 mod subject;
+mod trait_objects;
 
 use thiserror::Error;
 
@@ -13,6 +14,7 @@ use crate::domain::names::{DependencyName, SetterName};
 pub(crate) use accumulated::DomainErrors;
 pub(crate) use parts::{AttributeProblem, Feature, InfallibleBuild};
 use sentences::{cycle_sentence, dependencies_noun, join_names};
+pub(crate) use trait_objects::TraitObjectProblem;
 
 #[cfg(test)]
 mod tests;
@@ -149,11 +151,11 @@ pub(crate) enum DomainError {
     )]
     AsyncDefault { dependency: DependencyName },
 
-    #[error(
-        "field '{dependency}' has a trait-object type, which has no constructor; add build = factory to the field and build it in the build_{} method of the container's factories trait",
-        .dependency.without_raw_prefix()
-    )]
-    TraitObjectWithoutFactory { dependency: DependencyName },
+    #[error("field '{dependency}' {}", problem.worded(dependency))]
+    TraitObject {
+        dependency: DependencyName,
+        problem: TraitObjectProblem,
+    },
 
     #[error(
         "builder({written}) on field '{dependency}' cannot be read; builder takes start and finish, each with a function's name, such as builder(start = new_builder, finish = done)"

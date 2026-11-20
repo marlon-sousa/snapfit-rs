@@ -3,25 +3,27 @@
 use syn::ext::IdentExt;
 
 use super::darling_models::DependencyAttrMeta;
-use super::type_inspector::{
-    arc_inner_type, dispatched_trait, parse_dispatch_attribute, type_shape,
-};
-use crate::adapters::syntax::{BuilderSyntax, FieldDeclaration, FieldSyntax, is_user_attribute};
+use super::type_inspector::{dispatched_trait, parse_dispatch_attribute, type_shape};
+use crate::adapters::syntax::FieldDeclaration;
 use crate::domain::{
     AttributeProblem, DependencyDeclaration, DependencyName, DomainError, DomainErrors,
-    EnumDispatch, Execution, Fallibility, Lifecycle, TypeName,
+    EnumDispatch, Execution, Fallibility, Implementation, Lifecycle, TypeName,
 };
 
 mod deps;
 mod fallible;
+mod implementation;
 mod rules;
 #[cfg(test)]
 mod tests;
+mod written;
 
 use super::build_setting::{WrittenBuild, field_construction};
 use deps::{Deps, read_deps};
 use fallible::read_fallible;
+use implementation::read_implementation;
 use rules::{attribute_error, ensure_unconditional, unreadable_attribute};
+use written::{WrittenField, field_syntax};
 
 /// The declaration, or every problem the field's attributes have.
 pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, DomainErrors> {
@@ -39,7 +41,11 @@ pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, Domain
     let build = field_construction(&name, meta.build).map_err(DomainErrors::from);
     let deps = read_deps(&name, meta.deps);
     let fallible = read_fallible(&name, meta.fallible).map_err(DomainErrors::from);
-    let ((build, deps), fallible) = DomainErrors::both(DomainErrors::both(build, deps), fallible)?;
+    let implementation = read_implementation(&name, meta.implementations);
+    let (((build, deps), fallible), implementation) = DomainErrors::both(
+        DomainErrors::both(DomainErrors::both(build, deps), fallible),
+        implementation,
+    )?;
     // The word is kept exactly when the field is fallible: the wrapping is spanned at it.
     let fallibility = if fallible.is_some() {
         Fallibility::Fallible
@@ -57,7 +63,20 @@ pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, Domain
         setters,
     } = deps;
 
-    let syntax = field_syntax(field, ident, constructor, builder, setters, fallible);
+    // The type is kept exactly when one is named: the generated code builds it.
+    let named = if implementation.is_some() {
+        Implementation::Named
+    } else {
+        Implementation::OfField
+    };
+    let written = WrittenField {
+        constructor,
+        builder,
+        setters,
+        fallible,
+        implementation,
+    };
+    let syntax = field_syntax(field, ident, written);
     let mut dependency = DependencyDeclaration::new(name, syntax);
     dependency.lifecycle = lifecycle;
     dependency.execution = if meta.is_async {
@@ -66,6 +85,7 @@ pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, Domain
         Execution::Sync
     };
     dependency.fallibility = fallibility;
+    dependency.implementation = named;
     dependency.construction = construction;
     dependency.shape = type_shape(&field.ty);
     dependency.prerequisites = siblings;
@@ -77,32 +97,6 @@ pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, Domain
 fn field_name(field: &syn::Field) -> Result<(DependencyName, syn::Ident), DomainError> {
     let ident = field.ident.clone().ok_or(DomainError::TupleStruct)?;
     Ok((DependencyName::new(ident.unraw().to_string())?, ident))
-}
-
-fn field_syntax(
-    field: &syn::Field,
-    ident: syn::Ident,
-    constructor: Option<syn::Ident>,
-    builder: Option<BuilderSyntax>,
-    setters: Vec<syn::Ident>,
-    fallible: Option<syn::Ident>,
-) -> FieldSyntax {
-    FieldSyntax {
-        ident,
-        constructor,
-        builder,
-        setters,
-        fallible,
-        ty: field.ty.clone(),
-        arc_inner: arc_inner_type(&field.ty).unwrap_or(&field.ty).clone(),
-        vis: field.vis.clone(),
-        attrs: field
-            .attrs
-            .iter()
-            .filter(is_user_attribute)
-            .cloned()
-            .collect(),
-    }
 }
 
 fn unannotated(name: &DependencyName) -> DomainError {

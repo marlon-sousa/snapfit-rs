@@ -64,8 +64,9 @@ fn an_error_about_the_whole_container_has_no_subject() {
 
 #[test]
 fn a_trait_object_is_told_the_factory_method_named_after_its_field() {
-    let error = DomainError::TraitObjectWithoutFactory {
+    let error = DomainError::TraitObject {
         dependency: name("cache"),
+        problem: TraitObjectProblem::WithoutFactory,
     };
 
     assert_eq!(

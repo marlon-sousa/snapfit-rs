@@ -50,9 +50,20 @@ pub(super) fn parse_dispatch_attribute(
 /// object, which has no constructor, or is an `Arc`.
 pub(super) fn type_shape(ty: &syn::Type) -> TypeShape {
     match (find_trait_object(ty), arc_inner_type(ty)) {
+        (Some(_), Some(inner)) if is_trait_object(inner) => TypeShape::ArcTraitObject,
         (Some(_), _) => TypeShape::TraitObject,
         (None, Some(_)) => TypeShape::Arc,
         (None, None) => TypeShape::Value,
+    }
+}
+
+/// `dyn Trait` itself, also when a macro or parentheses wrap it.
+fn is_trait_object(ty: &syn::Type) -> bool {
+    match ty {
+        syn::Type::TraitObject(_) => true,
+        syn::Type::Group(group) => is_trait_object(&group.elem),
+        syn::Type::Paren(paren) => is_trait_object(&paren.elem),
+        _ => false,
     }
 }
 
