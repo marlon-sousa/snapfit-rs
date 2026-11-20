@@ -38,6 +38,15 @@ Feature: Building a container whose fields can fail
       | fallible_leaf_build         | 14   | 1      | field 'config' is built with the container's leaf_build, since it has no deps and no build of its own, and leaf_build cannot fail; give the field a build of its own, such as build = constructor(new), or remove fallible = true |
       | planned_fallible_transient  | 16   | 2      | fallible = true on transient dependency 'request' is planned for a future version of snapfit and is not implemented yet |
 
+  @v0_2_0 @regression
+  Scenario: A bad fallible is reported beside a setting the attribute does not know
+    Given an invalid container fixture "unreadable_fallible_setting"
+    When the fixture is compiled
+    Then compilation should fail with "field 'config': Unknown field: `bogus`. Available values: `async`, `build`, `deps`, `fallible`"
+    And compilation should fail with "field 'config': fallible takes true or false, not maybe; write fallible = true, or fallible = false"
+    And the compiler should report 2 errors
+    And the error should point at line 9 of the fixture
+
   @v0_2_0
   Scenario: A fallible field whose constructor returns a plain value is a compile error at its fallible setting
     Given an invalid container fixture "fallible_plain_value"

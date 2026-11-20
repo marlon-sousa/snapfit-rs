@@ -14,19 +14,17 @@ use crate::adapters::syntax::{
     ContainerSyntax, Declaration, FieldDeclaration, is_container_attribute, is_user_attribute,
 };
 use crate::domain::{
-    AttributeProblem, ContainerDeclaration, ContainerName, DomainError, DomainErrors, Execution,
-    Introspection, TypeName, TypeParameters,
+    AttributeProblem, Constructor, ContainerDeclaration, ContainerName, DomainError, DomainErrors,
+    Execution, Introspection, TypeName, TypeParameters,
 };
-use darling_models::ContainerAttrMeta;
+use darling_models::{ContainerAttrMeta, UnreadableAttribute};
 
 /// `#[container(args)]` on `item`.
 pub(crate) fn parse_attribute(
     args: TokenStream,
     item: &syn::ItemStruct,
 ) -> Result<Declaration, DomainErrors> {
-    let header = container_meta(args, &item.attrs)
-        .map_err(DomainErrors::from)
-        .and_then(|meta| container_header(item, meta));
+    let header = container_meta(args, &item.attrs).and_then(|meta| container_header(item, meta));
     let (mut container, dependencies) = DomainErrors::both(header, parse_fields(&item.fields))?;
     container.dependencies = dependencies;
     Ok(container)
@@ -38,6 +36,35 @@ fn container_header(
     meta: ContainerAttrMeta,
 ) -> Result<Declaration, DomainErrors> {
     let name = ContainerName::new(item.ident.to_string()).map_err(DomainErrors::from);
+    let introspection = meta.introspection;
+    let (name, settings) = DomainErrors::both(name, container_settings(meta))?;
+    let mut container =
+        ContainerDeclaration::new(name, container_syntax(item, settings.leaf_ident));
+    container.type_parameters = type_parameters(&item.generics);
+    container.mode = settings.mode;
+    container.parent = settings.parent;
+    container.introspection = if introspection {
+        Introspection::On
+    } else {
+        Introspection::Off
+    };
+    container.leaf_constructor = settings.leaf_constructor;
+    Ok(container)
+}
+
+/// The settings of `#[container(...)]` that are checked when they are read.
+struct ContainerSettings {
+    mode: Option<Execution>,
+    parent: Option<TypeName>,
+    leaf_constructor: Constructor,
+    /// The function of `leaf_build = constructor(...)` as the user wrote it.
+    leaf_ident: Option<syn::Ident>,
+}
+
+/// The container's `mode`, `parent` and `leaf_build`, or every problem they have.
+/// Each setting must be checked apart from the others: one rescued from an
+/// attribute that does not read is checked alone.
+fn container_settings(meta: ContainerAttrMeta) -> Result<ContainerSettings, DomainErrors> {
     let mode = meta
         .mode
         .as_deref()
@@ -50,21 +77,14 @@ fn container_header(
         .transpose()
         .map_err(DomainErrors::from);
     let leaf = build_setting::leaf_constructor(meta.leaf_build).map_err(DomainErrors::from);
-    let ((name, mode), (parent, (leaf_constructor, leaf_ident))) = DomainErrors::both(
-        DomainErrors::both(name, mode),
-        DomainErrors::both(parent, leaf),
-    )?;
-    let mut container = ContainerDeclaration::new(name, container_syntax(item, leaf_ident));
-    container.type_parameters = type_parameters(&item.generics);
-    container.mode = mode;
-    container.parent = parent;
-    container.introspection = if meta.introspection {
-        Introspection::On
-    } else {
-        Introspection::Off
-    };
-    container.leaf_constructor = leaf_constructor;
-    Ok(container)
+    let (mode, (parent, (leaf_constructor, leaf_ident))) =
+        DomainErrors::both(mode, DomainErrors::both(parent, leaf))?;
+    Ok(ContainerSettings {
+        mode,
+        parent,
+        leaf_constructor,
+        leaf_ident,
+    })
 }
 
 fn container_syntax(
@@ -109,15 +129,21 @@ fn execution_of(mode: &str) -> Result<Execution, DomainError> {
 fn container_meta(
     args: TokenStream,
     attrs: &[syn::Attribute],
-) -> Result<ContainerAttrMeta, DomainError> {
+) -> Result<ContainerAttrMeta, DomainErrors> {
     if attrs.iter().any(is_container_attribute) {
-        return Err(DomainError::MultipleContainerAttributes);
+        return Err(DomainError::MultipleContainerAttributes.into());
     }
-    ContainerAttrMeta::from_tokens(args).map_err(container_attribute)
+    ContainerAttrMeta::from_tokens(args).map_err(unreadable_container_attribute)
 }
 
-fn container_attribute(problem: AttributeProblem) -> DomainError {
-    DomainError::ContainerAttribute { problem }
+/// The attribute's problem, then the problems of each setting that reads on its own.
+fn unreadable_container_attribute(
+    unreadable: UnreadableAttribute<ContainerAttrMeta>,
+) -> DomainErrors {
+    let UnreadableAttribute { problem, settings } = unreadable;
+    let found = settings.into_iter().map(container_settings);
+    let rest = found.filter_map(Result::err).flatten();
+    DomainErrors::new(DomainError::ContainerAttribute { problem }, rest.collect())
 }
 
 fn parse_fields(fields: &syn::Fields) -> Result<Vec<FieldDeclaration>, DomainErrors> {
