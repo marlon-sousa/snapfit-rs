@@ -96,7 +96,7 @@ Every problem we found in Part 1, and the chapter where you can see how `snapfit
 | Mixed responsibilities | A service knows only its own arguments; the container knows how everything is built. | [Chapter 7](07-wiring-dependencies-and-constructors.md) |
 | A closed list | A new implementation is a new type named in one field; no service changes. | [Chapter 11](11-choosing-an-implementation.md) |
 | Spreading type parameters | The concrete type is named once, in a field's type, and services can take a trait object instead. | [Chapter 11](11-choosing-an-implementation.md) |
-| Someone still has to choose | The container chooses, once, in the types of its fields. | [Chapter 11](11-choosing-an-implementation.md) |
+| Someone still has to choose | The container chooses, once, in the types of its fields or the implementation a field names. | [Chapter 11](11-choosing-an-implementation.md) |
 | Ordering by hand | `new()` works out the order from `deps`. | [Chapter 8](08-read-the-container-know-the-graph.md) |
 | Sharing by convention | There is one kind of field: built once, when the container is built. | [Chapter 5](05-installing-and-first-singleton.md) |
 | An invisible graph | The container struct is the graph, in one place. | [Chapter 8](08-read-the-container-know-the-graph.md) |

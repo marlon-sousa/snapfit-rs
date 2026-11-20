@@ -1,0 +1,5 @@
+error[E0599]: no method named `dashboard_url` found for struct `Arc<dyn PaymentGateway>` in the current scope
+  --> book/compile-errors/ch11_trait_field_hides_stripe.rs:36:29
+   |
+36 |     println!("{}", payments.dashboard_url());
+   |                             ^^^^^^^^^^^^^ method not found in `Arc<dyn PaymentGateway>`

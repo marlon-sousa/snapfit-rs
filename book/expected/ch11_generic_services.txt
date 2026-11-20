@@ -1,0 +1,6 @@
+production refund: Stripe charged 500 cents
+production receipt: 4500 cents, paid through Stripe
+production order: Stripe charged 9000 cents
+test refund: fake gateway pretended to charge 500 cents
+test receipt: 4500 cents, paid through the fake gateway
+test order: fake gateway pretended to charge 9000 cents
