@@ -32,5 +32,6 @@ pub struct ShopContainer {
 
 fn main() {
     let shop = ShopContainer::new();
-    println!("{}", shop.get_payments().dashboard_url());
+    let payments = shop.get_payments();
+    println!("{}", payments.dashboard_url());
 }
