@@ -10,6 +10,7 @@ use crate::domain::AttributeProblem;
 
 mod build_meta;
 mod expressions;
+mod fallible_meta;
 mod prerequisites;
 #[cfg(test)]
 mod tests;
@@ -17,6 +18,7 @@ mod tests;
 pub(super) use build_meta::{BuildMeta, BuildWord, FunctionNameMeta};
 pub(super) use expressions::single_word;
 use expressions::ungrouped;
+pub(super) use fallible_meta::FallibleMeta;
 pub(super) use prerequisites::{PrerequisiteEntry, PrerequisiteList, PrerequisiteMeta};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, FromMeta)]
@@ -72,6 +74,8 @@ pub(super) struct DependencyAttrMeta {
     pub(super) is_async: bool,
     #[darling(default)]
     pub(super) build: Option<BuildMeta>,
+    #[darling(default)]
+    pub(super) fallible: Option<FallibleMeta>,
 }
 
 impl DependencyAttrMeta {

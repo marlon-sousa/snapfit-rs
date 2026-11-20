@@ -1,19 +1,21 @@
-//! Adapter: the container's `new()` and its impls, or its async `init()`.
+//! Adapter: the container's `new()` and its impls, its `try_new()` and its
+//! impl when it can fail, or its async `init()`.
 
 use proc_macro2::TokenStream;
 use quote::quote;
 
 use super::expr::{Site, ValueSource, construct, local_ident};
 use crate::adapters::syntax::{FieldSyntax, Plan};
-use crate::domain::{Execution, Step};
+use crate::domain::{Execution, Fallibility, Step};
 
 #[cfg(test)]
 mod tests;
 
 pub(super) fn emit_init_impl(plan: &Plan) -> TokenStream {
-    match plan.execution {
-        Execution::Sync => emit_sync_new_impl(plan),
-        Execution::Async => emit_async_init_impl(plan),
+    match (plan.execution, plan.fallibility) {
+        (Execution::Sync, Fallibility::Infallible) => emit_sync_new_impl(plan),
+        (Execution::Sync, Fallibility::Fallible) => emit_sync_try_new_impl(plan),
+        (Execution::Async, _) => emit_async_init_impl(plan),
     }
 }
 
@@ -37,6 +39,27 @@ fn emit_sync_new_impl(plan: &Plan) -> TokenStream {
         impl ::snapfit::Container for #container_ident {
             fn new() -> Self {
                 Self::new()
+            }
+        }
+    }
+}
+
+/// `try_new()`, which returns the first field's error; the container has no
+/// `new()`, `Default` or `Container`, which promise that building it succeeds.
+fn emit_sync_try_new_impl(plan: &Plan) -> TokenStream {
+    let container_ident = &plan.syntax.ident;
+    let body = emit_construction_body(plan);
+
+    quote! {
+        impl #container_ident {
+            pub fn try_new() -> ::std::result::Result<Self, ::snapfit::BuildError> {
+                ::std::result::Result::Ok({ #body })
+            }
+        }
+
+        impl ::snapfit::FallibleContainer for #container_ident {
+            fn try_new() -> ::std::result::Result<Self, ::snapfit::BuildError> {
+                Self::try_new()
             }
         }
     }

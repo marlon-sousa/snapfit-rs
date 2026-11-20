@@ -1,6 +1,6 @@
 # Contents
 
-**The Snapfit Book** for Rust (`0.1`), in reading order. It follows the plan in [BOOK.md](../BOOK.md) and the directive layout in [FORMAT.md](../FORMAT.md). Every program the chapters show is complete: those in [examples](../examples/) run with `cargo run -p snapfit_book --example <name>` from the repository root.
+**The Snapfit Book** for Rust (`0.2`), in reading order. It follows the plan in [BOOK.md](../BOOK.md) and the directive layout in [FORMAT.md](../FORMAT.md). Every program the chapters show is complete: those in [examples](../examples/) run with `cargo run -p snapfit_book --example <name>` from the repository root.
 
 ## Welcome
 
@@ -28,11 +28,12 @@
 9. [Multiple instances of the same type](09-multiple-instances-of-the-same-type.md)
 10. [Passing dependencies by name](10-passing-dependencies-by-name.md)
 11. [Choosing an implementation](11-choosing-an-implementation.md)
+12. [When building can fail](12-when-building-can-fail.md)
 
 ## Part 4: Compile-time guarantees and agents
 
-12. [Mistakes caught by the compiler](12-mistakes-caught-by-the-compiler.md)
-13. [Working with coding agents](13-working-with-coding-agents.md)
+13. [Mistakes caught by the compiler](13-mistakes-caught-by-the-compiler.md)
+14. [Working with coding agents](14-working-with-coding-agents.md)
 
 ## Appendices
 

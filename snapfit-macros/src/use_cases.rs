@@ -4,7 +4,9 @@
 mod declaration_rules;
 mod derive_container;
 mod execution;
+mod fallibility;
 mod feature_gate;
+mod leaf;
 mod repeats;
 mod resolver;
 

@@ -9,16 +9,18 @@ use super::type_inspector::{
 use crate::adapters::syntax::{BuilderSyntax, FieldDeclaration, FieldSyntax, is_user_attribute};
 use crate::domain::{
     AttributeProblem, DependencyDeclaration, DependencyName, DomainError, DomainErrors,
-    EnumDispatch, Execution, Lifecycle, TypeName,
+    EnumDispatch, Execution, Fallibility, Lifecycle, TypeName,
 };
 
 mod deps;
+mod fallible;
 mod rules;
 #[cfg(test)]
 mod tests;
 
 use super::build_setting::{WrittenBuild, field_construction};
 use deps::{Deps, read_deps};
+use fallible::read_fallible;
 use rules::{attribute_error, ensure_unconditional, unreadable_attribute};
 
 /// The declaration, or every problem the field's attributes have.
@@ -36,7 +38,14 @@ pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, Domain
     };
     let build = field_construction(&name, meta.build).map_err(DomainErrors::from);
     let deps = read_deps(&name, meta.deps);
-    let (build, deps) = DomainErrors::both(build, deps)?;
+    let fallible = read_fallible(&name, meta.fallible).map_err(DomainErrors::from);
+    let ((build, deps), fallible) = DomainErrors::both(DomainErrors::both(build, deps), fallible)?;
+    // The word is kept exactly when the field is fallible: the wrapping is spanned at it.
+    let fallibility = if fallible.is_some() {
+        Fallibility::Fallible
+    } else {
+        Fallibility::Infallible
+    };
     let WrittenBuild {
         construction,
         constructor,
@@ -48,7 +57,7 @@ pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, Domain
         setters,
     } = deps;
 
-    let syntax = field_syntax(field, ident, constructor, builder, setters);
+    let syntax = field_syntax(field, ident, constructor, builder, setters, fallible);
     let mut dependency = DependencyDeclaration::new(name, syntax);
     dependency.lifecycle = lifecycle;
     dependency.execution = if meta.is_async {
@@ -56,6 +65,7 @@ pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, Domain
     } else {
         Execution::Sync
     };
+    dependency.fallibility = fallibility;
     dependency.construction = construction;
     dependency.shape = type_shape(&field.ty);
     dependency.prerequisites = siblings;
@@ -75,12 +85,14 @@ fn field_syntax(
     constructor: Option<syn::Ident>,
     builder: Option<BuilderSyntax>,
     setters: Vec<syn::Ident>,
+    fallible: Option<syn::Ident>,
 ) -> FieldSyntax {
     FieldSyntax {
         ident,
         constructor,
         builder,
         setters,
+        fallible,
         ty: field.ty.clone(),
         arc_inner: arc_inner_type(&field.ty).unwrap_or(&field.ty).clone(),
         vis: field.vis.clone(),

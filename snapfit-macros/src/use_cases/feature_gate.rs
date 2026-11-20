@@ -31,9 +31,7 @@ fn planned_features<C, F>(
     let generic = container
         .type_parameters
         .is_declared()
-        .then(|| Feature::GenericContainer {
-            container: container.name.clone(),
-        });
+        .then(|| generic_container(container));
     let parent = container
         .parent
         .is_some()
@@ -50,19 +48,22 @@ fn planned_features<C, F>(
 }
 
 fn planned_features_of<F>(dependency: &DependencyDeclaration<F>) -> Vec<Feature> {
-    let dispatch = dependency.dispatch.is_some().then(|| Feature::Dispatch {
-        dependency: dependency.name.clone(),
-    });
     let name = dependency.name.clone();
+    let dispatch = dependency.dispatch.is_some().then_some(Feature::Dispatch {
+        dependency: name.clone(),
+    });
     let async_build = match (&dependency.construction, dependency.execution) {
-        (Some(Construction::Factory), Execution::Async) => {
-            Some(Feature::AsyncFactory { dependency: name })
-        }
-        (Some(Construction::Builder(_)), Execution::Async) => {
-            Some(Feature::AsyncBuilder { dependency: name })
-        }
+        (Some(Construction::Factory), Execution::Async) => Some(Feature::AsyncFactory {
+            dependency: name.clone(),
+        }),
+        (Some(Construction::Builder(_)), Execution::Async) => Some(Feature::AsyncBuilder {
+            dependency: name.clone(),
+        }),
         _ => None,
     };
+    let fallible_transient = (dependency.lifecycle.is_transient()
+        && dependency.fallibility.is_fallible())
+    .then_some(Feature::FallibleTransient { dependency: name });
     let parents = dependency
         .parent_prerequisites
         .iter()
@@ -70,6 +71,7 @@ fn planned_features_of<F>(dependency: &DependencyDeclaration<F>) -> Vec<Feature>
     dispatch
         .into_iter()
         .chain(async_build)
+        .chain(fallible_transient)
         .chain(parents)
         .collect()
 }
@@ -94,16 +96,27 @@ fn unstable_features_of<F>(dependency: &DependencyDeclaration<F>) -> Vec<Feature
     let is_async = dependency
         .execution
         .is_async()
-        .then(|| Feature::AsyncDependency {
-            dependency: name.clone(),
-        });
-    let is_transient = dependency
-        .lifecycle
-        .is_transient()
-        .then(|| Feature::Transient {
-            dependency: name.clone(),
-        });
+        .then(|| async_dependency(name));
+    let is_transient = dependency.lifecycle.is_transient().then(|| transient(name));
     [is_async, is_transient].into_iter().flatten().collect()
+}
+
+fn generic_container<C, F>(container: &ContainerDeclaration<C, F>) -> Feature {
+    Feature::GenericContainer {
+        container: container.name.clone(),
+    }
+}
+
+fn async_dependency(dependency: &DependencyName) -> Feature {
+    Feature::AsyncDependency {
+        dependency: dependency.clone(),
+    }
+}
+
+fn transient(dependency: &DependencyName) -> Feature {
+    Feature::Transient {
+        dependency: dependency.clone(),
+    }
 }
 
 fn not_yet_implemented(feature: Feature) -> DomainError {

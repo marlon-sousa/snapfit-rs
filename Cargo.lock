@@ -1342,6 +1342,7 @@ name = "snapfit"
 version = "0.1.1"
 dependencies = [
  "snapfit-macros",
+ "thiserror 2.0.21",
 ]
 
 [[package]]

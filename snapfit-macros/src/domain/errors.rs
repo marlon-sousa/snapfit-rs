@@ -11,7 +11,7 @@ use thiserror::Error;
 use crate::domain::names::{DependencyName, SetterName};
 
 pub(crate) use accumulated::DomainErrors;
-pub(crate) use parts::{AttributeProblem, Feature};
+pub(crate) use parts::{AttributeProblem, Feature, InfallibleBuild};
 use sentences::{cycle_sentence, dependencies_noun, join_names};
 
 #[cfg(test)]
@@ -113,6 +113,12 @@ pub(crate) enum DomainError {
         "field '{dependency}' is built with build = default, which takes no dependencies; remove its deps, or build it another way"
     )]
     DefaultWithDependencies { dependency: DependencyName },
+
+    #[error("field '{dependency}' is built with {build}")]
+    BuildCannotFail {
+        dependency: DependencyName,
+        build: InfallibleBuild,
+    },
 
     #[error(
         "constructor \"{written}\" on field '{dependency}' must be written without quotes: build = constructor({written})"

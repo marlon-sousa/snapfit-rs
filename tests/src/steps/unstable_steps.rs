@@ -1,6 +1,8 @@
+use std::error::Error;
 use std::sync::Arc;
 
 use cucumber::{given, then, when};
+use snapfit::BuildError;
 
 use crate::world::{ContainerWorld, ScenarioBlueprint};
 
@@ -119,4 +121,27 @@ fn then_async_leaf_keeps_new(world: &mut ContainerWorld) {
 
     assert_eq!(depot.get_region().code, "");
     assert_eq!(depot.get_warehouse().opened_by, "new");
+}
+
+#[when("the async kiosk whose terminal fails to connect is initialized")]
+async fn when_kiosk_initialized(world: &mut ContainerWorld) {
+    world.unstable.init_kiosk().await;
+}
+
+#[then(
+    "init should return a BuildError naming the terminal of KioskContainer, whose source says the terminal is offline"
+)]
+fn then_kiosk_failure_names_the_terminal(world: &mut ContainerWorld) {
+    let failure = world
+        .unstable()
+        .kiosk_failure()
+        .downcast_ref::<BuildError>()
+        .expect("init() returns the BuildError of the fallible field");
+
+    assert_eq!(failure.container(), "KioskContainer");
+    assert_eq!(failure.field(), "terminal");
+    assert_eq!(
+        failure.source().map(ToString::to_string).as_deref(),
+        Some("the terminal is offline")
+    );
 }

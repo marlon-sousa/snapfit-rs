@@ -91,3 +91,19 @@ fn generated_names_drop_the_raw_prefix_and_write_the_field_in_pascal_case() {
         "ShopFactories"
     );
 }
+
+#[test]
+fn a_fallible_factory_returns_a_result_of_its_field_s_type_with_a_boxed_error() {
+    let plan = plan_for(parse_quote! {
+        pub struct Shop {
+            #[singleton(fallible = true, build = factory)]
+            gateway: Arc<dyn Gateway>,
+        }
+    });
+
+    let code = compact(emit_factories(&plan));
+
+    assert!(code.contains(
+        "fnbuild_gateway(inputs:ShopGatewayInputs)->::std::result::Result<Arc<dynGateway>,::std::boxed::Box<dyn::std::error::Error+::std::marker::Send+::std::marker::Sync>,>;"
+    ));
+}

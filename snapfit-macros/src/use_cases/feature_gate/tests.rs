@@ -1,6 +1,7 @@
 use super::*;
 use crate::domain::{
-    Construction, Constructor, EnumDispatch, FunctionName, Introspection, Lifecycle, TypeName,
+    Construction, Constructor, EnumDispatch, Fallibility, FunctionName, Introspection, Lifecycle,
+    TypeName,
 };
 use crate::test_support::{builder, container, dependency, prerequisites};
 
@@ -149,6 +150,28 @@ fn an_async_builder_is_planned_on_every_build() {
         [
             planned("build = builder on async dependency 'exporter'"),
             unstable("async dependency 'exporter'"),
+        ]
+    );
+}
+
+#[test]
+fn a_fallible_transient_is_planned_on_every_build_and_a_fallible_singleton_on_none() {
+    let mut request = dependency("request", &[]);
+    request.lifecycle = Lifecycle::Transient;
+    request.fallibility = Fallibility::Fallible;
+    let mut config = dependency("config", &[]);
+    config.fallibility = Fallibility::Fallible;
+    let declared = container(vec![config, request]);
+
+    assert_eq!(
+        features(&FeatureGate::Unstable.refusals(&declared)),
+        [planned("fallible = true on transient dependency 'request'")]
+    );
+    assert_eq!(
+        features(&FeatureGate::Stable.refusals(&declared)),
+        [
+            planned("fallible = true on transient dependency 'request'"),
+            unstable("transient dependency 'request'"),
         ]
     );
 }

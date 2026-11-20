@@ -3,7 +3,7 @@
 use std::rc::Rc;
 
 use super::walk::Placed;
-use crate::domain::{ConstructionPlan, Execution, Step};
+use crate::domain::{ConstructionPlan, Execution, Fallibility, Step};
 
 #[derive(Debug)]
 pub(crate) struct ResolvedSteps<C, F> {
@@ -24,10 +24,15 @@ impl<C, F> ResolvedSteps<C, F> {
         }
     }
 
-    pub(crate) fn into_plan(self, execution: Execution) -> ConstructionPlan<C, F> {
+    pub(crate) fn into_plan(
+        self,
+        execution: Execution,
+        fallibility: Fallibility,
+    ) -> ConstructionPlan<C, F> {
         ConstructionPlan::new(
             self.syntax,
             execution,
+            fallibility,
             self.construction_order,
             self.declaration_order,
         )
