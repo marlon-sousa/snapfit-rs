@@ -9,7 +9,7 @@ Think of a building inspector who checks the plans before anyone moves in, rathe
 Say `db` lists `deps = [confog]` instead of `config`. The build stops, and the message lists the names the container does know:
 
 ```compile-error
-name: ch12_unknown_dependency
+name: ch13_unknown_dependency
 ```
 
 ## Two components that need each other
@@ -17,7 +17,7 @@ name: ch12_unknown_dependency
 Now `orders` needs `inventory`, and `inventory` needs `orders`. Neither can be built first. This circle is what the compiler calls a dependency cycle. The message describes it in a sentence, and points at the first field in it:
 
 ```compile-error
-name: ch12_dependency_cycle
+name: ch13_dependency_cycle
 ```
 
 ## A component that needs itself
@@ -25,7 +25,7 @@ name: ch12_dependency_cycle
 The smallest circle there is: `ledger` lists itself in `deps = [ledger]`:
 
 ```compile-error
-name: ch12_self_dependency_cycle
+name: ch13_self_dependency_cycle
 ```
 
 ## A constructor name in quotes
@@ -33,7 +33,7 @@ name: ch12_self_dependency_cycle
 `build = constructor(<fn>)` takes the function's name as Rust, not as text. If you write it in quotes, the message shows you what to write instead:
 
 ```compile-error
-name: ch12_quoted_constructor
+name: ch13_quoted_constructor
 ```
 
 ## Several mistakes at once
@@ -41,7 +41,7 @@ name: ch12_quoted_constructor
 `snapfit` doesn't stop at the first problem. Every unknown name and every circle is its own error, at its own field, in the same `cargo build`, so you can fix them all in one go. Here `db` names a field that doesn't exist, and `orders` and `stock` need each other:
 
 ```compile-error
-name: ch12_several_mistakes
+name: ch13_several_mistakes
 ```
 
 ## A tuple struct
@@ -49,14 +49,14 @@ name: ch12_several_mistakes
 `snapfit` knows components by their field names, and uses those names for the getters. A tuple struct has no field names, so it is refused:
 
 ```compile-error
-name: ch12_tuple_struct_container
+name: ch13_tuple_struct_container
 ```
 
 ## How the checks run
 
 1. **First, `snapfit` reads the struct.** When the compiler expands `#[container]`, `snapfit` reads every field and its attribute. A field it can't read, such as one whose constructor name is in quotes, is reported at that field.
 2. **Then it checks the graph.** It visits the fields in the order you declared them, and orders each one after the fields it needs. On the way, it reports every name in `deps` that isn't a field, and every circle, told from the first field of that circle you declared.
-3. **Then it reports.** Each problem becomes its own error: a sentence that points at the attribute of the field it is about, or at the container's name when no single field is to blame. All the fields it can't read are reported together, and the graph is checked once every field can be read; then all the problems in the graph are reported together. `new()` and the getters are generated only once every problem is fixed.
+3. **Then it reports.** Each problem becomes its own error: a sentence that points at the attribute of the field it is about, or at the container's name when no single field is to blame. All the fields it can't read are reported together, and the graph is checked once every field can be read; then all the problems in the graph are reported together. `new()` or `try_new()`, and the getters, are generated only once every problem is fixed.
 
 ## Which problem this solves
 

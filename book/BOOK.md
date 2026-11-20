@@ -10,7 +10,7 @@ A reader finishes the book able to:
 
 1. explain the problems of services that build their own dependencies, and what dependency injection is;
 2. explain why `snapfit` keeps domain structs 100% free of framework macros and traits, and why declaring the dependency graph in a central container struct is safer than wiring by hand or runtime `TypeMap` service locators;
-3. wire singletons, named constructors, factories, builders, multiple instances of the same type, and a chosen implementation of a trait in a `#[container]`;
+3. wire singletons, named constructors, factories, builders, multiple instances of the same type, a chosen implementation of a trait, and components that can fail while they are built in a `#[container]`;
 4. read and fix the compile-time errors `snapfit` emits when a dependency graph has a cycle or a missing prerequisite.
 
 A coding agent reading the book gains a structural advantage: in a `snapfit` codebase, changing a business rule touches only its pure-Rust struct, and changing how components are wired touches only one `#[container]` struct. Context is never scattered across dozens of files.
@@ -32,7 +32,7 @@ Every example in the book belongs to one small online shop processing customer o
 2. it loads shop configuration (`ShopConfig`) and tax rates (`TaxRateTable`);
 3. it connects to catalog and order databases (`Database`), including separate read and write replicas (`read_db` and `write_db`).
 
-Every chapter teaches only the stable API of `0.1`: nothing behind the `unstable` feature, and nothing planned for a later release. Every chapter's example is a complete, self-contained Rust program in `book/examples/` that compiles, runs, and prints deterministic output.
+Every chapter teaches only the stable API of `0.2`: nothing behind the `unstable` feature, and nothing planned for a later release. Every chapter's example is a complete, self-contained Rust program in `book/examples/` that compiles, runs, and prints deterministic output.
 
 ### The shape of a chapter
 
@@ -55,7 +55,7 @@ The book does not open with `snapfit`. Part 1 follows the shop without it: servi
 
 Each edition teaches only what its release does. Where an experienced reader would ask for something the release does not do, the book says so in one sentence, and may say that it could come in a later version, without promising what or when.
 
-## Contents (`0.1`)
+## Contents (`0.2`)
 
 ### Welcome
 
@@ -76,11 +76,11 @@ Problem chapters. The shop without `snapfit`, one step at a time, until what is 
 ### Part 2: Snapfit
 
 4. **Why we built Snapfit** (`04-why-we-built-snapfit.md`): The shop of Chapter 3 built by a `#[container]`, what the macro does, every problem of Part 1 mapped to the chapter that answers it, and a comparison with the shapes of Chapter 3 (`ch04_why_snapfit.rs`).
-* **What this version supports** (`what-this-version-supports.md`): Who `0.1` is for, what it does, what it does not do, and the plan for small, frequent releases.
+* **What this version supports** (`what-this-version-supports.md`): Who `0.2` is for, what it does, what it does not do, and the plan for small, frequent releases.
 
 ### Part 3: Wiring a container
 
-Covers every stable feature of `0.1`, one per chapter:
+Covers every stable feature of `0.2`, one per chapter:
 
 5. **Installing Snapfit and your first singleton** (`05-installing-and-first-singleton.md`): Adding `snapfit` to `Cargo.toml`, declaring a leaf `#[singleton]`, instantiating the container with `new()`, and verifying pointer identity across `get_<name>()` calls (`ch05_first_singleton.rs`).
 6. **Pure domain types, one container** (`06-pure-domain-types.md`): Shows that domain structs need zero macros or traits — the exact same structs can be constructed directly in a unit test or wired by a `#[container]` (`ch06_pure_domain.rs`).
@@ -89,11 +89,12 @@ Covers every stable feature of `0.1`, one per chapter:
 9. **Multiple instances of the same type** (`09-multiple-instances-of-the-same-type.md`): Wiring `read_db` and `write_db` of the exact same `Arc<Database>` type by field name without wrapper newtypes, and the swap that positional `deps` can't catch (`ch09_multiple_instances.rs` and `ch09_swapped_deps.rs`).
 10. **Passing dependencies by name** (`10-passing-dependencies-by-name.md`): `build = factory` and the generated `<Container>Factories` trait, `build = builder` with labels and `start`/`finish`, when to use which, and which logic belongs to a type and which to the wiring (`ch10_passing_dependencies_by_name.rs`).
 11. **Choosing an implementation** (`11-choosing-an-implementation.md`): Naming the implementation once, in a field's concrete type, for services that take a trait object or a type parameter, a second container for tests, and a trait-object field built by a factory that reads the configuration (`ch11_choosing_an_implementation.rs` and `ch11_configured_payments.rs`), with the error for a trait-object field without a factory (`ch11_trait_object_field`).
+12. **When building can fail** (`12-when-building-can-fail.md`): A database that may not answer and a factory that may refuse its configuration, `fallible = true`, `try_new()` and `FallibleContainer`, reading a `BuildError`, and what the compiler checks (`ch12_when_building_can_fail.rs`), with the error for a fallible field that `leaf_build` would build (`ch12_fallible_leaf_build`).
 
 ### Part 4: Compile-time guarantees and agents
 
-12. **Mistakes caught by the compiler** (`12-mistakes-caught-by-the-compiler.md`): Every graph and configuration mistake `snapfit` turns into a compile-time error, with the real program and recorded `rustc` diagnostic (`ch12_unknown_dependency`, `ch12_dependency_cycle`, `ch12_self_dependency_cycle`, `ch12_quoted_constructor`, `ch12_several_mistakes`, `ch12_tuple_struct_container`).
-13. **Working with coding agents** (`13-working-with-coding-agents.md`): Why separating pure domain modules from the central `#[container]` manifest prevents context bloat and wiring drift when working with AI coding agents, complete with a runnable example (`ch13_agent_workflow.rs`) and a copy-ready `AGENTS.md` rule block.
+13. **Mistakes caught by the compiler** (`13-mistakes-caught-by-the-compiler.md`): Every graph and configuration mistake `snapfit` turns into a compile-time error, with the real program and recorded `rustc` diagnostic (`ch13_unknown_dependency`, `ch13_dependency_cycle`, `ch13_self_dependency_cycle`, `ch13_quoted_constructor`, `ch13_several_mistakes`, `ch13_tuple_struct_container`).
+14. **Working with coding agents** (`14-working-with-coding-agents.md`): Why separating pure domain modules from the central `#[container]` manifest prevents context bloat and wiring drift when working with AI coding agents, complete with a runnable example (`ch14_agent_workflow.rs`) and a copy-ready `AGENTS.md` rule block.
 
 ### Appendices
 
@@ -101,4 +102,4 @@ Covers every stable feature of `0.1`, one per chapter:
 
 ### Held back for a later edition
 
-Transient dependencies and asynchronous containers work in `0.1` but only behind the `unstable` feature, so their chapters are not part of the `0.1` editions. Their drafts, examples and expected output are kept in [`unreleased/`](unreleased/README.md) and return as Part 3 chapters when those APIs are stabilised.
+Transient dependencies and asynchronous containers work in `0.2` but only behind the `unstable` feature, so their chapters are not part of the `0.2` editions. Their drafts, examples and expected output are kept in [`unreleased/`](unreleased/README.md) and return as Part 3 chapters when those APIs are stabilised.

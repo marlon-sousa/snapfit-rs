@@ -7,28 +7,28 @@ More and more code is written together with AI coding agents. An agent works bes
 The shop wants to hold large orders for review before checkout. That's a new component, `FraudGuard`, which reads the limit from the configuration, and a change to `CheckoutService`, which asks the guard before approving an order. All three stay plain Rust:
 
 ```example
-name: ch13_agent_workflow
+name: ch14_agent_workflow
 region: domain_step
 ```
 
 Wiring the guard into the application is one new field in the container, and `guard` in the `deps` of `checkout`:
 
 ```example
-name: ch13_agent_workflow
+name: ch14_agent_workflow
 region: container
 ```
 
 Let's try a small order and a large one:
 
 ```example
-name: ch13_agent_workflow
+name: ch14_agent_workflow
 region: run
 ```
 
 It prints:
 
 ```output
-name: ch13_agent_workflow
+name: ch14_agent_workflow
 ```
 
 ## Two kinds of change, two places
