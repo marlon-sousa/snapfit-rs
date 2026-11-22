@@ -1,6 +1,7 @@
-//! A desk written by a `macro_rules!`, which passes the trait object and the
-//! implementation as types, so that both and the `deps` entries carry the
-//! macro's hygiene.
+//! Desks written by a `macro_rules!`: one that passes the trait object and
+//! the implementation as types, so that both and the `deps` entries carry the
+//! macro's hygiene, and three that pass the implementation as tokens, as a
+//! token tree, an identifier, or inside the whole struct.
 
 use std::sync::Arc;
 

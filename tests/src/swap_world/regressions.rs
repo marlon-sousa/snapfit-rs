@@ -33,7 +33,8 @@ impl SwapRuns {
         self.passed
             .iter()
             .flatten()
-            .find_map(|(passed, source)| (*passed == form).then_some(*source))
+            .find(|(passed, _)| *passed == form)
+            .map(|(_, source)| *source)
             .unwrap_or_else(|| panic!("no desk passed as {form} was opened"))
     }
 }
