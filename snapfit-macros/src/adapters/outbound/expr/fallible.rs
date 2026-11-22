@@ -11,9 +11,9 @@ use crate::domain::Step;
 /// The value of the `Result` that `built` returns, or the return of its
 /// error, wrapped into `snapfit::BuildError`. Only the wrapping call and
 /// the value are spanned at the field's `fallible` word, where a `built`
-/// that is no `Result`, or holds a value of the wrong type, is reported;
-/// each local is bound with the span it is used with, so that it resolves
-/// when the word comes from a `macro_rules!`.
+/// that is no `Result`, or holds a value of the wrong type, is reported.
+/// Each local is bound with the span it is used with, so that it resolves
+/// when the word and `#[container]` have different hygiene.
 /// A `match` stands where a `?` could, so that a value of the wrong type is
 /// reported as mismatched types, not against a `?` the user never wrote.
 pub(super) fn value(built: TokenStream, step: &Step<FieldSyntax>, site: Site<'_>) -> TokenStream {

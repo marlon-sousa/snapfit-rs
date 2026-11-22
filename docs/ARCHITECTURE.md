@@ -91,7 +91,7 @@ Layering goes one way. snapfit-macros' facade calls the handler; the handler cal
 ## Generated code
 
 - **Generated names are a promise.** `new()`, `try_new()`, `init()`, `get_<field>()` and the `Default`, `Container` and `FallibleContainer` impls are the public face of every container; changing how any of them is named or typed is agreed with the maintainer first.
-- **Hygiene.** Generated code names everything by an absolute path, such as `::std::sync::Arc` and `::snapfit::Container`, and binds each singleton to a local named `__snapfit_<field>` with the field's span, and what builds a fallible field to `__snapfit_built`, its value to `__snapfit_value` and its error to `__snapfit_error`, and the `Arc` of an `implementation` to `__snapfit_implementation` with the span of the type it names, inside a block of its own, so it never clashes with anything the user has in scope.
+- **Hygiene.** Generated code names everything by an absolute path, such as `::std::sync::Arc` and `::snapfit::Container`, and binds each singleton to a local named `__snapfit_<field>` with the field's span, and what builds a fallible field to `__snapfit_built` and its value to `__snapfit_value`, both with the span of the field's `fallible` word, its error to `__snapfit_error`, and the `Arc` of an `implementation` to `__snapfit_implementation` with the span of the type it names, inside a block of its own, so it never clashes with anything the user has in scope.
 - **Construction order** is the order the fields are declared, each after the fields it needs, as SPEC.md, §6, says.
 
 ## Comments
