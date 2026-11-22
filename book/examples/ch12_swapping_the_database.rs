@@ -67,11 +67,11 @@ impl Database for SqliteDatabase {
 }
 // ANCHOR_END: sqlite
 
-trait Orders {
+trait Orders: Send + Sync {
     fn place(&self, item: &str, cents: u64) -> String;
 }
 
-trait Stock {
+trait Stock: Send + Sync {
     fn available(&self, item: &str) -> bool;
 }
 

@@ -71,7 +71,7 @@ name: ch12_mocking_services
 region: traits
 ```
 
-Ignore the `#[automock]` lines for a moment; we'll come to them. The services stay as they were, and each now implements its trait:
+`Send + Sync` says that whatever implements the trait can be shared between threads, as a web server's handlers share the shop's services. Ignore the `#[automock]` lines for a moment; we'll come to them. The services stay as they were, and each now implements its trait:
 
 ```example
 name: ch12_mocking_services
@@ -163,7 +163,7 @@ name: ch12_generic_checkout
 
 ## Swapping the database
 
-A stand-in for a service tests the checkout on its own. Sometimes we want the opposite: the real checkout and the real services together, without the real database. And sometimes the database itself changes: the shop moves from PostgreSQL to SQLite. Both are the same move, one level down: put the database behind a trait. The `Send + Sync` says that the database can be shared between threads, as a web server's handlers share it:
+A stand-in for a service tests the checkout on its own. Sometimes we want the opposite: the real checkout and the real services together, without the real database. And sometimes the database itself changes: the shop moves from PostgreSQL to SQLite. Both are the same move, one level down: put the database behind a trait. Like `Orders` and `Stock`, it is `Send + Sync`, so the whole graph can be shared between threads:
 
 ```example
 name: ch12_swapping_the_database
@@ -198,7 +198,7 @@ name: ch12_swapping_the_database
 region: sqlite
 ```
 
-And the container changes in one word, after `implementation`. No service changes, and neither does the checkout. We keep both containers in the example so you can compare them:
+And the container changes in one word, after the `implementation` of `db`. No service changes, and neither does the checkout. We keep both containers in the example so you can compare them:
 
 ```example
 name: ch12_swapping_the_database

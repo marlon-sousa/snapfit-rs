@@ -50,11 +50,11 @@ impl Database for InMemoryDatabase {
 }
 // ANCHOR_END: in_memory
 
-trait Orders {
+trait Orders: Send + Sync {
     fn place(&self, item: &str, cents: u64) -> String;
 }
 
-trait Stock {
+trait Stock: Send + Sync {
     fn available(&self, item: &str) -> bool;
 }
 

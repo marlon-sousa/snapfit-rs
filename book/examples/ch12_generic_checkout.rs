@@ -5,12 +5,12 @@ use mockall::automock;
 use std::sync::Arc;
 
 #[automock]
-trait Orders {
+trait Orders: Send + Sync {
     fn place(&self, item: &str, cents: u64) -> String;
 }
 
 #[automock]
-trait Stock {
+trait Stock: Send + Sync {
     fn available(&self, item: &str) -> bool;
 }
 
