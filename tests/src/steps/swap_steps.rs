@@ -114,7 +114,17 @@ fn when_local_desk_opened(world: &mut ContainerWorld) {
     world.built.swaps.open_local_desk();
 }
 
-#[then(expr = "its single-threaded reader should read from {source}")]
+#[then(expr = "its local reader should read from {source}")]
 fn then_local_reader_reads_from(world: &mut ContainerWorld, source: Source) {
     assert_eq!(world.built.swaps.local(), source);
+}
+
+#[when("the desks whose implementation a macro_rules! passes as tokens are opened")]
+fn when_passed_desks_opened(world: &mut ContainerWorld) {
+    world.built.swaps.open_passed_desks();
+}
+
+#[then(expr = "the desk whose implementation is passed as {string} should read from {source}")]
+fn then_passed_desk_reads_from(world: &mut ContainerWorld, form: String, source: Source) {
+    assert_eq!(world.built.swaps.passed(&form), source);
 }

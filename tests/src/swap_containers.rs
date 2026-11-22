@@ -6,8 +6,8 @@
 pub mod built_desks;
 pub mod desks;
 pub mod ledgers;
+pub mod local;
 pub mod readers;
-pub mod single_threaded;
 #[cfg(feature = "unstable")]
 pub mod transient_desk;
 pub mod written_by_a_macro;

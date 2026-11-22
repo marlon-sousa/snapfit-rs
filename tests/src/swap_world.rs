@@ -9,9 +9,9 @@ use strum::EnumString;
 use crate::swap_containers::built_desks::{BuiltDesk, LeafDesk, LockedDesk};
 use crate::swap_containers::desks::{DiskDesk, MemoryDesk};
 use crate::swap_containers::ledgers::{DiskBooks, MemoryBooks};
+use crate::swap_containers::local::{LocalDesk, LocalReader};
 use crate::swap_containers::readers::Reader;
-use crate::swap_containers::single_threaded::{LocalDesk, LocalReader};
-use crate::swap_containers::written_by_a_macro::MacroDesk;
+use crate::swap_containers::written_by_a_macro::{IdentDesk, MacroDesk, TokenDesk, WholeDesk};
 
 /// The reader a container builds, as a scenario names it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumString, Parameter)]
@@ -98,6 +98,7 @@ pub struct SwapRuns {
     books: Option<BookSources>,
     built: Option<BuiltReads>,
     local: Option<Source>,
+    passed: Option<Vec<(&'static str, Source)>>,
     #[cfg(feature = "unstable")]
     transient: Option<TransientReads>,
 }
@@ -181,6 +182,23 @@ impl SwapRuns {
 
     pub fn local(&self) -> Source {
         self.local
-            .expect("the single-threaded desk must be opened before Then assertions")
+            .expect("the local desk must be opened before Then assertions")
+    }
+
+    pub fn open_passed_desks(&mut self) {
+        let reads = |reader: Arc<dyn Reader>| Source::read(reader.source());
+        self.passed = Some(vec![
+            ("a token tree", reads(TokenDesk::new().get_reader())),
+            ("an identifier", reads(IdentDesk::new().get_reader())),
+            ("a whole struct", reads(WholeDesk::new().get_reader())),
+        ]);
+    }
+
+    pub fn passed(&self, form: &str) -> Source {
+        self.passed
+            .iter()
+            .flatten()
+            .find_map(|(passed, source)| (*passed == form).then_some(*source))
+            .unwrap_or_else(|| panic!("no desk passed as {form} was opened"))
     }
 }

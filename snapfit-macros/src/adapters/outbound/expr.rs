@@ -61,15 +61,13 @@ pub(super) fn construct(step: &Step<FieldSyntax>, site: Site<'_>) -> TokenStream
         (Execution::Sync, Fallibility::Infallible) => call,
     };
     match (wrapping, &field.implementation) {
-        // Only the value coerced to the field's trait object carries the
-        // span of the type `implementation` names, where an implementation
-        // of another trait is reported. `Arc::new` keeps the macro's span,
-        // so that lints skip it as generated code, as they do for a field
-        // without `implementation`.
+        // Only the coerced local carries the type's span, where an
+        // implementation of another trait is reported; `Arc::new` keeps the
+        // macro's span, so clippy does not lint it as the user's code.
         (Wrapping::Arc, Some(implementation)) => {
             let coerced = quote_spanned!(implementation.span()=> __snapfit_implementation);
             quote!({
-                let __snapfit_implementation = ::std::sync::Arc::new(#value);
+                let #coerced = ::std::sync::Arc::new(#value);
                 #coerced
             })
         }

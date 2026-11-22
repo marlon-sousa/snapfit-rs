@@ -1,5 +1,5 @@
-//! A desk whose trait, and the implementation it names, are neither `Send`
-//! nor `Sync`, so that clippy's `arc_with_non_send_sync` would fire on an
+//! A desk whose trait, and the implementation it names, are not `Send` and
+//! not `Sync`, so that clippy's `arc_with_non_send_sync` would fire on an
 //! `Arc::new` the macro writes if it were linted as the user's own code.
 
 use std::rc::Rc;
@@ -11,7 +11,6 @@ pub trait LocalReader {
     fn source(&self) -> &str;
 }
 
-/// Holds an `Rc`, which is neither `Send` nor `Sync`.
 pub struct RcReader {
     source: Rc<str>,
 }
