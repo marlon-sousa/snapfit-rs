@@ -6,12 +6,13 @@ use cucumber::Parameter;
 use snapfit::BuildError;
 use strum::EnumString;
 
+mod regressions;
+
 use crate::swap_containers::built_desks::{BuiltDesk, LeafDesk, LockedDesk};
 use crate::swap_containers::desks::{DiskDesk, MemoryDesk};
 use crate::swap_containers::ledgers::{DiskBooks, MemoryBooks};
-use crate::swap_containers::local::{LocalDesk, LocalReader};
 use crate::swap_containers::readers::Reader;
-use crate::swap_containers::written_by_a_macro::{IdentDesk, MacroDesk, TokenDesk, WholeDesk};
+use crate::swap_containers::written_by_a_macro::MacroDesk;
 
 /// The reader a container builds, as a scenario names it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumString, Parameter)]
@@ -173,32 +174,5 @@ impl SwapRuns {
         self.built
             .as_ref()
             .expect("the built desks must be opened before Then assertions")
-    }
-
-    pub fn open_local_desk(&mut self) {
-        let reader: Arc<dyn LocalReader> = LocalDesk::new().get_reader();
-        self.local = Some(Source::read(reader.source()));
-    }
-
-    pub fn local(&self) -> Source {
-        self.local
-            .expect("the local desk must be opened before Then assertions")
-    }
-
-    pub fn open_passed_desks(&mut self) {
-        let reads = |reader: Arc<dyn Reader>| Source::read(reader.source());
-        self.passed = Some(vec![
-            ("a token tree", reads(TokenDesk::new().get_reader())),
-            ("an identifier", reads(IdentDesk::new().get_reader())),
-            ("a whole struct", reads(WholeDesk::new().get_reader())),
-        ]);
-    }
-
-    pub fn passed(&self, form: &str) -> Source {
-        self.passed
-            .iter()
-            .flatten()
-            .find_map(|(passed, source)| (*passed == form).then_some(*source))
-            .unwrap_or_else(|| panic!("no desk passed as {form} was opened"))
     }
 }
