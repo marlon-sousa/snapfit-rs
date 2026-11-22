@@ -10,6 +10,7 @@ use crate::swap_containers::built_desks::{BuiltDesk, LeafDesk, LockedDesk};
 use crate::swap_containers::desks::{DiskDesk, MemoryDesk};
 use crate::swap_containers::ledgers::{DiskBooks, MemoryBooks};
 use crate::swap_containers::readers::Reader;
+use crate::swap_containers::single_threaded::{LocalDesk, LocalReader};
 use crate::swap_containers::written_by_a_macro::MacroDesk;
 
 /// The reader a container builds, as a scenario names it.
@@ -96,6 +97,7 @@ pub struct SwapRuns {
     desk: Option<DeskSources>,
     books: Option<BookSources>,
     built: Option<BuiltReads>,
+    local: Option<Source>,
     #[cfg(feature = "unstable")]
     transient: Option<TransientReads>,
 }
@@ -170,5 +172,15 @@ impl SwapRuns {
         self.built
             .as_ref()
             .expect("the built desks must be opened before Then assertions")
+    }
+
+    pub fn open_local_desk(&mut self) {
+        let reader: Arc<dyn LocalReader> = LocalDesk::new().get_reader();
+        self.local = Some(Source::read(reader.source()));
+    }
+
+    pub fn local(&self) -> Source {
+        self.local
+            .expect("the single-threaded desk must be opened before Then assertions")
     }
 }

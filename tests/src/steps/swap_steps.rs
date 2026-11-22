@@ -108,3 +108,13 @@ fn then_transient_reader_is_fresh(world: &mut ContainerWorld, source: Source) {
 fn then_transient_report_reads_from(world: &mut ContainerWorld, source: Source) {
     assert_eq!(world.built.swaps.transient().report, source);
 }
+
+#[when("the desk whose reader is neither Send nor Sync is opened")]
+fn when_local_desk_opened(world: &mut ContainerWorld) {
+    world.built.swaps.open_local_desk();
+}
+
+#[then(expr = "its single-threaded reader should read from {source}")]
+fn then_local_reader_reads_from(world: &mut ContainerWorld, source: Source) {
+    assert_eq!(world.built.swaps.local(), source);
+}

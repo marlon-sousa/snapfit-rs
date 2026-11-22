@@ -43,6 +43,11 @@ Feature: Swapping a field for another implementation of its trait
     When the desks whose readers are built from their implementation in every way are opened
     Then the locked desk should fail at its field reader, with the error "the shelf is locked" as its source
 
+  @v0_2_0 @regression
+  Scenario: An implementation that is neither Send nor Sync is built into the field's Arc
+    When the desk whose reader is neither Send nor Sync is opened
+    Then its single-threaded reader should read from disk
+
   @v0_2_0
   Scenario Outline: Services generic over the trait keep their code, whether their struct or only their new is generic
     When the books that read from <source> are opened

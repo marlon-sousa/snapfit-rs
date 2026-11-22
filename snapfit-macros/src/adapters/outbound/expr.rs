@@ -61,11 +61,17 @@ pub(super) fn construct(step: &Step<FieldSyntax>, site: Site<'_>) -> TokenStream
         (Execution::Sync, Fallibility::Infallible) => call,
     };
     match (wrapping, &field.implementation) {
-        // The `Arc` of the implementation is coerced to the field's trait
-        // object, so that an implementation of another trait is reported
-        // at the type `implementation` names.
+        // Only the value coerced to the field's trait object carries the
+        // span of the type `implementation` names, where an implementation
+        // of another trait is reported. `Arc::new` keeps the macro's span,
+        // so that lints skip it as generated code, as they do for a field
+        // without `implementation`.
         (Wrapping::Arc, Some(implementation)) => {
-            quote_spanned!(implementation.span()=> ::std::sync::Arc::new(#value))
+            let coerced = quote_spanned!(implementation.span()=> __snapfit_implementation);
+            quote!({
+                let __snapfit_implementation = ::std::sync::Arc::new(#value);
+                #coerced
+            })
         }
         (Wrapping::Arc, None) => quote!(::std::sync::Arc::new(#value)),
         (Wrapping::None, _) => value,
