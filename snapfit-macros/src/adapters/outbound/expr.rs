@@ -11,6 +11,7 @@ use crate::domain::{
     BuilderMethods, Call, Constructor, Execution, Fallibility, FunctionName, Step, Wrapping,
 };
 
+mod fallible;
 #[cfg(test)]
 mod tests;
 
@@ -54,9 +55,9 @@ pub(super) fn construct(step: &Step<FieldSyntax>, site: Site<'_>) -> TokenStream
     let value = match (step.execution, step.fallibility) {
         (Execution::Async, Fallibility::Infallible) => quote!(#call.await?),
         (Execution::Async, Fallibility::Fallible) => {
-            fallible_value(quote!(#call.await), step, site)
+            fallible::value(quote!(#call.await), step, site)
         }
-        (Execution::Sync, Fallibility::Fallible) => fallible_value(call, step, site),
+        (Execution::Sync, Fallibility::Fallible) => fallible::value(call, step, site),
         (Execution::Sync, Fallibility::Infallible) => call,
     };
     match (wrapping, &field.implementation) {
@@ -69,32 +70,6 @@ pub(super) fn construct(step: &Step<FieldSyntax>, site: Site<'_>) -> TokenStream
         (Wrapping::Arc, None) => quote!(::std::sync::Arc::new(#value)),
         (Wrapping::None, _) => value,
     }
-}
-
-/// The value of the `Result` that `built` returns, or the return of its
-/// error, wrapped into `snapfit::BuildError`. Only the wrapping call and
-/// the value are spanned at the field's `fallible` word, where a `built`
-/// that is no `Result`, or holds a value of the wrong type, is reported.
-/// A `match` stands where a `?` could, so that a value of the wrong type is
-/// reported as mismatched types, not against a `?` the user never wrote.
-fn fallible_value(built: TokenStream, step: &Step<FieldSyntax>, site: Site<'_>) -> TokenStream {
-    let field = &step.syntax;
-    let span = field.fallible.as_ref().unwrap_or(&field.ident).span();
-    let container = site.container.ident.unraw().to_string();
-    let name = field.ident.unraw().to_string();
-    let value = quote_spanned!(span=> __snapfit_value);
-    let wrapped = quote_spanned! {span=>
-        ::snapfit::__private::BuildResult::into_build_result(__snapfit_built, #container, #name)
-    };
-    quote!(match {
-        let __snapfit_built = #built;
-        #wrapped
-    } {
-        ::std::result::Result::Ok(__snapfit_value) => #value,
-        ::std::result::Result::Err(__snapfit_error) => {
-            return ::std::result::Result::Err(::std::convert::From::from(__snapfit_error))
-        }
-    })
 }
 
 /// A singleton is cloned from where it already lives; a transient is built
