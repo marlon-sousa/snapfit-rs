@@ -1,0 +1,7 @@
+reading the shop configuration
+opening a connection pool to postgres://shop
+sale of lamp for 4500 cents recorded in postgres://shop, in EUR
+the test, by hand:
+reading the shop configuration
+opening a connection pool to postgres://localhost/shop_test
+passed

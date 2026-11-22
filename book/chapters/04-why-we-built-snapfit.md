@@ -90,8 +90,8 @@ Every problem we found in Part 1, and the chapter where you can see how `snapfit
 
 | Problem | How `snapfit` answers it | Where |
 | :--- | :--- | :--- |
-| Tight coupling | Services receive their dependencies; only the container names an implementation. | [Chapter 6](06-pure-domain-types.md), [Chapter 11](11-choosing-an-implementation.md) |
-| Hard to test | A service is a plain struct: a test builds it with `new(...)` and fakes, without any container. | [Chapter 6](06-pure-domain-types.md) |
+| Tight coupling | Services receive their dependencies; only the container names an implementation. | [Chapter 6](06-pure-domain-types.md), [Chapter 11](11-choosing-an-implementation.md), [Chapter 12](12-testing-a-service-on-its-own.md) |
+| Hard to test | A service is a plain struct: a test builds it with `new(...)` and fakes, without any container. A service that asks for traits takes stand-ins, and a test's own container can name an in-memory implementation. | [Chapter 6](06-pure-domain-types.md), [Chapter 12](12-testing-a-service-on-its-own.md) |
 | Duplicated resources | Every field is built once; for an `Arc` field, every getter call returns the same value. | [Chapter 5](05-installing-and-first-singleton.md) |
 | Mixed responsibilities | A service knows only its own arguments; the container knows how everything is built. | [Chapter 7](07-wiring-dependencies-and-constructors.md) |
 | A closed list | A new implementation is a new type named in one field; no service changes. | [Chapter 11](11-choosing-an-implementation.md) |

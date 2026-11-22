@@ -28,7 +28,7 @@ If you have used dependency injection before, some questions probably came to mi
 2. **Can I pass values in?** No. `new()` takes no arguments. A configuration component reads its own settings, for example from environment variables, in its constructor.
 3. **Can a field be a trait object without writing code?** Yes, when it is an `Arc` of one. A field typed `Arc<dyn PaymentGateway>` names the type to build with `implementation = StripeGateway`. Any other trait object, such as a `Box<dyn PaymentGateway>`, and a choice made while the program starts, are built in a factory ([Chapter 11](11-choosing-an-implementation.md)).
 4. **Can a field give me a new value each time?** No. Every component is shared.
-5. **Can a test replace one field of a container?** No. A test that needs different components declares its own container ([Chapter 11](11-choosing-an-implementation.md)).
+5. **Can a test replace one field of a container?** No. A test that needs different components declares its own container ([Chapter 11](11-choosing-an-implementation.md), [Chapter 12](12-testing-a-service-on-its-own.md)). A test of one service builds that service directly, with stand-ins for what it asks for ([Chapter 12](12-testing-a-service-on-its-own.md)).
 6. **Can a container be generic?** No. `struct ShopContainer<T>` is refused.
 
 Some of these may come in later versions. We plan small, frequent releases rather than one large one, because `0.2` is already useful as it is. We don't promise what each release will hold, or when.
