@@ -17,8 +17,8 @@ This edition of **The Snapfit Book** covers the **`0.2`** releases of `snapfit`.
 | **Construction order worked out when compiling** | Fields can be declared in any order; each is built after the fields it needs ([Chapter 8](08-read-the-container-know-the-graph.md)). |
 | **Several components of one type** | Fields are told apart by name, without wrapper types ([Chapter 9](09-multiple-instances-of-the-same-type.md)). |
 | **Choosing an implementation** | A field's concrete type is the choice; or the field is a trait object, built from the type its `implementation` names, or by a factory that chooses while the program starts. Services can take a trait object or a type parameter ([Chapter 11](11-choosing-an-implementation.md)). |
-| **Components that can fail** | A field marked `fallible = true` is built by a constructor, builder or factory that returns a `Result`; the container is built by `try_new()`, which returns the first failure as a `BuildError` naming its field ([Chapter 12](12-when-building-can-fail.md)). |
-| **Mistakes refused when compiling** | Unknown dependencies and cycles, every one in the same build, each at its field ([Chapter 13](13-mistakes-caught-by-the-compiler.md)). |
+| **Components that can fail** | A field marked `fallible = true` is built by a constructor, builder or factory that returns a `Result`; the container is built by `try_new()`, which returns the first failure as a `BuildError` naming its field ([Chapter 13](13-when-building-can-fail.md)). |
+| **Mistakes refused when compiling** | Unknown dependencies and cycles, every one in the same build, each at its field ([Chapter 14](14-mistakes-caught-by-the-compiler.md)). |
 
 ## What it doesn't do
 
