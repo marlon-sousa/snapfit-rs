@@ -2,6 +2,7 @@ use quote::quote;
 use syn::parse_quote;
 
 use super::*;
+use crate::test_support::through_a_macro;
 
 #[test]
 fn a_type_is_written_compactly_with_its_generics_and_trait_objects() {
@@ -46,9 +47,22 @@ fn a_dispatch_field_without_a_trait_object_is_refused() {
 }
 
 #[test]
-fn a_type_holding_dyn_is_a_trait_object_even_inside_an_arc() {
-    let shapes: [(syn::Type, TypeShape); 5] = [
-        (parse_quote!(Arc<dyn Store>), TypeShape::TraitObject),
+fn a_type_holding_dyn_is_a_trait_object_and_an_arc_of_one_is_told_apart() {
+    let through_a_macro = through_a_macro(quote!(dyn Store));
+    let shapes: [(syn::Type, TypeShape); 8] = [
+        (parse_quote!(Arc<dyn Store>), TypeShape::ArcTraitObject),
+        (
+            parse_quote!(std::sync::Arc<dyn Store + Send + Sync>),
+            TypeShape::ArcTraitObject,
+        ),
+        (
+            parse_quote!(Arc<#through_a_macro>),
+            TypeShape::ArcTraitObject,
+        ),
+        (
+            parse_quote!(Arc<Archive<dyn Store>>),
+            TypeShape::TraitObject,
+        ),
         (parse_quote!(Box<dyn Store + Send>), TypeShape::TraitObject),
         (parse_quote!(Arc<Store>), TypeShape::Arc),
         (parse_quote!(std::rc::Rc<Store>), TypeShape::Value),

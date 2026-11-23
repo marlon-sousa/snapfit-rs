@@ -1,19 +1,27 @@
 //! Policy: which call builds a dependency's value.
 
 use crate::domain::{
-    Call, Construction, Constructor, DependencyDeclaration, DomainError, TypeShape, Wrapping,
+    Call, Construction, Constructor, DependencyDeclaration, DomainError, Implementation,
+    TraitObjectProblem, TypeShape, Wrapping,
 };
 use crate::use_cases::leaf::is_leaf;
 
-/// A constructor or a builder belongs to the type the field holds, or to `T`
-/// when the field holds `Arc<T>`, whose value is then wrapped. A trait object
-/// has neither, so it needs a factory. A dispatched field is refused by the
-/// feature gate, so its shape decides nothing yet.
+/// A constructor or a builder belongs to the type the field holds, to `T`
+/// when the field holds `Arc<T>`, whose value is then wrapped, or to the
+/// implementation the field names for its `Arc<dyn Trait>`. Any other trait
+/// object needs a factory. A dispatched field is refused by the feature
+/// gate, so its shape decides nothing yet.
 pub(super) fn call_for<F>(
     dependency: &DependencyDeclaration<F>,
     leaf: &Constructor,
 ) -> Result<Call, DomainError> {
     Ok(match construction_of(dependency, leaf) {
+        Construction::Factory if dependency.implementation.is_named() => {
+            return Err(trait_object(
+                dependency,
+                TraitObjectProblem::ImplementationWithFactory,
+            ));
+        }
         Construction::Factory => Call::Factory,
         Construction::Builder(methods) => Call::Builder {
             methods,
@@ -27,12 +35,34 @@ pub(super) fn call_for<F>(
 }
 
 fn wrapping_of<F>(dependency: &DependencyDeclaration<F>) -> Result<Wrapping, DomainError> {
-    match (dependency.shape, dependency.dispatch.is_some()) {
-        (_, true) | (TypeShape::Value, false) => Ok(Wrapping::None),
-        (TypeShape::Arc, false) => Ok(Wrapping::Arc),
-        (TypeShape::TraitObject, false) => Err(DomainError::TraitObjectWithoutFactory {
-            dependency: dependency.name.clone(),
-        }),
+    if dependency.dispatch.is_some() {
+        return Ok(Wrapping::None);
+    }
+    let problem = match (dependency.shape, dependency.implementation) {
+        (TypeShape::Value, Implementation::OfField) => return Ok(Wrapping::None),
+        (TypeShape::Arc, Implementation::OfField)
+        | (TypeShape::ArcTraitObject, Implementation::Named) => return Ok(Wrapping::Arc),
+        (TypeShape::ArcTraitObject, Implementation::OfField) => {
+            TraitObjectProblem::WithoutImplementation
+        }
+        (TypeShape::TraitObject, Implementation::OfField) => TraitObjectProblem::WithoutFactory,
+        (TypeShape::TraitObject, Implementation::Named) => {
+            TraitObjectProblem::ImplementationOutsideArc
+        }
+        (TypeShape::Value | TypeShape::Arc, Implementation::Named) => {
+            TraitObjectProblem::ImplementationWithoutTraitObject
+        }
+    };
+    Err(trait_object(dependency, problem))
+}
+
+fn trait_object<F>(
+    dependency: &DependencyDeclaration<F>,
+    problem: TraitObjectProblem,
+) -> DomainError {
+    DomainError::TraitObject {
+        dependency: dependency.name.clone(),
+        problem,
     }
 }
 

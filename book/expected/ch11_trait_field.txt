@@ -1,0 +1,2 @@
+production order: Stripe charged 4500 cents
+test order: fake gateway pretended to charge 4500 cents

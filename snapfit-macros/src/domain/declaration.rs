@@ -102,8 +102,22 @@ pub(crate) enum TypeShape {
     Value,
     /// `Arc<T>`, whose `T` is the type the constructor belongs to.
     Arc,
-    /// A type holding `dyn Trait`, which has no constructor of its own.
+    /// `Arc<dyn Trait>`, which holds the value of the implementation the
+    /// field names.
+    ArcTraitObject,
+    /// Any other type holding `dyn Trait`, which has no constructor of its own.
     TraitObject,
+}
+
+/// Which type the container builds a field's value as.
+#[derive(EnumIs, Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) enum Implementation {
+    /// The field's own type, or `T` when the field holds `Arc<T>`.
+    #[default]
+    OfField,
+    /// The type of `implementation = ...`, whose value the field's trait
+    /// object holds.
+    Named,
 }
 
 /// Whether the container struct declares type or lifetime parameters.
@@ -143,6 +157,8 @@ pub(crate) struct DependencyDeclaration<F> {
     pub(crate) construction: Option<Construction>,
     #[new(default)]
     pub(crate) shape: TypeShape,
+    #[new(default)]
+    pub(crate) implementation: Implementation,
     /// The siblings the field is built from: passed to a constructor in order,
     /// by name to a factory, and each to its own setter of a builder.
     #[new(default)]

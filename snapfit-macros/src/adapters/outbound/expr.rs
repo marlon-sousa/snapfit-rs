@@ -3,6 +3,7 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, quote_spanned};
 use syn::ext::IdentExt;
+use syn::spanned::Spanned;
 
 use super::factories::{inputs_ident, method_ident, trait_ident};
 use crate::adapters::syntax::{ContainerSyntax, FieldSyntax};
@@ -10,6 +11,7 @@ use crate::domain::{
     BuilderMethods, Call, Constructor, Execution, Fallibility, FunctionName, Step, Wrapping,
 };
 
+mod fallible;
 #[cfg(test)]
 mod tests;
 
@@ -53,41 +55,25 @@ pub(super) fn construct(step: &Step<FieldSyntax>, site: Site<'_>) -> TokenStream
     let value = match (step.execution, step.fallibility) {
         (Execution::Async, Fallibility::Infallible) => quote!(#call.await?),
         (Execution::Async, Fallibility::Fallible) => {
-            fallible_value(quote!(#call.await), step, site)
+            fallible::value(quote!(#call.await), step, site)
         }
-        (Execution::Sync, Fallibility::Fallible) => fallible_value(call, step, site),
+        (Execution::Sync, Fallibility::Fallible) => fallible::value(call, step, site),
         (Execution::Sync, Fallibility::Infallible) => call,
     };
-    match wrapping {
-        Wrapping::Arc => quote!(::std::sync::Arc::new(#value)),
-        Wrapping::None => value,
-    }
-}
-
-/// The value of the `Result` that `built` returns, or the return of its
-/// error, wrapped into `snapfit::BuildError`. Only the wrapping call and
-/// the value are spanned at the field's `fallible` word, where a `built`
-/// that is no `Result`, or holds a value of the wrong type, is reported.
-/// A `match` stands where a `?` could, so that a value of the wrong type is
-/// reported as mismatched types, not against a `?` the user never wrote.
-fn fallible_value(built: TokenStream, step: &Step<FieldSyntax>, site: Site<'_>) -> TokenStream {
-    let field = &step.syntax;
-    let span = field.fallible.as_ref().unwrap_or(&field.ident).span();
-    let container = site.container.ident.unraw().to_string();
-    let name = field.ident.unraw().to_string();
-    let value = quote_spanned!(span=> __snapfit_value);
-    let wrapped = quote_spanned! {span=>
-        ::snapfit::__private::BuildResult::into_build_result(__snapfit_built, #container, #name)
-    };
-    quote!(match {
-        let __snapfit_built = #built;
-        #wrapped
-    } {
-        ::std::result::Result::Ok(__snapfit_value) => #value,
-        ::std::result::Result::Err(__snapfit_error) => {
-            return ::std::result::Result::Err(::std::convert::From::from(__snapfit_error))
+    match (wrapping, &field.implementation) {
+        // Only the coerced local carries the type's span, where an
+        // implementation of another trait is reported; `Arc::new` keeps the
+        // macro's span, so clippy does not lint it as the user's code.
+        (Wrapping::Arc, Some(implementation)) => {
+            let coerced = quote_spanned!(implementation.span()=> __snapfit_implementation);
+            quote!({
+                let #coerced = ::std::sync::Arc::new(#value);
+                #coerced
+            })
         }
-    })
+        (Wrapping::Arc, None) => quote!(::std::sync::Arc::new(#value)),
+        (Wrapping::None, _) => value,
+    }
 }
 
 /// A singleton is cloned from where it already lives; a transient is built
@@ -124,11 +110,13 @@ fn factory_call(
     quote_spanned!(field.span()=> <Self as #factories_trait>::#method(#inputs { #(#names: #args),* }))
 }
 
-/// The type whose function builds the value: `T` when the field holds `Arc<T>`.
+/// The type whose function builds the value: the type `implementation`
+/// names, or `T` when the field holds `Arc<T>`.
 fn target(field: &FieldSyntax, wrapping: Wrapping) -> &syn::Type {
-    match wrapping {
-        Wrapping::Arc => &field.arc_inner,
-        Wrapping::None => &field.ty,
+    match (&field.implementation, wrapping) {
+        (Some(implementation), _) => implementation,
+        (None, Wrapping::Arc) => &field.arc_inner,
+        (None, Wrapping::None) => &field.ty,
     }
 }
 

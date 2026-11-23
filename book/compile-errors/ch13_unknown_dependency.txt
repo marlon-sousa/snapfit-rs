@@ -1,5 +1,0 @@
-error: unknown dependency 'confog' on field 'db'. You must choose between the dependencies the container can wire: [config]
-  --> book/compile-errors/ch13_unknown_dependency.rs:12:5
-   |
-12 |     #[singleton(deps = [confog])]
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

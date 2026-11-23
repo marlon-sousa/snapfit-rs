@@ -1,0 +1,2 @@
+the test, through the real services:
+checkout_keeps_the_last_item_back passed

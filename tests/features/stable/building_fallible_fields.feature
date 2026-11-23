@@ -15,6 +15,16 @@ Feature: Building a container whose fields can fail
     When the till whose leaf_build is written constructor(new) and whose ledger can fail is opened
     Then its ledger should be built by the ledger's own new
 
+  @v0_2_0 @regression
+  Scenario Outline: A fallible field of a container that a macro_rules! writes from tokens is built
+    When the tills that a macro_rules! writes from the tokens it is passed are opened
+    Then the till passed "<form>" should have built its ledger by the ledger's own new
+
+    Examples:
+      | form              |
+      | the whole struct  |
+      | the fallible word |
+
   @v0_2_0
   Scenario: The first field that fails stops the build and is named in the error
     When the storefront whose database fails to connect after its configuration is built is opened

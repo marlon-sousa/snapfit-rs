@@ -5,6 +5,7 @@ use crate::adapters::outbound::test_support::{plan_for, step};
 use crate::test_support::compact;
 
 mod fallible;
+mod implementation;
 
 fn built(item: syn::ItemStruct, name: &str, source: ValueSource) -> String {
     let plan = plan_for(item);

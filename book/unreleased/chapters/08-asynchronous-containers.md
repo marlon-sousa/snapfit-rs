@@ -35,7 +35,7 @@ name: ch08_async_container
 
 ## How it works
 
-1. **Eager asynchronous boot (`init().await`):** Instead of `pub fn new() -> Self`, an asynchronous container generates `pub async fn init() -> Result<Self, Box<dyn Error + Send + Sync>>`. A field marked `fallible = true` has its error wrapped, after its `.await` when it is async, and that error reaches `init()`'s caller as the `snapfit::BuildError` of Chapter 12, boxed.
+1. **Eager asynchronous boot (`init().await`):** Instead of `pub fn new() -> Self`, an asynchronous container generates `pub async fn init() -> Result<Self, Box<dyn Error + Send + Sync>>`. A field marked `fallible = true` has its error wrapped, after its `.await` when it is async, and that error reaches `init()`'s caller as the `snapfit::BuildError` of Chapter 13, boxed.
 2. **Mixing synchronous and asynchronous nodes:** Inside `init()`, synchronous singletons (`config`) are constructed immediately, asynchronous singletons (`gateway`) are awaited and unwrapped with `?` before being wrapped in `Arc::new(...)`, and downstream synchronous singletons (`orders`) receive the resolved `Arc<PaymentGateway>`.
 3. **Synchronous, lock-free getters:** Once `ShopContainer::init().await` completes, every singleton is already initialized and stored in the struct. Calling `container.get_orders()` or `container.get_gateway()` requires no `.await`, no `Mutex`, and no `OnceLock`.
 
