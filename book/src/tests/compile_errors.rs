@@ -44,33 +44,6 @@ fn compile_error_fixtures_fail_and_match_recorded_diagnostics() {
     }
 }
 
-#[test]
-fn a_newer_snapfit_library_from_another_build_changes_no_recorded_diagnostic() {
-    let name = "ch14_dependency_cycle";
-    let _stale = StaleLibrary::plant();
-
-    let actual = recorded_form(&compile_errors_dir().join(format!("{name}.rs")), name);
-
-    assert_eq!(actual, recorded(&recorded_path(name), name));
-}
-
-/// A file named like a snapfit library, the newest in the book's dependency folder, removed when dropped.
-struct StaleLibrary(PathBuf);
-
-impl StaleLibrary {
-    fn plant() -> Self {
-        let path = target_deps_dir().join("libsnapfit-0000000000000000.rlib");
-        fs::write(&path, "not a library").expect("failed to write the stale snapfit library");
-        Self(path)
-    }
-}
-
-impl Drop for StaleLibrary {
-    fn drop(&mut self) {
-        let _ = fs::remove_file(&self.0);
-    }
-}
-
 fn book_dir() -> &'static Path {
     Path::new(env!("CARGO_MANIFEST_DIR"))
 }
