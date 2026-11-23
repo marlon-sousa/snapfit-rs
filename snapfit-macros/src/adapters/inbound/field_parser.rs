@@ -14,15 +14,15 @@ mod deps;
 mod fallible;
 mod implementation;
 mod rules;
+mod settings;
 #[cfg(test)]
 mod tests;
 mod written;
 
-use super::build_setting::{WrittenBuild, field_construction};
-use deps::{Deps, read_deps};
-use fallible::read_fallible;
-use implementation::read_implementation;
-use rules::{attribute_error, ensure_unconditional, unreadable_attribute};
+use super::build_setting::WrittenBuild;
+use deps::Deps;
+use rules::{attribute_error, ensure_unconditional};
+use settings::{read_settings, unreadable_field_attribute};
 use written::{WrittenField, field_syntax};
 
 /// The declaration, or every problem the field's attributes have.
@@ -38,14 +38,8 @@ pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, Domain
         (None, Some(_)) => (Lifecycle::Singleton, DependencyAttrMeta::default()),
         (None, None) => return Err(unannotated(&name).into()),
     };
-    let build = field_construction(&name, meta.build).map_err(DomainErrors::from);
-    let deps = read_deps(&name, meta.deps);
-    let fallible = read_fallible(&name, meta.fallible).map_err(DomainErrors::from);
-    let implementation = read_implementation(&name, meta.implementations);
-    let (((build, deps), fallible), implementation) = DomainErrors::both(
-        DomainErrors::both(DomainErrors::both(build, deps), fallible),
-        implementation,
-    )?;
+    let is_async = meta.is_async;
+    let (((build, deps), fallible), implementation) = read_settings(&name, meta)?;
     // The word is kept exactly when the field is fallible: the wrapping is spanned at it.
     let fallibility = if fallible.is_some() {
         Fallibility::Fallible
@@ -79,7 +73,7 @@ pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, Domain
     let syntax = field_syntax(field, ident, written);
     let mut dependency = DependencyDeclaration::new(name, syntax);
     dependency.lifecycle = lifecycle;
-    dependency.execution = if meta.is_async {
+    dependency.execution = if is_async {
         Execution::Async
     } else {
         Execution::Sync
@@ -122,7 +116,7 @@ fn lifecycle_attr(
         .map(|(lifecycle, attr)| {
             DependencyAttrMeta::from_attribute(attr)
                 .map(|meta| (lifecycle, meta))
-                .map_err(|unreadable| unreadable_attribute(name, unreadable))
+                .map_err(|unreadable| unreadable_field_attribute(name, unreadable))
         })
         .transpose()
 }

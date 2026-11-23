@@ -2,6 +2,7 @@
 
 use darling::FromMeta;
 use darling::ast::NestedMeta;
+use derive_new::new;
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -39,12 +40,8 @@ pub(super) struct ContainerAttrMeta {
 }
 
 impl ContainerAttrMeta {
-    pub(super) fn from_tokens(tokens: TokenStream) -> Result<Self, AttributeProblem> {
-        if tokens.is_empty() {
-            return Ok(Self::default());
-        }
-        let nested = NestedMeta::parse_meta_list(tokens).map_err(unreadable)?;
-        Self::from_list(&nested).map_err(unreadable)
+    pub(super) fn from_tokens(tokens: TokenStream) -> Result<Self, UnreadableAttribute<Self>> {
+        read_list(tokens)
     }
 }
 
@@ -90,76 +87,74 @@ pub(super) struct DependencyAttrMeta {
 }
 
 impl DependencyAttrMeta {
-    pub(super) fn from_attribute(attr: &syn::Attribute) -> Result<Self, UnreadableAttribute> {
+    pub(super) fn from_attribute(attr: &syn::Attribute) -> Result<Self, UnreadableAttribute<Self>> {
         match &attr.meta {
             syn::Meta::Path(_) => Ok(Self::default()),
             syn::Meta::List(list) => Self::from_tokens(list.tokens.clone()),
-            syn::Meta::NameValue(_) => Err(UnreadableAttribute::alone(AttributeProblem::Assigned)),
+            syn::Meta::NameValue(_) => Err(UnreadableAttribute::new(AttributeProblem::Assigned)),
         }
     }
 
-    fn from_tokens(tokens: TokenStream) -> Result<Self, UnreadableAttribute> {
+    /// When darling refuses the rest, every `implementation` follows the
+    /// rescued settings as one value, so that a repeated one is still refused.
+    fn from_tokens(tokens: TokenStream) -> Result<Self, UnreadableAttribute<Self>> {
         let FieldSettings {
             settings,
             implementations,
         } = syn::parse2(tokens)
             .map_err(unreadable)
-            .map_err(UnreadableAttribute::alone)?;
-        let meta = match Self::from_list(&settings) {
-            Ok(meta) => meta,
-            Err(err) => {
-                return Err(UnreadableAttribute {
-                    problem: unreadable(err),
-                    bad_deps: bad_deps(&settings),
-                    implementations,
-                });
+            .map_err(UnreadableAttribute::new)?;
+        match read_nested::<Self>(&settings) {
+            Ok(meta) => Ok(Self {
+                implementations,
+                ..meta
+            }),
+            Err(mut unreadable) => {
+                if !implementations.is_empty() {
+                    unreadable.settings.push(Self {
+                        implementations,
+                        ..Self::default()
+                    });
+                }
+                Err(unreadable)
             }
-        };
-        Ok(Self {
-            implementations,
-            ..meta
-        })
+        }
     }
 }
 
-/// A field attribute that does not read, with every bad `deps` entry and
-/// every `implementation` it holds, which darling's problem with the rest
-/// of it leaves out.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct UnreadableAttribute {
+/// An attribute that does not read, with each of its settings that reads on
+/// its own, whose problems darling's problem with the rest leaves out.
+#[derive(new, Debug)]
+pub(super) struct UnreadableAttribute<Settings> {
     pub(super) problem: AttributeProblem,
-    pub(super) bad_deps: Vec<AttributeProblem>,
-    pub(super) implementations: Vec<ImplementationMeta>,
+    /// One value per readable setting, holding that setting alone, in the order written.
+    #[new(default)]
+    pub(super) settings: Vec<Settings>,
 }
 
-impl UnreadableAttribute {
-    fn alone(problem: AttributeProblem) -> Self {
-        Self {
-            problem,
-            bad_deps: Vec::new(),
-            implementations: Vec::new(),
-        }
-    }
+fn read_list<Settings: FromMeta>(
+    tokens: TokenStream,
+) -> Result<Settings, UnreadableAttribute<Settings>> {
+    let nested = NestedMeta::parse_meta_list(tokens)
+        .map_err(unreadable)
+        .map_err(UnreadableAttribute::new)?;
+    read_nested(&nested)
 }
 
-fn bad_deps(nested: &[NestedMeta]) -> Vec<AttributeProblem> {
-    nested
-        .iter()
-        .filter_map(deps_setting)
-        .flat_map(|deps| deps.0)
-        .filter_map(Result::err)
-        .collect()
+fn read_nested<Settings: FromMeta>(
+    nested: &[NestedMeta],
+) -> Result<Settings, UnreadableAttribute<Settings>> {
+    Settings::from_list(nested).map_err(|err| UnreadableAttribute {
+        problem: unreadable(err),
+        settings: nested.iter().filter_map(read_alone).collect(),
+    })
 }
 
-/// The entries of a `deps` setting; one that does not read at all is
-/// already in darling's problem.
-fn deps_setting(item: &NestedMeta) -> Option<PrerequisiteList> {
-    match item {
-        NestedMeta::Meta(meta) if meta.path().is_ident("deps") => {
-            PrerequisiteList::from_meta(meta).ok()
-        }
-        _ => None,
-    }
+/// The setting read as if it were the only one; a setting that does not
+/// read even alone is already in darling's problem. This holds only while
+/// every field of the settings is `#[darling(default)]`.
+fn read_alone<Settings: FromMeta>(setting: &NestedMeta) -> Option<Settings> {
+    Settings::from_list(std::slice::from_ref(setting)).ok()
 }
 
 fn unreadable(err: impl std::fmt::Display) -> AttributeProblem {

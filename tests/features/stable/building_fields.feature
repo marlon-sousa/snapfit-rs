@@ -44,6 +44,19 @@ Feature: Choosing how a field is built
     And the compiler should report 2 errors
     And the error should point at line 7 of the fixture
 
+  @v0_1_0 @regression
+  Scenario: A bad build, leaf_build or mode is reported beside a setting the attribute does not know
+    Given an invalid container fixture "unreadable_build_settings"
+    When the fixture is compiled
+    Then compilation should fail with "Unknown field: `bogus`. Available values: `introspection`, `leaf_build`, `mode`, `parent`"
+    And compilation should fail with "invalid container mode 'threaded': write mode = "sync", or leave mode out"
+    And compilation should fail with "leaf_build = frobnicate cannot build the container's fields that have no deps"
+    And compilation should fail with "field 'cache': Unknown field: `bogus`. Available values: `async`, `build`, `deps`, `fallible`, `implementation`"
+    And compilation should fail with "build = frobnicate on field 'cache' is not a way to build a field"
+    And the compiler should report 5 errors
+    And the error should point at line 8 of the fixture
+    And the error should point at line 12 of the fixture
+
   @v0_1_0
   Scenario Outline: A build setting that cannot be followed is refused at its field
     Given an invalid container fixture "<fixture>"
