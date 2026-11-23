@@ -5,14 +5,11 @@ use std::sync::LazyLock;
 
 use compile_outcomes::{Compilation, Dependency, Edition, Outcome, Outcomes, compile};
 
-use super::{file_stem, sorted_files, target_deps_dir};
+use super::{file_stem, sorted_files};
 
-/// Every fixture, compiled once against the stable snapfit the book teaches, in a work folder beside the book's own build.
+/// Every fixture, compiled once against the stable snapfit the book teaches, in its own folder of `CARGO_TARGET_TMPDIR`.
 static OUTCOMES: LazyLock<Outcomes> = LazyLock::new(|| {
-    let work_dir = target_deps_dir()
-        .parent()
-        .expect("the test binary's folder sits in a profile folder")
-        .join("book_compile_errors");
+    let work_dir = Path::new(env!("CARGO_TARGET_TMPDIR")).join("book_compile_errors");
     let compilation = Compilation::new(Edition::E2024, work_dir)
         .snippets_in(compile_errors_dir())
         .dependency(Dependency::path("snapfit", book_dir().join("../snapfit")))

@@ -1,3 +1,5 @@
+#![deny(warnings)]
+
 mod chapters;
 mod compile_errors;
 mod directives;
@@ -68,7 +70,7 @@ fn run_example(book_dir: &Path, name: &str) -> String {
     String::from_utf8_lossy(&output.stdout).replace("\r\n", "\n")
 }
 
-pub(super) fn sorted_files(dir: &Path, ext: &str) -> Vec<PathBuf> {
+fn sorted_files(dir: &Path, ext: &str) -> Vec<PathBuf> {
     let mut files: Vec<PathBuf> = fs::read_dir(dir)
         .expect("failed to read directory")
         .filter_map(Result::ok)
@@ -80,7 +82,7 @@ pub(super) fn sorted_files(dir: &Path, ext: &str) -> Vec<PathBuf> {
 }
 
 /// The lines after the first line that starts with `heading`, up to the next level 2 heading.
-pub(super) fn section_lines<'a>(text: &'a str, heading: &str) -> impl Iterator<Item = &'a str> {
+fn section_lines<'a>(text: &'a str, heading: &str) -> impl Iterator<Item = &'a str> {
     let mut lines = text.lines();
     lines.find(|line| line.starts_with(heading));
     lines.take_while(is_not_a_level_2_heading)
@@ -90,16 +92,9 @@ fn is_not_a_level_2_heading(line: &&str) -> bool {
     !line.starts_with("## ")
 }
 
-pub(super) fn file_stem(path: &Path) -> String {
+fn file_stem(path: &Path) -> String {
     path.file_stem()
         .and_then(|s| s.to_str())
         .expect("valid UTF-8 stem")
         .to_string()
-}
-
-pub(super) fn target_deps_dir() -> PathBuf {
-    env::current_exe()
-        .ok()
-        .and_then(|exe| exe.parent().map(Path::to_path_buf))
-        .expect("failed to locate target/debug/deps directory")
 }
