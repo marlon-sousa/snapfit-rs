@@ -72,7 +72,7 @@ pub struct ReceiptPrinter {
 }
 
 impl ReceiptPrinter {
-    pub fn new<P: PaymentGateway + ?Sized>(payments: Arc<P>) -> Self {
+    pub fn new(payments: Arc<dyn PaymentGateway>) -> Self {
         Self {
             provider: payments.provider(),
         }
