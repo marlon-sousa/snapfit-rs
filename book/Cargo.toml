@@ -15,4 +15,5 @@ snapfit = { workspace = true }
 
 [dev-dependencies]
 bon = { workspace = true }
+mockall = { workspace = true }
 compile-outcomes = { workspace = true }

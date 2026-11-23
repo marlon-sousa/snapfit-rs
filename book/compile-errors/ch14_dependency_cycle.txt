@@ -1,5 +1,5 @@
 error: dependency cycle: orders depends on inventory, which depends on orders
- --> book/compile-errors/ch13_dependency_cycle.rs:9:5
+ --> book/compile-errors/ch14_dependency_cycle.rs:9:5
   |
 9 |     #[singleton(deps = [inventory])]
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

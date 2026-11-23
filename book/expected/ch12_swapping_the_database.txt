@@ -1,0 +1,4 @@
+opening a connection pool to postgres://shop
+sale of lamp for 4500 cents recorded in PostgreSQL, in EUR
+opening shop.db with SQLite
+sale of lamp for 4500 cents recorded in SQLite, in EUR

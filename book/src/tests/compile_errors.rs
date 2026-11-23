@@ -46,7 +46,7 @@ fn compile_error_fixtures_fail_and_match_recorded_diagnostics() {
 
 #[test]
 fn a_newer_snapfit_library_from_another_build_changes_no_recorded_diagnostic() {
-    let name = "ch13_dependency_cycle";
+    let name = "ch14_dependency_cycle";
     let _stale = StaleLibrary::plant();
 
     let actual = recorded_form(&compile_errors_dir().join(format!("{name}.rs")), name);
