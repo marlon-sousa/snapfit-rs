@@ -7,7 +7,6 @@ pub trait Reader: Send + Sync {
     fn source(&self) -> &'static str;
 }
 
-#[derive(Clone)]
 pub struct DiskReader;
 
 impl DiskReader {
@@ -22,7 +21,6 @@ impl Reader for DiskReader {
     }
 }
 
-#[derive(Clone)]
 pub struct MemoryReader;
 
 impl MemoryReader {
