@@ -2,6 +2,28 @@
 
 Every release of snapfit and snapfit-macros, which share one version. Each section is written in the release's pull request, from the changelog entries its commits carry as trailers, except 0.1.0's, written by hand for those meeting snapfit for the first time, as [docs/WORKFLOW.md](docs/WORKFLOW.md), "Releases", describes, and becomes the notes of its [GitHub release](https://github.com/marlon-sousa/snapfit-rs/releases). Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.2.0]
+
+Fields typed as their trait, and fields whose construction can fail.
+
+### Added
+
+- `implementation = <Type>` on an `Arc<dyn Trait>` field, such as `#[singleton(implementation = StripeGateway)] payments: Arc<dyn PaymentGateway>`, so that the field, its getter and every service that depends on it see the trait object, and a swap changes one word.
+- `fallible = true` on a field whose constructor, builder or factory returns a `Result`; its container is built by `try_new()`, which returns a `snapfit::BuildError` naming the field that failed.
+- `snapfit::BuildError`, which names the container and the field that failed and keeps the field's own error as its source.
+- `snapfit::FallibleContainer`, the trait of a container whose `try_new()` can fail.
+- The book's 0.2 edition teaches fields typed as their trait, testing a service on its own, fields whose construction can fail, and factories before builders, with a table of every way to build a field.
+
+### Changed
+
+- The error for an `Arc<dyn Trait>` field without a factory now also offers `implementation`.
+- The README is a quick start, with a line for each feature that links to the chapter of the book teaching it.
+- snapfit requires snapfit-macros of exactly its own version, because the code the macros write calls snapfit's hidden items of that version.
+
+### Fixed
+
+- A bad `build`, `leaf_build`, `mode` or `parent` is reported even when another setting of the same attribute is also wrong, instead of only once that one is fixed.
+
 ## [0.1.1]
 
 ### Added
