@@ -95,8 +95,8 @@ impl DependencyAttrMeta {
         }
     }
 
-    /// The settings, with every `implementation` taken out first, since
-    /// darling cannot read a setting that may be written more than once.
+    /// When darling refuses the rest, every `implementation` follows the
+    /// rescued settings as one value, so that a repeated one is still refused.
     fn from_tokens(tokens: TokenStream) -> Result<Self, UnreadableAttribute<Self>> {
         let FieldSettings {
             settings,
@@ -104,19 +104,18 @@ impl DependencyAttrMeta {
         } = syn::parse2(tokens)
             .map_err(unreadable)
             .map_err(UnreadableAttribute::new)?;
-        let implemented = Self {
-            implementations,
-            ..Self::default()
-        };
         match read_nested::<Self>(&settings) {
             Ok(meta) => Ok(Self {
-                implementations: implemented.implementations,
+                implementations,
                 ..meta
             }),
             Err(mut unreadable) => {
-                unreadable
-                    .settings
-                    .extend((!implemented.implementations.is_empty()).then_some(implemented));
+                if !implementations.is_empty() {
+                    unreadable.settings.push(Self {
+                        implementations,
+                        ..Self::default()
+                    });
+                }
                 Err(unreadable)
             }
         }
@@ -128,8 +127,7 @@ impl DependencyAttrMeta {
 #[derive(new, Debug)]
 pub(super) struct UnreadableAttribute<Settings> {
     pub(super) problem: AttributeProblem,
-    /// One value per readable setting, holding that setting alone, in the
-    /// order written; a field's `implementation` settings come last, together.
+    /// One value per readable setting, holding that setting alone, in the order written.
     #[new(default)]
     pub(super) settings: Vec<Settings>,
 }
