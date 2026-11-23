@@ -94,17 +94,6 @@ region: container
 
 Production builds exactly what it built before. What changed is what a test has to hand the checkout: anything that implements `Stock` and anything that implements `Orders`. Neither of those has to have a database behind it.
 
-### A type parameter or a trait object
-
-The checkout above holds `Arc<dyn Orders>` and `Arc<dyn Stock>`. As Chapter 2 showed, a service can take its dependencies as type parameters instead:
-
-```example
-name: ch12_generic_checkout
-region: generic_controller
-```
-
-Both work for testing, as we'll see in a moment. The difference is the one [Chapter 11](11-choosing-an-implementation.md) described. `ExpressCheckout<O, S>` keeps its services and names them in its own type, so a container has to name concrete types for it, `Arc<ExpressCheckout<OrderService, StockService>>`, with concrete service fields beside it. `CheckoutController` keeps the same type whatever it is given, so it fits the trait fields above and every container that uses it. Choose the type parameter where each call must cost nothing extra, and the trait object where it keeps the wiring simpler.
-
 ## Stand-ins with a mocking library
 
 Now the test needs something that implements `Stock` and says "no" when asked about the kettle. We could write a small struct for it, as Chapter 2 wrote `FakeGateway`. For one trait that's fine. But each test wants different answers, and wants to check what the checkout did: was `place` called, and with what? Writing a fake for every case quickly turns into a lot of small structs.
@@ -135,14 +124,7 @@ name: ch12_mocking_services
 region: test_in_stock
 ```
 
-And the same stand-ins work for the generic `ExpressCheckout`, which takes them as its type parameters:
-
-```example
-name: ch12_generic_checkout
-region: test_generic
-```
-
-Let's run the shop, then the first two tests:
+Let's run the shop, then both tests:
 
 ```example
 name: ch12_mocking_services
@@ -155,11 +137,7 @@ It prints:
 name: ch12_mocking_services
 ```
 
-The shop opened its connection pool, as production should. The tests opened nothing. The generic test, run the same way, prints:
-
-```output
-name: ch12_generic_checkout
-```
+The shop opened its connection pool, as production should. The tests opened nothing.
 
 ## Swapping the database
 
