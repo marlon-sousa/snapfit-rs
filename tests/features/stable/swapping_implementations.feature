@@ -25,6 +25,23 @@ Feature: Swapping a field for another implementation of its trait
     And its digest, built by its builder, should read from disk
     And its summary, built by a factory from the trait object, should read from disk
 
+  @v0_2_0 @regression
+  Scenario: Clippy does not lint the code snapfit writes for an implementation that is not Send and Sync
+    Given a container fixture "implementation_not_send" for clippy
+    When the fixture is linted with clippy
+    Then clippy should report no warning
+
+  @v0_2_0 @regression
+  Scenario Outline: A container written by a macro_rules! builds the implementation it passes as tokens
+    When the desks whose implementation a macro_rules! passes as tokens are opened
+    Then the desk whose implementation is passed as "<form>" should read from disk
+
+    Examples:
+      | form           |
+      | a token tree   |
+      | an identifier  |
+      | a whole struct |
+
   @v0_2_0
   Scenario Outline: An implementation is built the way the field's build, or the container's leaf_build, says
     When the desks whose readers are built from their implementation in every way are opened
@@ -42,6 +59,11 @@ Feature: Swapping a field for another implementation of its trait
   Scenario: A fallible implementation that fails is returned by try_new, naming its field
     When the desks whose readers are built from their implementation in every way are opened
     Then the locked desk should fail at its field reader, with the error "the shelf is locked" as its source
+
+  @v0_2_0 @regression
+  Scenario: An implementation that is neither Send nor Sync is built into the field's Arc
+    When the desk whose reader is neither Send nor Sync is opened
+    Then its local reader should read from disk
 
   @v0_2_0
   Scenario Outline: An implementation written in a way snapfit cannot follow is refused at its field

@@ -3,6 +3,7 @@
 
 pub mod built_desks;
 pub mod desks;
+pub mod local;
 pub mod readers;
 #[cfg(feature = "unstable")]
 pub mod transient_desk;

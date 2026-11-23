@@ -20,14 +20,14 @@ fn an_arc_of_a_trait_object_is_built_by_the_implementation_it_names_and_wrapped(
 
     assert_eq!(
         built(item.clone(), "plain", ValueSource::Locals),
-        "::std::sync::Arc::new(<DiskReader>::new())"
+        "{let__snapfit_implementation=::std::sync::Arc::new(<DiskReader>::new());__snapfit_implementation}"
     );
     assert_eq!(
         built(item.clone(), "opened", ValueSource::Locals),
-        "::std::sync::Arc::new(<DiskReader>::open(__snapfit_config.clone()))"
+        "{let__snapfit_implementation=::std::sync::Arc::new(<DiskReader>::open(__snapfit_config.clone()));__snapfit_implementation}"
     );
     assert_eq!(
         built(item, "built", ValueSource::Locals),
-        "::std::sync::Arc::new(<Cache<Order>>::builder().config(__snapfit_config.clone()).build())"
+        "{let__snapfit_implementation=::std::sync::Arc::new(<Cache<Order>>::builder().config(__snapfit_config.clone()).build());__snapfit_implementation}"
     );
 }
