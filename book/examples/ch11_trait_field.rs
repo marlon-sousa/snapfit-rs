@@ -6,7 +6,6 @@ use std::sync::Arc;
 
 pub trait PaymentGateway {
     fn charge(&self, cents: u64) -> String;
-    fn provider(&self) -> &'static str;
 }
 
 // ANCHOR: stripe
@@ -28,10 +27,6 @@ impl PaymentGateway for StripeGateway {
     fn charge(&self, cents: u64) -> String {
         format!("Stripe charged {cents} cents")
     }
-
-    fn provider(&self) -> &'static str {
-        "Stripe"
-    }
 }
 
 #[derive(Default)]
@@ -46,10 +41,6 @@ impl FakeGateway {
 impl PaymentGateway for FakeGateway {
     fn charge(&self, cents: u64) -> String {
         format!("fake gateway pretended to charge {cents} cents")
-    }
-
-    fn provider(&self) -> &'static str {
-        "the fake gateway"
     }
 }
 
@@ -67,22 +58,6 @@ impl OrderService {
     }
 }
 
-pub struct ReceiptPrinter {
-    provider: &'static str,
-}
-
-impl ReceiptPrinter {
-    pub fn new(payments: Arc<dyn PaymentGateway>) -> Self {
-        Self {
-            provider: payments.provider(),
-        }
-    }
-
-    pub fn print(&self, cents: u64) -> String {
-        format!("receipt: {cents} cents, paid through {}", self.provider)
-    }
-}
-
 // ANCHOR: containers
 #[container]
 pub struct ShopContainer {
@@ -91,9 +66,6 @@ pub struct ShopContainer {
 
     #[singleton(deps = [payments])]
     orders: Arc<OrderService>,
-
-    #[singleton(deps = [payments])]
-    receipts: Arc<ReceiptPrinter>,
 }
 
 #[container]
@@ -103,9 +75,6 @@ pub struct TestShopContainer {
 
     #[singleton(deps = [payments])]
     orders: Arc<OrderService>,
-
-    #[singleton(deps = [payments])]
-    receipts: Arc<ReceiptPrinter>,
 }
 // ANCHOR_END: containers
 
@@ -113,10 +82,8 @@ pub struct TestShopContainer {
 fn main() {
     let shop = ShopContainer::new();
     println!("production {}", shop.get_orders().place_order(4500));
-    println!("production {}", shop.get_receipts().print(4500));
 
     let test_shop = TestShopContainer::new();
     println!("test {}", test_shop.get_orders().place_order(4500));
-    println!("test {}", test_shop.get_receipts().print(4500));
 }
 // ANCHOR_END: run

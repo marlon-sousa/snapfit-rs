@@ -78,7 +78,7 @@ name: ch11_trait_field
 region: containers
 ```
 
-Both containers' getters now return `Arc<dyn PaymentGateway>`, so code written against a getter names only the trait, and doesn't change at a swap. A receipt printer, which prints the provider's name that the trait also gives, takes the trait object as `OrderService` does. And the Stripe-only call is now refused, as it should be:
+Both containers' getters now return `Arc<dyn PaymentGateway>`, so code written against a getter names only the trait, and doesn't change at a swap. And the Stripe-only call is now refused, as it should be:
 
 ```compile-error
 name: ch11_trait_field_hides_stripe
@@ -160,7 +160,7 @@ Think of a theatre with an understudy. The play is the same every night, and the
 
 ## Which way to choose
 
-1. **Name the concrete type in the field when the choice is fixed, and only the services that take it read the field.** The container needs no code, and a second container covers tests. That's `ShopContainer` and `TestShopContainer` at the start of the chapter.
+1. **Name the concrete type in the field when the choice is fixed, and no code outside the container reads the field's getter.** The container needs no code, and a second container covers tests. That's `ShopContainer` and `TestShopContainer` at the start of the chapter.
 2. **Type the field as the trait and name its `implementation` when the choice is fixed, and code that reads the container should see only the trait.** The getter promises only the trait, and a swap is one word.
 3. **Use a factory when the choice is made while the program starts**, typically from configuration. The field is `Arc<dyn PaymentGateway>`, so its getter returns the trait object too.
 
