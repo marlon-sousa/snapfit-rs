@@ -7,10 +7,11 @@ use crate::codegen_containers::{
     DerivedAfterContainer, DerivedBeforeContainer, DerivedContainer, TypedFieldsContainer,
 };
 use crate::containers::{AppContainer, checkout, multi_db, ordered};
-use crate::fixture_outcomes::fixture_outcome;
 use crate::stale_library::StaleLibrary;
 #[cfg(feature = "unstable")]
 use crate::unstable_world::UnstableContainers;
+
+mod fixtures;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ScenarioBlueprint {
@@ -154,29 +155,6 @@ impl ContainerWorld {
         self.checkout_container
             .as_ref()
             .expect("CheckoutContainer must be instantiated before Then assertions")
-    }
-
-    pub fn select_invalid_fixture(&mut self, fixture_name: String) {
-        self.selected_fixture = Some(fixture_name);
-    }
-
-    pub fn compile_selected_fixture(&mut self) {
-        let name = self
-            .selected_fixture
-            .as_deref()
-            .expect("invalid fixture name must be selected in Given step");
-        self.compile_outcome = Some(fixture_outcome(name));
-    }
-
-    pub fn compiled_fixture(&self) -> (&str, &'static Outcome) {
-        let name = self
-            .selected_fixture
-            .as_deref()
-            .expect("invalid fixture name must be selected in Given step");
-        let outcome = self
-            .compile_outcome
-            .expect("fixture must be compiled before Then assertions");
-        (name, outcome)
     }
 
     pub fn plant_stale_library(&mut self) {

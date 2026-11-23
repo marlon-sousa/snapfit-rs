@@ -26,6 +26,12 @@ Feature: Swapping a field for another implementation of its trait
     And its summary, built by a factory from the trait object, should read from disk
 
   @v0_2_0 @regression
+  Scenario: Clippy does not lint the code snapfit writes for an implementation that is not Send and Sync
+    Given a container fixture "implementation_not_send" for clippy
+    When the fixture is linted with clippy
+    Then clippy should report no warning
+
+  @v0_2_0 @regression
   Scenario Outline: A container written by a macro_rules! builds the implementation it passes as tokens
     When the desks whose implementation a macro_rules! passes as tokens are opened
     Then the desk whose implementation is passed as "<form>" should read from disk
