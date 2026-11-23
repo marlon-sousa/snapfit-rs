@@ -23,6 +23,7 @@ pub(super) fn rewrite(item: &mut syn::ItemStruct) -> TokenStream {
     let syn::Fields::Named(fields) = &mut item.fields else { return mentions };
     let mut deps: HashMap<String, Vec<String>> = HashMap::new();
     let mut declared: HashMap<String, Declared> = HashMap::new();
+    let mut spans: HashMap<String, Span> = HashMap::new();
     for field in fields.named.iter_mut() {
         let Some(name) = field.ident.as_ref().map(ToString::to_string) else { continue };
         let Some(attr) = field.attrs.iter_mut().find(|a| a.path().is_ident("singleton")) else {
@@ -36,26 +37,61 @@ pub(super) fn rewrite(item: &mut syn::ItemStruct) -> TokenStream {
             continue;
         };
         let trait_key = trait_key(impl_trait);
-        let span = field.ty.to_token_stream().into_iter().next().map_or(Span::call_site(), |t| t.span());
-        field.ty = respanned(&implementation, span);
-        mentions.extend(quote::quote!(const _: ::core::marker::PhantomData<#implementation> = ::core::marker::PhantomData;));
+        spans.insert(name.clone(), first_span(&field.ty));
         list.tokens = join_settings(settings.into_iter().filter(|s| implementation_of(s).is_none()));
         declared.insert(name, Declared { trait_key, implementation });
     }
+    // An implementation may itself hold `impl Trait`, such as
+    // `Controller<impl SvcTrait>`: resolve it among its own field's deps,
+    // once for each field, so that chains of any length settle.
+    for _ in 0..declared.len() {
+        let names: Vec<String> = declared.keys().cloned().collect();
+        for name in names {
+            let mut implementation = declared[&name].implementation.clone();
+            let mut replacer = Replacer { reachable: direct(&name, &deps, &declared) };
+            replacer.visit_type_mut(&mut implementation);
+            if let Some(entry) = declared.get_mut(&name) {
+                entry.implementation = implementation;
+            }
+        }
+    }
     for field in fields.named.iter_mut() {
         let Some(name) = field.ident.as_ref().map(ToString::to_string) else { continue };
-        let reachable = reachable(&name, &deps);
-        let mut replacer = Replacer { reachable: reachable.iter().filter_map(|d| declared.get(d)).collect() };
+        if let Some(own) = declared.get(&name) {
+            let implementation = &own.implementation;
+            mentions.extend(quote::quote!(const _: ::core::marker::PhantomData<#implementation> = ::core::marker::PhantomData;));
+            field.ty = respanned(&own.implementation, spans[&name]);
+            continue;
+        }
+        let mut replacer = Replacer { reachable: direct(&name, &deps, &declared) };
         replacer.visit_type_mut(&mut field.ty);
     }
     mentions
 }
 
-struct Replacer<'a> {
-    reachable: Vec<&'a Declared>,
+fn first_span(ty: &syn::Type) -> Span {
+    ty.to_token_stream().into_iter().next().map_or(Span::call_site(), |t| t.span())
 }
 
-impl VisitMut for Replacer<'_> {
+/// What the field's own deps declared, and nothing further down.
+fn direct(
+    name: &str,
+    deps: &HashMap<String, Vec<String>>,
+    declared: &HashMap<String, Declared>,
+) -> Vec<Declared> {
+    deps.get(name)
+        .into_iter()
+        .flatten()
+        .filter_map(|dep| declared.get(dep))
+        .map(|d| Declared { trait_key: d.trait_key.clone(), implementation: d.implementation.clone() })
+        .collect()
+}
+
+struct Replacer {
+    reachable: Vec<Declared>,
+}
+
+impl VisitMut for Replacer {
     fn visit_type_mut(&mut self, ty: &mut syn::Type) {
         if let syn::Type::ImplTrait(impl_trait) = ty {
             let key = trait_key(impl_trait);
@@ -68,18 +104,6 @@ impl VisitMut for Replacer<'_> {
         }
         syn::visit_mut::visit_type_mut(self, ty);
     }
-}
-
-/// The deps of `name`, then theirs, and so on.
-fn reachable(name: &str, deps: &HashMap<String, Vec<String>>) -> Vec<String> {
-    let mut seen: Vec<String> = Vec::new();
-    let mut todo: Vec<String> = deps.get(name).cloned().unwrap_or_default();
-    while let Some(next) = todo.pop() {
-        if seen.contains(&next) || next == name { continue }
-        todo.extend(deps.get(&next).cloned().unwrap_or_default());
-        seen.push(next);
-    }
-    seen
 }
 
 fn trait_key(impl_trait: &syn::TypeImplTrait) -> String {

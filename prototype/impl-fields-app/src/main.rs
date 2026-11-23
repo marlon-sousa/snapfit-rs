@@ -49,13 +49,23 @@ impl<R: SvcTrait> Controller<R> {
     }
 }
 
-#[derive(Clone)]
-pub struct Api<R: SvcTrait> {
-    controller: Controller<R>,
+pub trait ControllerTrait {
+    fn handle(&self) -> String;
 }
 
-impl<R: SvcTrait> Api<R> {
-    pub fn new(controller: Controller<R>) -> Self {
+impl<R: SvcTrait> ControllerTrait for Controller<R> {
+    fn handle(&self) -> String {
+        Controller::handle(self)
+    }
+}
+
+#[derive(Clone)]
+pub struct Api<C: ControllerTrait> {
+    controller: C,
+}
+
+impl<C: ControllerTrait> Api<C> {
+    pub fn new(controller: C) -> Self {
         Self { controller }
     }
 
@@ -69,11 +79,11 @@ pub struct App {
     #[singleton(implementation = RealSvc)]
     svc: impl SvcTrait,
 
-    #[singleton(deps = [svc])]
-    controller: Controller<impl SvcTrait>,
+    #[singleton(implementation = Controller<impl SvcTrait>, deps = [svc])]
+    controller: impl ControllerTrait,
 
     #[singleton(deps = [controller])]
-    api: Api<impl SvcTrait>,
+    api: Api<impl ControllerTrait>,
 }
 
 #[container]
