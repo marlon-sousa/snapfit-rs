@@ -4,63 +4,89 @@ At the end of the last chapter, we swapped two names in a `deps` list and the sh
 
 Think of a moving day. If the movers unload the boxes in the order they came off the truck, and you have to remember that the third box is the kitchen, a mix-up is only a matter of time. Write "kitchen" on the box, and it doesn't matter when it comes off the truck: it ends up in the kitchen. That's what we want for our databases.
 
-## The same databases, one new service
+## The same databases and order store
 
 We keep the databases and `CqrsOrderStore` from [Chapter 9](09-multiple-instances-of-the-same-type.md), unchanged:
 
 ```example
-name: ch10_passing_dependencies_by_name
+name: ch10_factories
 region: domain
 ```
 
-The shop also wants a daily sales report. It reads today's sales from the live replica, and checks the totals against the ledger on the primary:
+## A factory: we build the field ourselves
+
+Here is a container that builds the order store with a factory. Look closely at the `deps` list of `order_store`: it names `write_db` first, which is exactly the order that went wrong in the last chapter:
 
 ```example
-name: ch10_passing_dependencies_by_name
-region: sales_report
-```
-
-The two lines marked `#[bon::bon]` and `#[builder(start_fn = builder)]` come from [bon](https://docs.rs/bon), a popular crate that writes builders. Rust has no named arguments, and a builder is the usual way around that: instead of `SalesReport::new(a, b)`, you call `SalesReport::builder().live(a).ledger(b).build()`, and every argument arrives through a method named after it. bon writes that builder for us from the constructor, and `start_fn = builder` asks it to keep `SalesReport::new` public too, so the constructor can still be called directly. Notice that `SalesReport` still knows nothing about `snapfit`.
-
-## Two ways to say who gets what
-
-Here is the container. Look closely at the `deps` lists: both of them name `write_db` first, which is exactly the order that went wrong in the last chapter:
-
-```example
-name: ch10_passing_dependencies_by_name
+name: ch10_factories
 region: container
 ```
 
 `order_store` says `build = factory`. That tells the container: "I'll build this one myself." The container generates a trait called `ShopContainerFactories`, with one function for each field built this way, and we implement it:
 
 ```example
-name: ch10_passing_dependencies_by_name
+name: ch10_factories
 region: factory
 ```
 
 Let's run it:
 
 ```example
-name: ch10_passing_dependencies_by_name
+name: ch10_factories
 region: run
 ```
 
 It prints:
 
 ```output
-name: ch10_passing_dependencies_by_name
+name: ch10_factories
 ```
 
-Reads go to the replica, and the report reads from the replica too, even though both lists started with `write_db`. Let's look at why.
+Reads go to the replica, even though the list started with `write_db`. Let's look at why.
 
-## How a factory works
+### How a factory works
 
 1. **The container writes the trait, and we fill it in.** For a field called `order_store` in `ShopContainer`, the trait `ShopContainerFactories` gets a function called `build_order_store`, which returns the field's type, `Arc<CqrsOrderStore>`. If we forget the `impl`, or give it the wrong type, the program doesn't compile.
 2. **The inputs arrive in a struct.** `build_order_store` receives one value, of type `ShopContainerOrderStoreInputs`, with one public field for each name in `deps`. Its fields are named after the container's fields and have their types: `read_db` and `write_db`, both `Arc<Database>`.
 3. **We take them out by name.** `let ShopContainerOrderStoreInputs { read_db, write_db } = inputs;` matches by name, not by position. The order of `deps` decides nothing here, and a misspelt name doesn't compile.
 4. **The rest is ordinary Rust.** Inside the function we can call any constructor, in any way we like. There is no `self`, because the container doesn't exist yet while it is being built: everything the factory needs arrives in its inputs.
 
-## How a builder works
+## A builder: every input arrives through a setter
+
+A factory means writing a function in the container. When a type already has a builder, the container can hand over the inputs by name with no code of ours at all.
+
+The shop also wants a daily sales report. It reads today's sales from the live replica, and checks the totals against the ledger on the primary:
+
+```example
+name: ch10_builders
+region: sales_report
+```
+
+The two lines marked `#[bon::bon]` and `#[builder(start_fn = builder)]` come from [bon](https://docs.rs/bon), a popular crate that writes builders. Rust has no named arguments, and a builder is the usual way around that: instead of `SalesReport::new(a, b)`, you call `SalesReport::builder().live(a).ledger(b).build()`, and every argument arrives through a method named after it. bon writes that builder for us from the constructor, and `start_fn = builder` asks it to keep `SalesReport::new` public too, so the constructor can still be called directly. Notice that `SalesReport` still knows nothing about `snapfit`.
+
+Here is a container for the report. Again, its `deps` list names `write_db` first:
+
+```example
+name: ch10_builders
+region: container
+```
+
+`sales_report` says `build = builder`. This time the container writes no trait for us to fill in: it calls the report's own builder. Let's run it:
+
+```example
+name: ch10_builders
+region: run
+```
+
+It prints:
+
+```output
+name: ch10_builders
+```
+
+The report reads from the replica too. Here is how.
+
+### How a builder works
 
 1. **`build = builder` calls the type's builder.** For `sales_report`, the container writes `SalesReport::builder()`, then one setter call for each name in `deps`, then `.build()`, and wraps the result in an `Arc`.
 2. **A bare name is a setter of the same name.** Had the report's constructor taken `read_db` and `write_db`, `deps = [read_db, write_db]` would call `.read_db(...)` and `.write_db(...)`.
