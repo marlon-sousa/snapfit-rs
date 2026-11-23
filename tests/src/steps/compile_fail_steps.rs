@@ -5,7 +5,7 @@ use crate::world::ContainerWorld;
 
 #[given(expr = "an invalid container fixture {string}")]
 fn given_invalid_container_fixture(world: &mut ContainerWorld, fixture_name: String) {
-    world.select_invalid_fixture(fixture_name);
+    world.select_fixture(fixture_name);
 }
 
 #[given("a newer snapfit library from another build sits beside the one the suite links to")]

@@ -30,6 +30,9 @@ pub(crate) struct FieldSyntax {
     /// The `fallible` word of `fallible = true`, where the field's error is
     /// wrapped, so that a builder that returns a plain value is reported there.
     pub(crate) fallible: Option<syn::Ident>,
+    /// The type of `implementation = ...`, which the container builds for a
+    /// field typed `Arc<dyn Trait>`.
+    pub(crate) implementation: Option<syn::Type>,
     pub(crate) vis: syn::Visibility,
     pub(crate) attrs: Vec<syn::Attribute>,
 }

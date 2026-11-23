@@ -12,6 +12,8 @@ mod fixture_outcomes;
 mod services;
 mod stale_library;
 mod steps;
+mod swap_containers;
+mod swap_world;
 #[cfg(feature = "unstable")]
 mod unstable_build_containers;
 #[cfg(feature = "unstable")]

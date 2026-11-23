@@ -13,8 +13,7 @@ fn messages(settings: proc_macro2::TokenStream) -> Vec<String> {
         .collect()
 }
 
-const UNKNOWN_BOGUS: &str =
-    "field 'cache': Unknown field: `bogus`. Available values: `async`, `build`, `deps`, `fallible`";
+const UNKNOWN_BOGUS: &str = "field 'cache': Unknown field: `bogus`. Available values: `async`, `build`, `deps`, `fallible`, `implementation`";
 
 fn unknown_build(word: &str) -> String {
     format!(
@@ -63,7 +62,7 @@ fn every_bad_setting_is_reported_beside_several_that_do_not_read() {
             other
         )),
         [
-            "field 'cache': Multiple errors: (Unknown field: `bogus`. Available values: `async`, `build`, `deps`, `fallible`, Unknown field: `other`. Available values: `async`, `build`, `deps`, `fallible`)",
+            "field 'cache': Multiple errors: (Unknown field: `bogus`. Available values: `async`, `build`, `deps`, `fallible`, `implementation`, Unknown field: `other`. Available values: `async`, `build`, `deps`, `fallible`, `implementation`)",
             "build \"default\" on field 'cache' must be written without quotes: build = default",
             "field 'cache': fallible needs a value; write fallible = true to have the container return the field's error, or leave fallible out",
             "field 'cache': the deps entry 'a + 1' is not the name of a field; write another field's name, such as config",
@@ -93,5 +92,23 @@ fn good_settings_add_nothing_to_a_setting_that_does_not_read() {
             bogus
         )),
         [UNKNOWN_BOGUS]
+    );
+}
+
+#[test]
+fn every_bad_implementation_is_reported_after_the_other_bad_settings() {
+    assert_eq!(
+        messages(quote!(
+            implementation = impl Reader,
+            build = frobnicate,
+            bogus,
+            implementation = Disk
+        )),
+        [
+            UNKNOWN_BOGUS.to_string(),
+            unknown_build("frobnicate"),
+            "field 'cache': 'impl Reader' is not a type the container can build; write the type in full, such as implementation = StripeGateway".to_string(),
+            "field 'cache': implementation is given more than once; give the field one type to build".to_string(),
+        ]
     );
 }

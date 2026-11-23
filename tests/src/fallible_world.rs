@@ -2,6 +2,7 @@
 
 use snapfit::{BuildError, FallibleContainer};
 
+use crate::fallible_containers::till::written_by_a_macro::{WholeTill, WordTill};
 use crate::fallible_containers::{opening, outage, till};
 
 #[derive(Default)]
@@ -10,6 +11,7 @@ pub struct FallibleRuns {
     till: Option<till::Till>,
     failure: Option<BuildError>,
     events: Vec<&'static str>,
+    passed: Vec<(&'static str, u32)>,
 }
 
 /// Builds any container that can fail, through the trait it implements.
@@ -56,5 +58,22 @@ impl FallibleRuns {
 
     pub fn events(&self) -> &[&'static str] {
         &self.events
+    }
+
+    pub fn open_macro_tills(&mut self) {
+        let whole = try_build::<WholeTill>().expect("the whole till's ledger builds");
+        let word = try_build::<WordTill>().expect("the word till's ledger builds");
+        self.passed = vec![
+            ("the whole struct", whole.get_ledger().entries),
+            ("the fallible word", word.get_ledger().entries),
+        ];
+    }
+
+    pub fn passed_ledger_entries(&self, form: &str) -> u32 {
+        self.passed
+            .iter()
+            .find(|(passed, _)| *passed == form)
+            .map(|(_, entries)| *entries)
+            .unwrap_or_else(|| panic!("no till passed {form} was opened"))
     }
 }

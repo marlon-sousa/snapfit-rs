@@ -81,3 +81,13 @@ fn then_build_stopped_at_first_failure(world: &mut ContainerWorld) {
         ["config built", "database tried", "config dropped"]
     );
 }
+
+#[when("the tills that a macro_rules! writes from the tokens it is passed are opened")]
+fn when_macro_tills_opened(world: &mut ContainerWorld) {
+    world.built.fallible.open_macro_tills();
+}
+
+#[then(expr = "the till passed {string} should have built its ledger by the ledger's own new")]
+fn then_passed_till_built_its_ledger(world: &mut ContainerWorld, form: String) {
+    assert_eq!(world.built.fallible.passed_ledger_entries(&form), 0);
+}

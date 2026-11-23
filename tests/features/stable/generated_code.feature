@@ -50,17 +50,20 @@ Feature: Generated code follows the container as written
       | quoted_constructor_name  | 8    | constructor "connect" on field 'db' must be written without quotes: build = constructor(connect)    |
 
   @v0_1_0 @regression
-  Scenario Outline: A trait-object field without a factory is told to build it in one
-    Given an invalid container fixture "<fixture>"
+  Scenario: A trait-object field outside an Arc, without a factory, is told to build it in one
+    Given an invalid container fixture "trait_object_named_cache"
     When the fixture is compiled
-    Then compilation should fail with "field '<field>' has a trait-object type, which has no constructor; add build = factory to the field and build it in the build_<field> method of the container's factories trait"
+    Then compilation should fail with "field 'cache' has a trait-object type, which has no constructor; add build = factory to the field and build it in the build_cache method of the container's factories trait"
+    And the compiler output should not mention "builder ="
+    And the error should point at line 7 of the fixture
+
+  @v0_2_0
+  Scenario: An Arc of a trait object without an implementation or a factory is told to name one or the other
+    Given an invalid container fixture "trait_object_without_factory"
+    When the fixture is compiled
+    Then compilation should fail with "field 'store' has a trait-object type, which has no constructor; name the type the container builds, such as implementation = StripeGateway, or add build = factory to the field and build it in the build_store method of the container's factories trait"
     And the compiler output should not mention "builder ="
     And the error should point at line 8 of the fixture
-
-    Examples:
-      | fixture                      | field |
-      | trait_object_without_factory | store |
-      | trait_object_named_cache     | cache |
 
   @v0_1_0 @regression
   Scenario Outline: Graph errors point at the declaration that caused them

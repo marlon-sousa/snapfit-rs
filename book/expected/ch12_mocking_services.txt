@@ -1,0 +1,6 @@
+reading the shop configuration
+opening a connection pool to postgres://shop
+sale of lamp for 4500 cents recorded in postgres://shop, in EUR
+the tests, with stand-ins:
+checkout_refuses_an_item_out_of_stock passed
+checkout_places_an_item_in_stock passed

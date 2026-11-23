@@ -86,13 +86,16 @@ fn a_dispatch_field_is_a_singleton_naming_its_trait_and_implementations() {
 }
 
 #[test]
-fn a_trait_object_field_is_reported_as_one_for_the_domain_to_judge() {
+fn an_arc_of_a_trait_object_is_reported_as_one_for_the_domain_to_judge() {
     let field: syn::Field = parse_quote! {
         #[singleton]
         plugin: Arc<dyn Database + Send + Sync>
     };
 
-    assert_eq!(parse_field(&field).unwrap().shape, TypeShape::TraitObject);
+    assert_eq!(
+        parse_field(&field).unwrap().shape,
+        TypeShape::ArcTraitObject
+    );
 }
 
 #[test]

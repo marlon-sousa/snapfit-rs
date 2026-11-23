@@ -4,23 +4,35 @@ use super::super::build_setting::{WrittenBuild, field_construction};
 use super::super::darling_models::{DependencyAttrMeta, UnreadableAttribute};
 use super::deps::{Deps, read_deps};
 use super::fallible::read_fallible;
+use super::implementation::read_implementation;
 use super::rules::attribute_error;
 use crate::domain::{DependencyName, DomainErrors};
 
 #[cfg(test)]
 mod tests;
 
-/// The field's `build`, `deps` and `fallible`, or every problem they have.
+/// What the settings say: the build, the deps, the `fallible` word and the
+/// named implementation.
+type Settings = (
+    ((WrittenBuild, Deps), Option<syn::Ident>),
+    Option<syn::Type>,
+);
+
+/// The field's `build`, `deps`, `fallible` and `implementation`, or every problem they have.
 /// Each setting must be checked apart from the others: one rescued from an
 /// attribute that does not read is checked alone.
 pub(super) fn read_settings(
     name: &DependencyName,
     meta: DependencyAttrMeta,
-) -> Result<((WrittenBuild, Deps), Option<syn::Ident>), DomainErrors> {
+) -> Result<Settings, DomainErrors> {
     let build = field_construction(name, meta.build).map_err(DomainErrors::from);
     let deps = read_deps(name, meta.deps);
     let fallible = read_fallible(name, meta.fallible).map_err(DomainErrors::from);
-    DomainErrors::both(DomainErrors::both(build, deps), fallible)
+    let implementation = read_implementation(name, meta.implementations);
+    DomainErrors::both(
+        DomainErrors::both(DomainErrors::both(build, deps), fallible),
+        implementation,
+    )
 }
 
 /// The attribute's problem, then the problems of each setting that reads on its own.

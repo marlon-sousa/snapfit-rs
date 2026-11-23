@@ -26,7 +26,7 @@ impl DomainError {
             | Self::AsyncDependencyInSyncContainer { dependency }
             | Self::AsyncTransient { dependency }
             | Self::AsyncDefault { dependency }
-            | Self::TraitObjectWithoutFactory { dependency }
+            | Self::TraitObject { dependency, .. }
             | Self::InvalidBuilderSetting { dependency, .. }
             | Self::LabelWithoutBuilder { dependency, .. }
             | Self::RepeatedPrerequisite { dependency, .. }

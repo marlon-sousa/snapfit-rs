@@ -74,10 +74,7 @@ fn both_builds_refuse_a_trait_object_without_a_factory_with_the_same_advice() {
 
     for gate in [FeatureGate::Stable, FeatureGate::Unstable] {
         assert!(
-            matches!(
-                refusal(gate)[..],
-                [DomainError::TraitObjectWithoutFactory { .. }]
-            ),
+            matches!(refusal(gate)[..], [DomainError::TraitObject { .. }]),
             "{gate:?}"
         );
     }

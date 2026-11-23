@@ -31,7 +31,7 @@ Feature: Building a field with its type's builder
       | label_without_builder   | 20   | the dependency 'disk = folder_files' of field 'site_reader' has a label, which names a builder setter; write folder_files alone, or build the field with build = builder |
       | duplicate_setter        | 20   | field 'site_writer' passes more than one dependency to the builder setter 'disk'; give each dependency its own setter |
       | invalid_builder_setting | 8    | builder(begin = make, finish = "done") on field 'exporter' cannot be read; builder takes start and finish, each with a function's name, such as builder(start = new_builder, finish = done) |
-      | builder_trait_object    | 8    | field 'writer' has a trait-object type, which has no constructor; add build = factory to the field and build it in the build_writer method of the container's factories trait |
+      | builder_trait_object    | 8    | field 'writer' has a trait-object type, which has no constructor; name the type the container builds, such as implementation = StripeGateway, or add build = factory to the field and build it in the build_writer method of the container's factories trait |
 
   @v0_1_0
   Scenario: A setter the builder does not have is the compiler's error at its label

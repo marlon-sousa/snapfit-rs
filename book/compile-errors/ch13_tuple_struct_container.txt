@@ -1,5 +1,0 @@
-error: tuple structs are not supported by #[container]; use named fields
- --> book/compile-errors/ch13_tuple_struct_container.rs:7:12
-  |
-7 | pub struct TupleShopContainer(#[singleton] Arc<ShopConfig>);
-  |            ^^^^^^^^^^^^^^^^^^

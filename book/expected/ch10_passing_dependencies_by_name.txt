@@ -1,2 +1,0 @@
-reads go to replica-ro, writes go to primary-rw
-today's sales from replica-ro, totals checked against primary-rw

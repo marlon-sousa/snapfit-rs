@@ -15,6 +15,16 @@ Feature: Building a container whose fields can fail
     When the till whose leaf_build is written constructor(new) and whose ledger can fail is opened
     Then its ledger should be built by the ledger's own new
 
+  @v0_2_0 @regression
+  Scenario Outline: A fallible field of a container that a macro_rules! writes from tokens is built
+    When the tills that a macro_rules! writes from the tokens it is passed are opened
+    Then the till passed "<form>" should have built its ledger by the ledger's own new
+
+    Examples:
+      | form              |
+      | the whole struct  |
+      | the fallible word |
+
   @v0_2_0
   Scenario: The first field that fails stops the build and is named in the error
     When the storefront whose database fails to connect after its configuration is built is opened
@@ -42,7 +52,7 @@ Feature: Building a container whose fields can fail
   Scenario: A bad fallible is reported beside a setting the attribute does not know
     Given an invalid container fixture "unreadable_fallible_setting"
     When the fixture is compiled
-    Then compilation should fail with "field 'config': Unknown field: `bogus`. Available values: `async`, `build`, `deps`, `fallible`"
+    Then compilation should fail with "field 'config': Unknown field: `bogus`. Available values: `async`, `build`, `deps`, `fallible`, `implementation`"
     And compilation should fail with "field 'config': fallible takes true or false, not maybe; write fallible = true, or fallible = false"
     And the compiler should report 2 errors
     And the error should point at line 9 of the fixture
