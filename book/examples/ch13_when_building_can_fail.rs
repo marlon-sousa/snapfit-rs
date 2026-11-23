@@ -1,5 +1,5 @@
 #![deny(warnings)]
-//! Chapter 12: fields whose constructor or factory can fail, and a container built by `try_new()`.
+//! Chapter 13: fields whose constructor or factory can fail, and a container built by `try_new()`.
 
 use snapfit::container;
 use std::error::Error;

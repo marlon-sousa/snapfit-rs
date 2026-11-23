@@ -4,63 +4,89 @@ At the end of the last chapter, we swapped two names in a `deps` list and the sh
 
 Think of a moving day. If the movers unload the boxes in the order they came off the truck, and you have to remember that the third box is the kitchen, a mix-up is only a matter of time. Write "kitchen" on the box, and it doesn't matter when it comes off the truck: it ends up in the kitchen. That's what we want for our databases.
 
-## The same databases, one new service
+## The same databases and order store
 
 We keep the databases and `CqrsOrderStore` from [Chapter 9](09-multiple-instances-of-the-same-type.md), unchanged:
 
 ```example
-name: ch10_passing_dependencies_by_name
+name: ch10_factories
 region: domain
 ```
 
-The shop also wants a daily sales report. It reads today's sales from the live replica, and checks the totals against the ledger on the primary:
+## A factory: we build the field ourselves
+
+Here is a container that builds the order store with a factory. Look closely at the `deps` list of `order_store`: it names `write_db` first, which is exactly the order that went wrong in the last chapter:
 
 ```example
-name: ch10_passing_dependencies_by_name
-region: sales_report
-```
-
-The two lines marked `#[bon::bon]` and `#[builder(start_fn = builder)]` come from [bon](https://docs.rs/bon), a popular crate that writes builders. Rust has no named arguments, and a builder is the usual way around that: instead of `SalesReport::new(a, b)`, you call `SalesReport::builder().live(a).ledger(b).build()`, and every argument arrives through a method named after it. bon writes that builder for us from the constructor, and `start_fn = builder` asks it to keep `SalesReport::new` public too, so the constructor can still be called directly. Notice that `SalesReport` still knows nothing about `snapfit`.
-
-## Two ways to say who gets what
-
-Here is the container. Look closely at the `deps` lists: both of them name `write_db` first, which is exactly the order that went wrong in the last chapter:
-
-```example
-name: ch10_passing_dependencies_by_name
+name: ch10_factories
 region: container
 ```
 
 `order_store` says `build = factory`. That tells the container: "I'll build this one myself." The container generates a trait called `ShopContainerFactories`, with one function for each field built this way, and we implement it:
 
 ```example
-name: ch10_passing_dependencies_by_name
+name: ch10_factories
 region: factory
 ```
 
 Let's run it:
 
 ```example
-name: ch10_passing_dependencies_by_name
+name: ch10_factories
 region: run
 ```
 
 It prints:
 
 ```output
-name: ch10_passing_dependencies_by_name
+name: ch10_factories
 ```
 
-Reads go to the replica, and the report reads from the replica too, even though both lists started with `write_db`. Let's look at why.
+Reads go to the replica, even though the list started with `write_db`. Let's look at why.
 
-## How a factory works
+### How a factory works
 
 1. **The container writes the trait, and we fill it in.** For a field called `order_store` in `ShopContainer`, the trait `ShopContainerFactories` gets a function called `build_order_store`, which returns the field's type, `Arc<CqrsOrderStore>`. If we forget the `impl`, or give it the wrong type, the program doesn't compile.
 2. **The inputs arrive in a struct.** `build_order_store` receives one value, of type `ShopContainerOrderStoreInputs`, with one public field for each name in `deps`. Its fields are named after the container's fields and have their types: `read_db` and `write_db`, both `Arc<Database>`.
 3. **We take them out by name.** `let ShopContainerOrderStoreInputs { read_db, write_db } = inputs;` matches by name, not by position. The order of `deps` decides nothing here, and a misspelt name doesn't compile.
 4. **The rest is ordinary Rust.** Inside the function we can call any constructor, in any way we like. There is no `self`, because the container doesn't exist yet while it is being built: everything the factory needs arrives in its inputs.
 
-## How a builder works
+## A builder: every input arrives through a setter
+
+A factory means writing a function in the container. When a type already has a builder, the container can hand over the inputs by name with no code of ours at all.
+
+The shop also wants a daily sales report. It reads today's sales from the live replica, and checks the totals against the ledger on the primary:
+
+```example
+name: ch10_builders
+region: sales_report
+```
+
+The two lines marked `#[bon::bon]` and `#[builder(start_fn = builder)]` come from [bon](https://docs.rs/bon), a popular crate that writes builders. Rust has no named arguments, and a builder is the usual way around that: instead of `SalesReport::new(a, b)`, you call `SalesReport::builder().live(a).ledger(b).build()`, and every argument arrives through a method named after it. bon writes that builder for us from the constructor, and `start_fn = builder` asks it to keep `SalesReport::new` public too, so the constructor can still be called directly. Notice that `SalesReport` still knows nothing about `snapfit`.
+
+Here is a container for the report. Again, its `deps` list names `write_db` first:
+
+```example
+name: ch10_builders
+region: container
+```
+
+`sales_report` says `build = builder`. This time the container writes no trait for us to fill in: it calls the report's own builder. Let's run it:
+
+```example
+name: ch10_builders
+region: run
+```
+
+It prints:
+
+```output
+name: ch10_builders
+```
+
+The report reads from the replica too. Here is how.
+
+### How a builder works
 
 1. **`build = builder` calls the type's builder.** For `sales_report`, the container writes `SalesReport::builder()`, then one setter call for each name in `deps`, then `.build()`, and wraps the result in an `Arc`.
 2. **A bare name is a setter of the same name.** Had the report's constructor taken `read_db` and `write_db`, `deps = [read_db, write_db]` would call `.read_db(...)` and `.write_db(...)`.
@@ -68,7 +94,7 @@ Reads go to the replica, and the report reads from the replica too, even though 
 4. **The compiler checks the names.** A setter that doesn't exist, because a name or a label is misspelt, is a compile error with any builder. Naming the same setter twice in one `deps` list is refused by `snapfit` itself, at the field. And with bon, forgetting a setter is a compile error too. That last check comes from bon, whose builders are written as a typestate: the builder's type changes with every setter called, so `build()` only exists once every required setter has been called.
 5. **Other names for the ends.** If a builder starts with something other than `builder()`, or finishes with something other than `build()`, say so with `build = builder(start = make, finish = done)`. You can give either one, or both.
 
-You don't need bon, or any builder crate. The container only calls a starting function, the setters and a finishing function, so a builder you write by hand works just as well, as long as its finishing function returns the value itself, or a `Result` when the field says it can fail, as [Chapter 12](12-when-building-can-fail.md) shows. We still recommend a crate such as bon, for the same reason you'd use any well-tested crate instead of rewriting it: it is less code to maintain. Keep in mind that the missing-setter check comes from typestate builders such as bon's. A builder written by hand only has it if you write it as a typestate too.
+You don't need bon, or any builder crate. The container only calls a starting function, the setters and a finishing function, so a builder you write by hand works just as well, as long as its finishing function returns the value itself, or a `Result` when the field says it can fail, as [Chapter 13](13-when-building-can-fail.md) shows. We still recommend a crate such as bon, for the same reason you'd use any well-tested crate instead of rewriting it: it is less code to maintain. Keep in mind that the missing-setter check comes from typestate builders such as bon's. A builder written by hand only has it if you write it as a typestate too.
 
 ## Which one should I use?
 
@@ -87,7 +113,23 @@ There's a second question hidden in the first one: where should the code that bu
 
 Think of a restaurant. How a dish is cooked belongs to the chef's recipe, whichever restaurant serves it. Which supplier the vegetables come from belongs to the restaurant's manager. Keep each decision where it belongs, and both are easy to change.
 
-A factory builds one field from the inputs its `deps` list. When building it can fail, such as a connection that may be refused, the factory returns a `Result`, as we'll see in [Chapter 12](12-when-building-can-fail.md).
+A factory builds one field from the inputs its `deps` list. When building it can fail, such as a connection that may be refused, the factory returns a `Result`, as we'll see in [Chapter 13](13-when-building-can-fail.md).
+
+## Every way to build a field
+
+We have now met every way the container can build a field. Here they all are, in one place:
+
+| `build` | What the container calls | Choose it when | Taught in |
+| :--- | :--- | :--- | :--- |
+| Left out | `<Type>::new(...)`, with the fields in `deps` in the order they are listed. | The type has a `new` whose arguments can't be passed the wrong way round. | [Chapter 7](07-wiring-dependencies-and-constructors.md) |
+| `build = default` | `<Type>::default()`. A field built this way can't list `deps`. | The type derives `Default` and needs nothing. | [Chapter 7](07-wiring-dependencies-and-constructors.md) |
+| `build = constructor(<fn>)` | `<Type>::<fn>(...)`, with the fields in `deps` in the order they are listed. | The type's constructor has another name. | [Chapter 7](07-wiring-dependencies-and-constructors.md) |
+| `build = builder` | `<Type>::builder()`, one setter for each name in `deps`, then `.build()`, or the `start` and `finish` it names. | The type has a builder, or can have one, such as when two of its inputs have the same type. | This chapter |
+| `build = factory` | `build_<field>` of the `<Container>Factories` trait, which we write, with the inputs by name. | Building the field is the container's business, or the type isn't ours. | This chapter, [Chapter 11](11-choosing-an-implementation.md) |
+
+A field that has no `deps` and leaves `build` out is a leaf, and the container builds every leaf the same way. Out of the box, that is `new`, the first row. `#[container(leaf_build = default)]` makes `default` the way for every leaf instead, and `leaf_build = constructor(<fn>)` makes it a constructor of another name. Either way, it is only the default: a field that says `build` itself is built the way it says, as [Chapter 7](07-wiring-dependencies-and-constructors.md) showed.
+
+Two more settings work alongside these. On an `Arc<dyn Trait>` field, `implementation = <Type>` applies the first four rows to the type it names, as we'll see in [Chapter 11](11-choosing-an-implementation.md); a factory builds the field itself, so it can't sit beside `implementation`. And `fallible = true`, which we'll meet in [Chapter 13](13-when-building-can-fail.md), works with every row except two: `build = default`, because `Default::default()` can't fail, and a leaf built by a `leaf_build` other than `constructor(new)`, because the way chosen for every leaf can't fail either. Such a field says `build` itself.
 
 ## Which problem this solves
 
@@ -101,3 +143,4 @@ A factory builds one field from the inputs its `deps` list. When building it can
 3. `build = builder` calls `builder()`, one setter for each name in `deps`, then `build()`; a label, as in `ledger = write_db`, renames a setter, and `build = builder(start = .., finish = ..)` renames the ends.
 4. Any builder whose finishing function returns the value works, but a typestate builder, such as bon's, is what turns a forgotten setter into a compile error.
 5. Logic about what a type is goes in the type; logic about how the application is wired goes in a factory.
+6. A field is built with `new`, `default`, a named constructor, a builder or a factory. `leaf_build` chooses the way for every leaf of a container, and a field's own `build` always wins.
