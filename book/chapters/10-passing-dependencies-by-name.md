@@ -115,6 +115,22 @@ Think of a restaurant. How a dish is cooked belongs to the chef's recipe, whiche
 
 A factory builds one field from the inputs its `deps` list. When building it can fail, such as a connection that may be refused, the factory returns a `Result`, as we'll see in [Chapter 13](13-when-building-can-fail.md).
 
+## Every way to build a field
+
+We have now met every way the container can build a field. Here they all are, in one place:
+
+| `build` | What the container calls | Choose it when | Taught in |
+| :--- | :--- | :--- | :--- |
+| Left out | `<Type>::new(...)`, with the fields in `deps` in the order they are listed. | The type has a `new` whose arguments can't be passed the wrong way round. | [Chapter 7](07-wiring-dependencies-and-constructors.md) |
+| `build = default` | `<Type>::default()`. A field built this way can't list `deps`. | The type derives `Default` and needs nothing. | [Chapter 7](07-wiring-dependencies-and-constructors.md) |
+| `build = constructor(<fn>)` | `<Type>::<fn>(...)`, with the fields in `deps` in the order they are listed. | The type's constructor has another name. | [Chapter 7](07-wiring-dependencies-and-constructors.md) |
+| `build = builder` | `<Type>::builder()`, one setter for each name in `deps`, then `.build()`. | The type has a builder, or two of its inputs have the same type. | This chapter |
+| `build = factory` | `build_<field>` of the `<Container>Factories` trait, which we write, with the inputs by name. | Building the field is the container's business, or the type isn't ours. | This chapter, [Chapter 11](11-choosing-an-implementation.md) |
+
+A field that has no `deps` and leaves `build` out is a leaf, and the container builds every leaf the same way. Out of the box, that is `new`, the first row. `#[container(leaf_build = default)]` makes `default` the way for every leaf instead, and `leaf_build = constructor(<fn>)` makes it a constructor of another name. Either way, it is only the default: a field that says `build` itself is built the way it says, as [Chapter 7](07-wiring-dependencies-and-constructors.md) showed.
+
+Two more settings work alongside these. On an `Arc<dyn Trait>` field, `implementation = <Type>` applies the first four rows to the type it names, as [Chapter 11](11-choosing-an-implementation.md) shows; a factory builds the field itself, so it can't sit beside `implementation`. And `fallible = true`, from [Chapter 13](13-when-building-can-fail.md), works with every row except `build = default`, because `Default::default()` can't fail.
+
 ## Which problem this solves
 
 1. **Arguments by position** ([Chapter 3](03-who-builds-everything.md)): a factory takes its inputs out of a struct by name, and a builder receives them through setters named after them, so the order of `deps` no longer decides who gets what.
@@ -127,3 +143,4 @@ A factory builds one field from the inputs its `deps` list. When building it can
 3. `build = builder` calls `builder()`, one setter for each name in `deps`, then `build()`; a label, as in `ledger = write_db`, renames a setter, and `build = builder(start = .., finish = ..)` renames the ends.
 4. Any builder whose finishing function returns the value works, but a typestate builder, such as bon's, is what turns a forgotten setter into a compile error.
 5. Logic about what a type is goes in the type; logic about how the application is wired goes in a factory.
+6. A field is built with `new`, `default`, a named constructor, a builder or a factory. `leaf_build` chooses the way for every leaf of a container, and a field's own `build` always wins.

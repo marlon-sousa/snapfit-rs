@@ -10,6 +10,18 @@ Every container attribute and field attribute in `snapfit` `0.2`, with a link to
 | `#[container(leaf_build = default)]` | Builds every field with no `deps` and no `build` of its own with `Default`; a field's own `build` always wins. Without it, such fields call `new()`. A fallible field can't be one of them: give it a `build` of its own. | [Chapter 7](07-wiring-dependencies-and-constructors.md), [Chapter 13](13-when-building-can-fail.md) |
 | `#[container(leaf_build = constructor(<fn>))]` | Builds those same fields with `<Type>::<fn>()`; `constructor(new)` is what a container does without `leaf_build`. Unless `<fn>` is `new`, a fallible field can't be one of them. | [Chapter 7](07-wiring-dependencies-and-constructors.md) |
 
+## Ways to build a field (`build = ...`)
+
+| `build` | What the container calls | Choose it when | Taught in |
+| :--- | :--- | :--- | :--- |
+| Left out | `<Type>::new(...)`, with the fields in `deps` in the order they are listed; for a leaf, whatever the container's `leaf_build` says. | The type has a `new` whose arguments can't be passed the wrong way round. | [Chapter 7](07-wiring-dependencies-and-constructors.md) |
+| `build = default` | `<Type>::default()`; no `deps` allowed, and the field can't be fallible. | The type derives `Default` and needs nothing. | [Chapter 7](07-wiring-dependencies-and-constructors.md) |
+| `build = constructor(<fn>)` | `<Type>::<fn>(...)`, with the fields in `deps` in the order they are listed. | The type's constructor has another name. | [Chapter 7](07-wiring-dependencies-and-constructors.md) |
+| `build = builder` | `<Type>::builder()`, one setter for each name in `deps`, then `.build()`. | The type has a builder, or two of its inputs have the same type. | [Chapter 10](10-passing-dependencies-by-name.md) |
+| `build = factory` | `build_<field>` of `<Container>Factories`, which you write, with the inputs by name; not beside `implementation`. | Building the field is the container's business, or the type isn't yours. | [Chapter 10](10-passing-dependencies-by-name.md), [Chapter 11](11-choosing-an-implementation.md) |
+
+A leaf is a field with no `deps` and no `build` of its own. `leaf_build` sets how every leaf of a container is built, `new` when it is left out, and a field's own `build` always wins.
+
 ## Field attributes
 
 | Declaration | Storage | Construction call | Taught in |
