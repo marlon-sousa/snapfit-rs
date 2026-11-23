@@ -28,12 +28,13 @@
 9. [Multiple instances of the same type](09-multiple-instances-of-the-same-type.md)
 10. [Passing dependencies by name](10-passing-dependencies-by-name.md)
 11. [Choosing an implementation](11-choosing-an-implementation.md)
-12. [When building can fail](12-when-building-can-fail.md)
+12. [Testing a service on its own](12-testing-a-service-on-its-own.md)
+13. [When building can fail](13-when-building-can-fail.md)
 
 ## Part 4: Compile-time guarantees and agents
 
-13. [Mistakes caught by the compiler](13-mistakes-caught-by-the-compiler.md)
-14. [Working with coding agents](14-working-with-coding-agents.md)
+14. [Mistakes caught by the compiler](14-mistakes-caught-by-the-compiler.md)
+15. [Working with coding agents](15-working-with-coding-agents.md)
 
 ## Appendices
 

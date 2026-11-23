@@ -55,12 +55,12 @@ impl OrderService {
     }
 }
 
-pub struct RefundService<P: PaymentGateway> {
-    payments: Arc<P>,
+pub struct RefundService {
+    payments: Arc<dyn PaymentGateway>,
 }
 
-impl<P: PaymentGateway> RefundService<P> {
-    pub fn new(payments: Arc<P>) -> Self {
+impl RefundService {
+    pub fn new(payments: Arc<dyn PaymentGateway>) -> Self {
         Self { payments }
     }
 
@@ -80,7 +80,7 @@ pub struct ShopContainer {
     orders: Arc<OrderService>,
 
     #[singleton(deps = [payments])]
-    refunds: Arc<RefundService<StripeGateway>>,
+    refunds: Arc<RefundService>,
 }
 
 #[container]
@@ -92,7 +92,7 @@ pub struct TestShopContainer {
     orders: Arc<OrderService>,
 
     #[singleton(deps = [payments])]
-    refunds: Arc<RefundService<FakeGateway>>,
+    refunds: Arc<RefundService>,
 }
 // ANCHOR_END: containers
 

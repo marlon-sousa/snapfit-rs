@@ -1,5 +1,5 @@
 error: field 'config' is built with the container's leaf_build, since it has no deps and no build of its own, and leaf_build cannot fail; give the field a build of its own, such as build = constructor(new), or remove fallible = true
-  --> book/compile-errors/ch12_fallible_leaf_build.rs:22:5
+  --> book/compile-errors/ch13_fallible_leaf_build.rs:22:5
    |
 22 |     #[singleton(fallible = true)]
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
