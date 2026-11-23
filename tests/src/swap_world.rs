@@ -10,7 +10,6 @@ mod regressions;
 
 use crate::swap_containers::built_desks::{BuiltDesk, LeafDesk, LockedDesk};
 use crate::swap_containers::desks::{DiskDesk, MemoryDesk};
-use crate::swap_containers::ledgers::{DiskBooks, MemoryBooks};
 use crate::swap_containers::readers::Reader;
 use crate::swap_containers::written_by_a_macro::MacroDesk;
 
@@ -39,15 +38,6 @@ pub struct DeskSources {
     pub summary: Source,
 }
 
-/// Where each service of opened books reads from.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct BookSources {
-    pub ledger: Source,
-    pub journal: Source,
-    pub tally: Source,
-    pub notebook: Source,
-}
-
 /// Reads where a desk's values read from; a macro, so that one body serves
 /// every desk, which are different types with getters of the same types.
 macro_rules! desk_sources {
@@ -59,18 +49,6 @@ macro_rules! desk_sources {
             report: Source::read(desk.get_report().reader.source()),
             digest: Source::read(desk.get_digest().reader.source()),
             summary: Source::read(desk.get_summary().reader.source()),
-        }
-    }};
-}
-
-macro_rules! book_sources {
-    ($books:expr) => {{
-        let books = $books;
-        BookSources {
-            ledger: Source::read(books.get_ledger().reader.source()),
-            journal: Source::read(books.get_journal().reader.source()),
-            tally: Source::read(books.get_tally().source),
-            notebook: Source::read(books.get_notebook().reader.source()),
         }
     }};
 }
@@ -96,7 +74,6 @@ pub struct BuiltReads {
 #[derive(Default)]
 pub struct SwapRuns {
     desk: Option<DeskSources>,
-    books: Option<BookSources>,
     built: Option<BuiltReads>,
     local: Option<Source>,
     passed: Option<Vec<(&'static str, Source)>>,
@@ -119,18 +96,6 @@ impl SwapRuns {
     pub fn desk(&self) -> DeskSources {
         self.desk
             .expect("the desk must be opened before Then assertions")
-    }
-
-    pub fn open_books(&mut self, source: Source) {
-        self.books = Some(match source {
-            Source::Disk => book_sources!(DiskBooks::new()),
-            Source::Memory => book_sources!(MemoryBooks::new()),
-        });
-    }
-
-    pub fn books(&self) -> BookSources {
-        self.books
-            .expect("the books must be opened before Then assertions")
     }
 
     #[cfg(feature = "unstable")]

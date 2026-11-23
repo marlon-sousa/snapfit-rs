@@ -1,11 +1,8 @@
-//! Containers that swap the type of one field for another implementing the
-//! same trait, while the services that depend on it keep their code: taking
-//! the trait object of a field that names its `implementation`, or generic
-//! over the trait, on the struct or only in `new`.
+//! Containers that swap the implementation an `Arc<dyn Trait>` field names,
+//! while the services that take the trait object keep their code.
 
 pub mod built_desks;
 pub mod desks;
-pub mod ledgers;
 pub mod local;
 pub mod readers;
 #[cfg(feature = "unstable")]

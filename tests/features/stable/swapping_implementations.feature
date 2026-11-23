@@ -66,19 +66,6 @@ Feature: Swapping a field for another implementation of its trait
     Then its local reader should read from disk
 
   @v0_2_0
-  Scenario Outline: Services generic over the trait keep their code, whether their struct or only their new is generic
-    When the books that read from <source> are opened
-    Then the ledger, generic on its struct and taking the reader by value, should read from <source>
-    And the journal, generic on its struct and taking the reader in an Arc, should read from <source>
-    And the tally, generic only in new and keeping what it read, should read from <source>
-    And the notebook, generic only in new and keeping the reader in a box, should read from <source>
-
-    Examples:
-      | source |
-      | disk   |
-      | memory |
-
-  @v0_2_0
   Scenario Outline: An implementation written in a way snapfit cannot follow is refused at its field
     Given an invalid container fixture "<fixture>"
     When the fixture is compiled

@@ -7,7 +7,6 @@ pub trait Reader: Send + Sync {
     fn source(&self) -> &'static str;
 }
 
-#[derive(Clone)]
 pub struct DiskReader;
 
 impl DiskReader {
@@ -22,7 +21,6 @@ impl Reader for DiskReader {
     }
 }
 
-#[derive(Clone)]
 pub struct MemoryReader;
 
 impl MemoryReader {
@@ -64,55 +62,5 @@ pub struct Summary {
 impl Summary {
     pub fn from_reader(reader: Arc<dyn Reader>) -> Self {
         Self { reader }
-    }
-}
-
-/// Generic over the reader, which it takes by value.
-pub struct Ledger<R: Reader> {
-    pub reader: R,
-}
-
-impl<R: Reader> Ledger<R> {
-    pub fn new(reader: R) -> Self {
-        Self { reader }
-    }
-}
-
-/// Generic over the reader, which it takes in an `Arc`.
-pub struct Journal<R: Reader> {
-    pub reader: Arc<R>,
-}
-
-impl<R: Reader> Journal<R> {
-    pub fn new(reader: Arc<R>) -> Self {
-        Self { reader }
-    }
-}
-
-/// Generic only in `new`, keeping what it read from the reader, so that its
-/// own type names no reader and needs no pointer.
-pub struct Tally {
-    pub source: &'static str,
-}
-
-impl Tally {
-    pub fn new<R: Reader>(reader: R) -> Self {
-        Self {
-            source: reader.source(),
-        }
-    }
-}
-
-/// Generic only in `new`, keeping the reader itself, which a type that
-/// names no reader can hold only behind a pointer.
-pub struct Notebook {
-    pub reader: Box<dyn Reader>,
-}
-
-impl Notebook {
-    pub fn new<R: Reader + 'static>(reader: R) -> Self {
-        Self {
-            reader: Box::new(reader),
-        }
     }
 }

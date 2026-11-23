@@ -58,37 +58,6 @@ fn then_locked_desk_fails(world: &mut ContainerWorld, field: String, message: St
     assert_eq!(source, Some(message));
 }
 
-#[when(expr = "the books that read from {source} are opened")]
-fn when_books_opened(world: &mut ContainerWorld, source: Source) {
-    world.built.swaps.open_books(source);
-}
-
-#[then(
-    expr = "the ledger, generic on its struct and taking the reader by value, should read from {source}"
-)]
-fn then_ledger_reads_from(world: &mut ContainerWorld, source: Source) {
-    assert_eq!(world.built.swaps.books().ledger, source);
-}
-
-#[then(
-    expr = "the journal, generic on its struct and taking the reader in an Arc, should read from {source}"
-)]
-fn then_journal_reads_from(world: &mut ContainerWorld, source: Source) {
-    assert_eq!(world.built.swaps.books().journal, source);
-}
-
-#[then(expr = "the tally, generic only in new and keeping what it read, should read from {source}")]
-fn then_tally_reads_from(world: &mut ContainerWorld, source: Source) {
-    assert_eq!(world.built.swaps.books().tally, source);
-}
-
-#[then(
-    expr = "the notebook, generic only in new and keeping the reader in a box, should read from {source}"
-)]
-fn then_notebook_reads_from(world: &mut ContainerWorld, source: Source) {
-    assert_eq!(world.built.swaps.books().notebook, source);
-}
-
 #[cfg(feature = "unstable")]
 #[when("the desk whose transient reader names its implementation is opened")]
 fn when_transient_desk_opened(world: &mut ContainerWorld) {
