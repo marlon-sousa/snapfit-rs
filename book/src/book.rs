@@ -1,3 +1,5 @@
+#![deny(warnings)]
+
 mod chapters;
 mod compile_errors;
 mod directives;
@@ -21,7 +23,7 @@ fn examples_compile_run_and_match_expected_output() {
 
     for rs_file in sorted_files(&examples_dir, "rs") {
         let name = file_stem(&rs_file);
-        let actual = run_example(&name);
+        let actual = run_example(book_dir, &name);
         let expected_path = expected_dir.join(format!("{name}.txt"));
 
         if bless {
@@ -52,14 +54,14 @@ fn build_all_example_binaries(book_dir: &Path) {
     );
 }
 
-fn run_example(name: &str) -> String {
-    let bin = direct_example_binary(name);
-    let output = Command::new(&bin).output().unwrap_or_else(|e| {
-        panic!(
-            "failed to execute example '{name}' at {}: {e}",
-            bin.display()
-        )
-    });
+/// Cargo finds the example: where it keeps its build files is internal to it and changes between versions.
+fn run_example(book_dir: &Path, name: &str) -> String {
+    let cargo = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
+    let output = Command::new(cargo)
+        .args(["run", "-p", "snapfit_book", "--example", name, "--quiet"])
+        .current_dir(book_dir)
+        .output()
+        .unwrap_or_else(|e| panic!("failed to invoke cargo run --example {name}: {e}"));
     assert!(
         output.status.success(),
         "book example '{name}' failed: {}",
@@ -68,23 +70,7 @@ fn run_example(name: &str) -> String {
     String::from_utf8_lossy(&output.stdout).replace("\r\n", "\n")
 }
 
-fn direct_example_binary(name: &str) -> PathBuf {
-    let examples_out = target_deps_dir()
-        .parent()
-        .expect("missing debug dir")
-        .join("examples");
-    let suffix = env::consts::EXE_SUFFIX;
-    let direct = examples_out.join(format!("{name}{suffix}"));
-    assert!(
-        direct.exists(),
-        "compiled example binary '{}' does not exist at {}",
-        name,
-        direct.display()
-    );
-    direct
-}
-
-pub(super) fn sorted_files(dir: &Path, ext: &str) -> Vec<PathBuf> {
+fn sorted_files(dir: &Path, ext: &str) -> Vec<PathBuf> {
     let mut files: Vec<PathBuf> = fs::read_dir(dir)
         .expect("failed to read directory")
         .filter_map(Result::ok)
@@ -96,7 +82,7 @@ pub(super) fn sorted_files(dir: &Path, ext: &str) -> Vec<PathBuf> {
 }
 
 /// The lines after the first line that starts with `heading`, up to the next level 2 heading.
-pub(super) fn section_lines<'a>(text: &'a str, heading: &str) -> impl Iterator<Item = &'a str> {
+fn section_lines<'a>(text: &'a str, heading: &str) -> impl Iterator<Item = &'a str> {
     let mut lines = text.lines();
     lines.find(|line| line.starts_with(heading));
     lines.take_while(is_not_a_level_2_heading)
@@ -106,16 +92,9 @@ fn is_not_a_level_2_heading(line: &&str) -> bool {
     !line.starts_with("## ")
 }
 
-pub(super) fn file_stem(path: &Path) -> String {
+fn file_stem(path: &Path) -> String {
     path.file_stem()
         .and_then(|s| s.to_str())
         .expect("valid UTF-8 stem")
         .to_string()
-}
-
-pub(super) fn target_deps_dir() -> PathBuf {
-    env::current_exe()
-        .ok()
-        .and_then(|exe| exe.parent().map(Path::to_path_buf))
-        .expect("failed to locate target/debug/deps directory")
 }

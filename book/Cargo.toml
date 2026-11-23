@@ -7,8 +7,9 @@ license.workspace = true
 publish = false
 description = "Compiled examples and compile-error fixtures for The Snapfit Book."
 
-[lib]
-path = "src/lib.rs"
+[[test]]
+name = "book"
+path = "src/book.rs"
 
 [dependencies]
 snapfit = { workspace = true }

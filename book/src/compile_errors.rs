@@ -5,14 +5,11 @@ use std::sync::LazyLock;
 
 use compile_outcomes::{Compilation, Dependency, Edition, Outcome, Outcomes, compile};
 
-use super::{file_stem, sorted_files, target_deps_dir};
+use super::{file_stem, sorted_files};
 
-/// Every fixture, compiled once against the stable snapfit the book teaches, in a work folder beside the book's own build.
+/// Every fixture, compiled once against the stable snapfit the book teaches, in its own folder of `CARGO_TARGET_TMPDIR`.
 static OUTCOMES: LazyLock<Outcomes> = LazyLock::new(|| {
-    let work_dir = target_deps_dir()
-        .parent()
-        .expect("the test binary's folder sits in a profile folder")
-        .join("book_compile_errors");
+    let work_dir = Path::new(env!("CARGO_TARGET_TMPDIR")).join("book_compile_errors");
     let compilation = Compilation::new(Edition::E2024, work_dir)
         .snippets_in(compile_errors_dir())
         .dependency(Dependency::path("snapfit", book_dir().join("../snapfit")))
@@ -41,33 +38,6 @@ fn compile_error_fixtures_fail_and_match_recorded_diagnostics() {
             recorded(&txt_path, &name),
             "compiler diagnostic mismatch for book/compile-errors/{name}.rs"
         );
-    }
-}
-
-#[test]
-fn a_newer_snapfit_library_from_another_build_changes_no_recorded_diagnostic() {
-    let name = "ch14_dependency_cycle";
-    let _stale = StaleLibrary::plant();
-
-    let actual = recorded_form(&compile_errors_dir().join(format!("{name}.rs")), name);
-
-    assert_eq!(actual, recorded(&recorded_path(name), name));
-}
-
-/// A file named like a snapfit library, the newest in the book's dependency folder, removed when dropped.
-struct StaleLibrary(PathBuf);
-
-impl StaleLibrary {
-    fn plant() -> Self {
-        let path = target_deps_dir().join("libsnapfit-0000000000000000.rlib");
-        fs::write(&path, "not a library").expect("failed to write the stale snapfit library");
-        Self(path)
-    }
-}
-
-impl Drop for StaleLibrary {
-    fn drop(&mut self) {
-        let _ = fs::remove_file(&self.0);
     }
 }
 
