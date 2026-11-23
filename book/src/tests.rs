@@ -21,7 +21,7 @@ fn examples_compile_run_and_match_expected_output() {
 
     for rs_file in sorted_files(&examples_dir, "rs") {
         let name = file_stem(&rs_file);
-        let actual = run_example(&name);
+        let actual = run_example(book_dir, &name);
         let expected_path = expected_dir.join(format!("{name}.txt"));
 
         if bless {
@@ -52,36 +52,20 @@ fn build_all_example_binaries(book_dir: &Path) {
     );
 }
 
-fn run_example(name: &str) -> String {
-    let bin = direct_example_binary(name);
-    let output = Command::new(&bin).output().unwrap_or_else(|e| {
-        panic!(
-            "failed to execute example '{name}' at {}: {e}",
-            bin.display()
-        )
-    });
+/// Cargo finds the example: where it keeps its build files is internal to it and changes between versions.
+fn run_example(book_dir: &Path, name: &str) -> String {
+    let cargo = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
+    let output = Command::new(cargo)
+        .args(["run", "-p", "snapfit_book", "--example", name, "--quiet"])
+        .current_dir(book_dir)
+        .output()
+        .unwrap_or_else(|e| panic!("failed to invoke cargo run --example {name}: {e}"));
     assert!(
         output.status.success(),
         "book example '{name}' failed: {}",
         String::from_utf8_lossy(&output.stderr)
     );
     String::from_utf8_lossy(&output.stdout).replace("\r\n", "\n")
-}
-
-fn direct_example_binary(name: &str) -> PathBuf {
-    let examples_out = target_deps_dir()
-        .parent()
-        .expect("missing debug dir")
-        .join("examples");
-    let suffix = env::consts::EXE_SUFFIX;
-    let direct = examples_out.join(format!("{name}{suffix}"));
-    assert!(
-        direct.exists(),
-        "compiled example binary '{}' does not exist at {}",
-        name,
-        direct.display()
-    );
-    direct
 }
 
 pub(super) fn sorted_files(dir: &Path, ext: &str) -> Vec<PathBuf> {
