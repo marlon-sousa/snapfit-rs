@@ -1,0 +1,305 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="theme-color" content="#fbf9f4" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#171a19" media="(prefers-color-scheme: dark)"><title>4. Why we built Snapfit · The Snapfit Book (v0.2.0)</title><meta name="description" content="4. Why we built Snapfit, from The Snapfit Book (v0.2.0)."><link rel="canonical" href="https://marlon-sousa.github.io/snapfit-rs/book/v0.2.0/04-why-we-built-snapfit/"><link rel="icon" type="image/svg+xml" href="/snapfit-rs/favicon.svg"><link rel="alternate" type="text/markdown" title="This page in Markdown" href="/snapfit-rs/book/v0.2.0/04-why-we-built-snapfit.md"><link rel="stylesheet" href="/snapfit-rs/_astro/Base.DTadlXKB.css"></head><body><a class="skip-link" href="#main">Skip to the text</a><header class="masthead"><div class="masthead__inner"><p class="masthead__book"><a class="masthead__title" href="/snapfit-rs/">snapfit</a><span class="masthead__edition">The Snapfit Book (v0.2.0)</span></p><div class="masthead__nav"><nav aria-label="Site"><ul><li><a href="/snapfit-rs/">Home</a></li><li><a href="/snapfit-rs/book/v0.2.0/">Contents</a></li><li><a href="/snapfit-rs/releases/">Releases</a></li><li><a href="https://github.com/marlon-sousa/snapfit-rs">GitHub</a></li></ul></nav></div></div></header><main id="main" tabindex="-1" class="page"><p class="eyebrow"><a href="/snapfit-rs/book/v0.2.0/#part-2-snapfit">Part 2: Snapfit</a><span aria-hidden="true"> · </span><span class="visually-hidden">, </span>Chapter 4</p><article class="prose"><h1 id="why-we-built-snapfit">Why we built Snapfit</h1>
+<p>Let's take stock of where we are. Our services from <a href="/snapfit-rs/book/v0.2.0/03-who-builds-everything/">Chapter 3</a> are written the right way: each one receives what it needs. What we want now is a composition root that works out the order by itself, shares every component, refuses mistakes when the program compiles, and shows the whole graph to anyone who reads it.</p>
+<p>That is what we built <code>snapfit</code> for. Instead of writing the composition root, you declare it, and a macro writes it for you.</p>
+<h2 id="the-same-shop-declared">The same shop, declared</h2>
+<p>Here are the services again. There is one small change: the database and the Stripe client now read their settings from a <code>ShopConfig</code> instead of receiving them as text. Notice that none of them mentions <code>snapfit</code>:</p>
+<figure class="listing listing--example"><figcaption id="listing-1" class="listing__caption"><span class="listing__language">Rust</span>, from the program <a href="https://github.com/marlon-sousa/snapfit-rs/blob/v0.2.0/book/examples/ch04_why_snapfit.rs">ch04_why_snapfit</a></figcaption><pre class="shiki shiki-themes github-light-default github-dark-default" style="background-color:#ffffff;--shiki-dark-bg:#0d1117;color:#1f2328;--shiki-dark:#e6edf3" tabindex="0" role="group" aria-labelledby="listing-1"><code><span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">#[derive(</span><span style="color:#953800;--shiki-dark:#FFA657">Default</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">)]</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> struct</span><span style="color:#953800;--shiki-dark:#FFA657"> ShopConfig</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">    pub</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> database_url</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> &#x26;</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">'</span><span style="color:#953800;--shiki-dark:#FFA657">static</span><span style="color:#953800;--shiki-dark:#FFA657"> str</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">,</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">    pub</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> stripe_key</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> &#x26;</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">'</span><span style="color:#953800;--shiki-dark:#FFA657">static</span><span style="color:#953800;--shiki-dark:#FFA657"> str</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">,</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">impl</span><span style="color:#953800;--shiki-dark:#FFA657"> ShopConfig</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">    pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> fn</span><span style="color:#8250DF;--shiki-dark:#D2A8FF"> new</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">() </span><span style="color:#CF222E;--shiki-dark:#FF7B72">-></span><span style="color:#0550AE;--shiki-dark:#79C0FF"> Self</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#0550AE;--shiki-dark:#79C0FF">        Self</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">            database_url</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#0A3069;--shiki-dark:#A5D6FF"> "postgres://shop"</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">,</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">            stripe_key</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#0A3069;--shiki-dark:#A5D6FF"> "sk_live_shop"</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">,</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">        }</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    }</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> struct</span><span style="color:#953800;--shiki-dark:#FFA657"> Database</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    url</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> &#x26;</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">'</span><span style="color:#953800;--shiki-dark:#FFA657">static</span><span style="color:#953800;--shiki-dark:#FFA657"> str</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">,</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">impl</span><span style="color:#953800;--shiki-dark:#FFA657"> Database</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">    pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> fn</span><span style="color:#8250DF;--shiki-dark:#D2A8FF"> open</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(config</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> Arc</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">&#x3C;</span><span style="color:#953800;--shiki-dark:#FFA657">ShopConfig</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">>) </span><span style="color:#CF222E;--shiki-dark:#FF7B72">-></span><span style="color:#0550AE;--shiki-dark:#79C0FF"> Self</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#8250DF;--shiki-dark:#D2A8FF">        println!</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(</span><span style="color:#0A3069;--shiki-dark:#A5D6FF">"opening a connection to {}"</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">, config</span><span style="color:#CF222E;--shiki-dark:#FF7B72">.</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">database_url);</span></span>
+<span class="line"><span style="color:#0550AE;--shiki-dark:#79C0FF">        Self</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">            url</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> config</span><span style="color:#CF222E;--shiki-dark:#FF7B72">.</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">database_url,</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">        }</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    }</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> trait</span><span style="color:#953800;--shiki-dark:#FFA657"> PaymentGateway</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">    fn</span><span style="color:#8250DF;--shiki-dark:#D2A8FF"> charge</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(</span><span style="color:#CF222E;--shiki-dark:#FF7B72">&#x26;</span><span style="color:#0550AE;--shiki-dark:#79C0FF">self</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">, cents</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> u64</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">) </span><span style="color:#CF222E;--shiki-dark:#FF7B72">-></span><span style="color:#953800;--shiki-dark:#FFA657"> String</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">;</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> struct</span><span style="color:#953800;--shiki-dark:#FFA657"> StripeGateway</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">impl</span><span style="color:#953800;--shiki-dark:#FFA657"> StripeGateway</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">    pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> fn</span><span style="color:#8250DF;--shiki-dark:#D2A8FF"> connect</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(config</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> Arc</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">&#x3C;</span><span style="color:#953800;--shiki-dark:#FFA657">ShopConfig</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">>) </span><span style="color:#CF222E;--shiki-dark:#FF7B72">-></span><span style="color:#0550AE;--shiki-dark:#79C0FF"> Self</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#8250DF;--shiki-dark:#D2A8FF">        println!</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(</span><span style="color:#0A3069;--shiki-dark:#A5D6FF">"connecting to Stripe with key {}"</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">, config</span><span style="color:#CF222E;--shiki-dark:#FF7B72">.</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">stripe_key);</span></span>
+<span class="line"><span style="color:#0550AE;--shiki-dark:#79C0FF">        Self</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    }</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">impl</span><span style="color:#953800;--shiki-dark:#FFA657"> PaymentGateway</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> for</span><span style="color:#953800;--shiki-dark:#FFA657"> StripeGateway</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">    fn</span><span style="color:#8250DF;--shiki-dark:#D2A8FF"> charge</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(</span><span style="color:#CF222E;--shiki-dark:#FF7B72">&#x26;</span><span style="color:#0550AE;--shiki-dark:#79C0FF">self</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">, cents</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> u64</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">) </span><span style="color:#CF222E;--shiki-dark:#FF7B72">-></span><span style="color:#953800;--shiki-dark:#FFA657"> String</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#8250DF;--shiki-dark:#D2A8FF">        format!</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(</span><span style="color:#0A3069;--shiki-dark:#A5D6FF">"Stripe charged {cents} cents"</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">)</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    }</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> struct</span><span style="color:#953800;--shiki-dark:#FFA657"> StockService</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    db</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> Arc</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">&#x3C;</span><span style="color:#953800;--shiki-dark:#FFA657">Database</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">>,</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">impl</span><span style="color:#953800;--shiki-dark:#FFA657"> StockService</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">    pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> fn</span><span style="color:#8250DF;--shiki-dark:#D2A8FF"> new</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(db</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> Arc</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">&#x3C;</span><span style="color:#953800;--shiki-dark:#FFA657">Database</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">>) </span><span style="color:#CF222E;--shiki-dark:#FF7B72">-></span><span style="color:#0550AE;--shiki-dark:#79C0FF"> Self</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#0550AE;--shiki-dark:#79C0FF">        Self</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> { db }</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">    pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> fn</span><span style="color:#8250DF;--shiki-dark:#D2A8FF"> reserve</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(</span><span style="color:#CF222E;--shiki-dark:#FF7B72">&#x26;</span><span style="color:#0550AE;--shiki-dark:#79C0FF">self</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">, sku</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> &#x26;</span><span style="color:#953800;--shiki-dark:#FFA657">str</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">) </span><span style="color:#CF222E;--shiki-dark:#FF7B72">-></span><span style="color:#953800;--shiki-dark:#FFA657"> String</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#8250DF;--shiki-dark:#D2A8FF">        format!</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(</span><span style="color:#0A3069;--shiki-dark:#A5D6FF">"reserved {sku} in {}"</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">, </span><span style="color:#0550AE;--shiki-dark:#79C0FF">self</span><span style="color:#CF222E;--shiki-dark:#FF7B72">.</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">db</span><span style="color:#CF222E;--shiki-dark:#FF7B72">.</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">url)</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    }</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> struct</span><span style="color:#953800;--shiki-dark:#FFA657"> OrderService</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    stock</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> Arc</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">&#x3C;</span><span style="color:#953800;--shiki-dark:#FFA657">StockService</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">>,</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    payments</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> Arc</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">&#x3C;</span><span style="color:#CF222E;--shiki-dark:#FF7B72">dyn</span><span style="color:#953800;--shiki-dark:#FFA657"> PaymentGateway</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">>,</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">impl</span><span style="color:#953800;--shiki-dark:#FFA657"> OrderService</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">    pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> fn</span><span style="color:#8250DF;--shiki-dark:#D2A8FF"> new</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(stock</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> Arc</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">&#x3C;</span><span style="color:#953800;--shiki-dark:#FFA657">StockService</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">>, payments</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> Arc</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">&#x3C;</span><span style="color:#CF222E;--shiki-dark:#FF7B72">dyn</span><span style="color:#953800;--shiki-dark:#FFA657"> PaymentGateway</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">>) </span><span style="color:#CF222E;--shiki-dark:#FF7B72">-></span><span style="color:#0550AE;--shiki-dark:#79C0FF"> Self</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#0550AE;--shiki-dark:#79C0FF">        Self</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> { stock, payments }</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">    pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> fn</span><span style="color:#8250DF;--shiki-dark:#D2A8FF"> place_order</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(</span><span style="color:#CF222E;--shiki-dark:#FF7B72">&#x26;</span><span style="color:#0550AE;--shiki-dark:#79C0FF">self</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">, sku</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> &#x26;</span><span style="color:#953800;--shiki-dark:#FFA657">str</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">, cents</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> u64</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">) </span><span style="color:#CF222E;--shiki-dark:#FF7B72">-></span><span style="color:#953800;--shiki-dark:#FFA657"> String</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#8250DF;--shiki-dark:#D2A8FF">        format!</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(</span></span>
+<span class="line"><span style="color:#0A3069;--shiki-dark:#A5D6FF">            "{}; {}"</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">,</span></span>
+<span class="line"><span style="color:#0550AE;--shiki-dark:#79C0FF">            self</span><span style="color:#CF222E;--shiki-dark:#FF7B72">.</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">stock</span><span style="color:#CF222E;--shiki-dark:#FF7B72">.</span><span style="color:#8250DF;--shiki-dark:#D2A8FF">reserve</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(sku),</span></span>
+<span class="line"><span style="color:#0550AE;--shiki-dark:#79C0FF">            self</span><span style="color:#CF222E;--shiki-dark:#FF7B72">.</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">payments</span><span style="color:#CF222E;--shiki-dark:#FF7B72">.</span><span style="color:#8250DF;--shiki-dark:#D2A8FF">charge</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(cents)</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">        )</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    }</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> struct</span><span style="color:#953800;--shiki-dark:#FFA657"> ReportService</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    db</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> Arc</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">&#x3C;</span><span style="color:#953800;--shiki-dark:#FFA657">Database</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">>,</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">impl</span><span style="color:#953800;--shiki-dark:#FFA657"> ReportService</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">    pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> fn</span><span style="color:#8250DF;--shiki-dark:#D2A8FF"> new</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(db</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> Arc</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">&#x3C;</span><span style="color:#953800;--shiki-dark:#FFA657">Database</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">>) </span><span style="color:#CF222E;--shiki-dark:#FF7B72">-></span><span style="color:#0550AE;--shiki-dark:#79C0FF"> Self</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#0550AE;--shiki-dark:#79C0FF">        Self</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> { db }</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">    pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> fn</span><span style="color:#8250DF;--shiki-dark:#D2A8FF"> daily_sales</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(</span><span style="color:#CF222E;--shiki-dark:#FF7B72">&#x26;</span><span style="color:#0550AE;--shiki-dark:#79C0FF">self</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">) </span><span style="color:#CF222E;--shiki-dark:#FF7B72">-></span><span style="color:#953800;--shiki-dark:#FFA657"> String</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#8250DF;--shiki-dark:#D2A8FF">        format!</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(</span><span style="color:#0A3069;--shiki-dark:#A5D6FF">"sales report read from {}"</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">, </span><span style="color:#0550AE;--shiki-dark:#79C0FF">self</span><span style="color:#CF222E;--shiki-dark:#FF7B72">.</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">db</span><span style="color:#CF222E;--shiki-dark:#FF7B72">.</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">url)</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    }</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">}</span></span></code></pre></figure>
+<p>And here is the composition root. It is a struct. Each field is one component, and the attribute above it says what that component needs:</p>
+<figure class="listing listing--example"><figcaption id="listing-2" class="listing__caption"><span class="listing__language">Rust</span>, from the program <a href="https://github.com/marlon-sousa/snapfit-rs/blob/v0.2.0/book/examples/ch04_why_snapfit.rs">ch04_why_snapfit</a></figcaption><pre class="shiki shiki-themes github-light-default github-dark-default" style="background-color:#ffffff;--shiki-dark-bg:#0d1117;color:#1f2328;--shiki-dark:#e6edf3" tabindex="0" role="group" aria-labelledby="listing-2"><code><span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">#[container]</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">pub</span><span style="color:#CF222E;--shiki-dark:#FF7B72"> struct</span><span style="color:#953800;--shiki-dark:#FFA657"> ShopContainer</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> {</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    #[singleton]</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    config</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> Arc</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">&#x3C;</span><span style="color:#953800;--shiki-dark:#FFA657">ShopConfig</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">>,</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    #[singleton(deps </span><span style="color:#CF222E;--shiki-dark:#FF7B72">=</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> [config], build </span><span style="color:#CF222E;--shiki-dark:#FF7B72">=</span><span style="color:#8250DF;--shiki-dark:#D2A8FF"> constructor</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(open))]</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    db</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> Arc</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">&#x3C;</span><span style="color:#953800;--shiki-dark:#FFA657">Database</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">>,</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    #[singleton(deps </span><span style="color:#CF222E;--shiki-dark:#FF7B72">=</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> [config], build </span><span style="color:#CF222E;--shiki-dark:#FF7B72">=</span><span style="color:#8250DF;--shiki-dark:#D2A8FF"> constructor</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(connect))]</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    payments</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> Arc</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">&#x3C;</span><span style="color:#953800;--shiki-dark:#FFA657">StripeGateway</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">>,</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    #[singleton(deps </span><span style="color:#CF222E;--shiki-dark:#FF7B72">=</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> [db])]</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    stock</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> Arc</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">&#x3C;</span><span style="color:#953800;--shiki-dark:#FFA657">StockService</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">>,</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    #[singleton(deps </span><span style="color:#CF222E;--shiki-dark:#FF7B72">=</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> [stock, payments])]</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    orders</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> Arc</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">&#x3C;</span><span style="color:#953800;--shiki-dark:#FFA657">OrderService</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">>,</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    #[singleton(deps </span><span style="color:#CF222E;--shiki-dark:#FF7B72">=</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> [db])]</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    reports</span><span style="color:#CF222E;--shiki-dark:#FF7B72">:</span><span style="color:#953800;--shiki-dark:#FFA657"> Arc</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">&#x3C;</span><span style="color:#953800;--shiki-dark:#FFA657">ReportService</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">>,</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">}</span></span></code></pre></figure>
+<p>Read it like the ingredients list of a recipe: the database needs the configuration, the stock service needs the database, the order service needs the stock service and the payments. Let's run it:</p>
+<figure class="listing listing--example"><figcaption id="listing-3" class="listing__caption"><span class="listing__language">Rust</span>, from the program <a href="https://github.com/marlon-sousa/snapfit-rs/blob/v0.2.0/book/examples/ch04_why_snapfit.rs">ch04_why_snapfit</a></figcaption><pre class="shiki shiki-themes github-light-default github-dark-default" style="background-color:#ffffff;--shiki-dark-bg:#0d1117;color:#1f2328;--shiki-dark:#e6edf3" tabindex="0" role="group" aria-labelledby="listing-3"><code><span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">fn</span><span style="color:#8250DF;--shiki-dark:#D2A8FF"> main</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">() {</span></span>
+<span class="line"><span style="color:#CF222E;--shiki-dark:#FF7B72">    let</span><span style="color:#1F2328;--shiki-dark:#E6EDF3"> shop </span><span style="color:#CF222E;--shiki-dark:#FF7B72">=</span><span style="color:#953800;--shiki-dark:#FFA657"> ShopContainer</span><span style="color:#CF222E;--shiki-dark:#FF7B72">::</span><span style="color:#8250DF;--shiki-dark:#D2A8FF">new</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">();</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#8250DF;--shiki-dark:#D2A8FF">    println!</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(</span><span style="color:#0A3069;--shiki-dark:#A5D6FF">"{}"</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">, shop</span><span style="color:#CF222E;--shiki-dark:#FF7B72">.</span><span style="color:#8250DF;--shiki-dark:#D2A8FF">get_orders</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">()</span><span style="color:#CF222E;--shiki-dark:#FF7B72">.</span><span style="color:#8250DF;--shiki-dark:#D2A8FF">place_order</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(</span><span style="color:#0A3069;--shiki-dark:#A5D6FF">"RUST-BOOK-01"</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">, </span><span style="color:#0550AE;--shiki-dark:#79C0FF">4500</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">));</span></span>
+<span class="line"><span style="color:#8250DF;--shiki-dark:#D2A8FF">    println!</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(</span><span style="color:#0A3069;--shiki-dark:#A5D6FF">"{}"</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">, shop</span><span style="color:#CF222E;--shiki-dark:#FF7B72">.</span><span style="color:#8250DF;--shiki-dark:#D2A8FF">get_reports</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">()</span><span style="color:#CF222E;--shiki-dark:#FF7B72">.</span><span style="color:#8250DF;--shiki-dark:#D2A8FF">daily_sales</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">());</span></span>
+<span class="line"><span style="color:#8250DF;--shiki-dark:#D2A8FF">    println!</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(</span></span>
+<span class="line"><span style="color:#0A3069;--shiki-dark:#A5D6FF">        "the same order service every time: {}"</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">,</span></span>
+<span class="line"><span style="color:#953800;--shiki-dark:#FFA657">        Arc</span><span style="color:#CF222E;--shiki-dark:#FF7B72">::</span><span style="color:#8250DF;--shiki-dark:#D2A8FF">ptr_eq</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(</span><span style="color:#CF222E;--shiki-dark:#FF7B72">&#x26;</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">shop</span><span style="color:#CF222E;--shiki-dark:#FF7B72">.</span><span style="color:#8250DF;--shiki-dark:#D2A8FF">get_orders</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">(), </span><span style="color:#CF222E;--shiki-dark:#FF7B72">&#x26;</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">shop</span><span style="color:#CF222E;--shiki-dark:#FF7B72">.</span><span style="color:#8250DF;--shiki-dark:#D2A8FF">get_orders</span><span style="color:#1F2328;--shiki-dark:#E6EDF3">())</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">    );</span></span>
+<span class="line"><span style="color:#1F2328;--shiki-dark:#E6EDF3">}</span></span></code></pre></figure>
+<p>It prints:</p>
+<figure class="listing listing--output"><figcaption id="listing-4" class="listing__caption">What ch04_why_snapfit prints, recorded in <a href="https://github.com/marlon-sousa/snapfit-rs/blob/v0.2.0/book/expected/ch04_why_snapfit.txt">ch04_why_snapfit.txt</a></figcaption><pre class="shiki shiki-themes github-light-default github-dark-default" style="background-color:#ffffff;--shiki-dark-bg:#0d1117;color:#1f2328;--shiki-dark:#e6edf3" tabindex="0" role="group" aria-labelledby="listing-4"><code><span class="line"><span>opening a connection to postgres://shop</span></span>
+<span class="line"><span>connecting to Stripe with key sk_live_shop</span></span>
+<span class="line"><span>reserved RUST-BOOK-01 in postgres://shop; Stripe charged 4500 cents</span></span>
+<span class="line"><span>sales report read from postgres://shop</span></span>
+<span class="line"><span>the same order service every time: true</span></span></code></pre></figure>
+<p>One connection, one Stripe client, and the same order service every time we ask for it.</p>
+<h2 id="the-graph-in-one-place">The graph, in one place</h2>
+<p>Here is what <code>ShopContainer</code> declares, drawn as a picture:</p>
+<figure class="diagram"><div class="diagram__scroll"><pre class="diagram__source">flowchart LR
+    accTitle: The shop's dependency graph, as ShopContainer declares it
+    accDescr: config is needed by db and payments. db is needed by stock and reports. stock and payments are needed by orders.
+    CFG["config"] --> DB["db"]
+    CFG --> PAY["payments"]
+    DB --> STOCK["stock"]
+    DB --> REP["reports"]
+    STOCK --> ORD["orders"]
+    PAY --> ORD</pre></div><figcaption id="diagram-1" class="diagram__caption">Diagram: The shop's dependency graph, as ShopContainer declares it</figcaption></figure>
+<p>What the diagram shows:</p>
+<ol>
+<li><code>config</code> needs nothing, and both <code>db</code> and <code>payments</code> need it.</li>
+<li><code>stock</code> and <code>reports</code> both need <code>db</code>.</li>
+<li><code>orders</code> needs <code>stock</code> and <code>payments</code>.</li>
+</ol>
+<p>Everything in that picture is written in <code>ShopContainer</code>, and nowhere else.</p>
+<h2 id="what-the-macro-writes-for-us">What the macro writes for us</h2>
+<p><code>#[container]</code> reads the struct and writes the code we wrote by hand in <code>AppState</code>. Here is what it does, step by step:</p>
+<ol>
+<li><strong>It writes the composition root.</strong> It generates <code>ShopContainer::new()</code>, which calls each component's constructor once, passing it clones of the fields listed in its <code>deps</code>. It also generates one <code>get_&#x3C;field>()</code> method per field, so you can ask for any component.</li>
+<li><strong>It works out the order.</strong> <code>new()</code> builds every field after the fields it needs. You never order the lines yourself, so when <code>Database</code> needs something new, you add one name to one <code>deps</code> list.</li>
+<li><strong>It shares everything it builds.</strong> Every field is built once, and its getter hands you a clone of it. For an <code>Arc</code> field, every clone points to the same value, which is why the program printed <code>true</code>. No component is quietly built again on each call.</li>
+<li><strong>It checks the graph when the program compiles.</strong> A name in <code>deps</code> that isn't a field, or two fields that need each other, stop the build with an error at the field. <a href="/snapfit-rs/book/v0.2.0/14-mistakes-caught-by-the-compiler/">Chapter 14</a> shows each one.</li>
+<li><strong>It names components by field, not by type.</strong> <code>deps = [stock, payments]</code> names fields, so two fields of the same type, such as a read replica and a primary database, are two different components (<a href="/snapfit-rs/book/v0.2.0/09-multiple-instances-of-the-same-type/">Chapter 9</a>). When both go to the same constructor, a factory or a builder hands them over by name (<a href="/snapfit-rs/book/v0.2.0/10-passing-dependencies-by-name/">Chapter 10</a>).</li>
+<li><strong>It leaves the services alone.</strong> <code>OrderService</code> asks for any <code>Arc&#x3C;dyn PaymentGateway></code>. Only the container says Stripe, by declaring <code>payments</code> as <code>Arc&#x3C;StripeGateway></code>, and Rust converts it when <code>new()</code> passes it in (<a href="/snapfit-rs/book/v0.2.0/11-choosing-an-implementation/">Chapter 11</a>). To switch providers, you change that field to another type that implements <code>PaymentGateway</code> and has a <code>connect</code> constructor taking the configuration. That is the whole change.</li>
+<li><strong>It writes plain Rust.</strong> <code>new()</code> is the code you would have written in <code>AppState::build</code>, and a getter is a field access and a clone. Nothing is looked up while the program runs.</li>
+</ol>
+<h2 id="why-not-build-it-by-hand-or-use-a-locator">Why not build it by hand, or use a locator?</h2>
+<p>Here is how the three shapes we have seen compare:</p>
+<div class="table-scroll" role="group" tabindex="0" aria-label="Table: Question, Building by hand, Service locator, snapfit"><table>
+<thead>
+<tr>
+<th align="left">Question</th>
+<th align="left">Building by hand</th>
+<th align="left">Service locator</th>
+<th align="left"><code>snapfit</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left">Where is the graph?</td>
+<td align="left">Spread over the constructor calls in <code>build</code></td>
+<td align="left">In the <code>register</code> calls, while the program runs</td>
+<td align="left">In one struct</td>
+</tr>
+<tr>
+<td align="left">Who orders construction?</td>
+<td align="left">You</td>
+<td align="left">You, as you build what you register</td>
+<td align="left"><code>new()</code>, worked out when compiling</td>
+</tr>
+<tr>
+<td align="left">When is a missing dependency found?</td>
+<td align="left">When compiling</td>
+<td align="left">When the program asks for it</td>
+<td align="left">When compiling</td>
+</tr>
+<tr>
+<td align="left">Two components of one type?</td>
+<td align="left">Yes, two variables</td>
+<td align="left">No, one entry per type</td>
+<td align="left">Yes, two fields</td>
+</tr>
+<tr>
+<td align="left">What does a lookup cost?</td>
+<td align="left">A field access</td>
+<td align="left">A hash lookup and a downcast</td>
+<td align="left">A field access and a clone</td>
+</tr>
+<tr>
+<td align="left">Does the domain code change?</td>
+<td align="left">No</td>
+<td align="left">Only if services use the locator</td>
+<td align="left">No</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="which-problem-this-solves">Which problem this solves</h2>
+<p>Every problem we found in Part 1, and the chapter where you can see how <code>snapfit</code> answers it:</p>
+<div class="table-scroll" role="group" tabindex="0" aria-label="Table: Problem, How snapfit answers it, Where"><table>
+<thead>
+<tr>
+<th align="left">Problem</th>
+<th align="left">How <code>snapfit</code> answers it</th>
+<th align="left">Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left">Tight coupling</td>
+<td align="left">Services receive their dependencies; only the container names an implementation.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.2.0/06-pure-domain-types/">Chapter 6</a>, <a href="/snapfit-rs/book/v0.2.0/11-choosing-an-implementation/">Chapter 11</a>, <a href="/snapfit-rs/book/v0.2.0/12-testing-a-service-on-its-own/">Chapter 12</a></td>
+</tr>
+<tr>
+<td align="left">Hard to test</td>
+<td align="left">A service is a plain struct: a test builds it with <code>new(...)</code> and fakes, without any container. A service that asks for traits takes stand-ins, and a test's own container can name an in-memory implementation.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.2.0/06-pure-domain-types/">Chapter 6</a>, <a href="/snapfit-rs/book/v0.2.0/12-testing-a-service-on-its-own/">Chapter 12</a></td>
+</tr>
+<tr>
+<td align="left">Duplicated resources</td>
+<td align="left">Every field is built once; for an <code>Arc</code> field, every getter call returns the same value.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.2.0/05-installing-and-first-singleton/">Chapter 5</a></td>
+</tr>
+<tr>
+<td align="left">Mixed responsibilities</td>
+<td align="left">A service knows only its own arguments; the container knows how everything is built.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.2.0/07-wiring-dependencies-and-constructors/">Chapter 7</a></td>
+</tr>
+<tr>
+<td align="left">A closed list</td>
+<td align="left">A new implementation is a new type named in one field; no service changes.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.2.0/11-choosing-an-implementation/">Chapter 11</a></td>
+</tr>
+<tr>
+<td align="left">Spreading type parameters</td>
+<td align="left">The concrete type is named once, in a field's type, and services can take a trait object instead.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.2.0/11-choosing-an-implementation/">Chapter 11</a></td>
+</tr>
+<tr>
+<td align="left">Someone still has to choose</td>
+<td align="left">The container chooses, once, in the types of its fields or the implementation a field names.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.2.0/11-choosing-an-implementation/">Chapter 11</a></td>
+</tr>
+<tr>
+<td align="left">Ordering by hand</td>
+<td align="left"><code>new()</code> works out the order from <code>deps</code>.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.2.0/08-read-the-container-know-the-graph/">Chapter 8</a></td>
+</tr>
+<tr>
+<td align="left">Sharing by convention</td>
+<td align="left">There is one kind of field: built once, when the container is built.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.2.0/05-installing-and-first-singleton/">Chapter 5</a></td>
+</tr>
+<tr>
+<td align="left">An invisible graph</td>
+<td align="left">The container struct is the graph, in one place.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.2.0/08-read-the-container-know-the-graph/">Chapter 8</a></td>
+</tr>
+<tr>
+<td align="left">Arguments by position</td>
+<td align="left">A factory receives its dependencies by name, and a builder takes them through setters named after them.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.2.0/10-passing-dependencies-by-name/">Chapter 10</a></td>
+</tr>
+<tr>
+<td align="left">Run-time failures</td>
+<td align="left">Unknown names and cycles are compile errors.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.2.0/14-mistakes-caught-by-the-compiler/">Chapter 14</a></td>
+</tr>
+<tr>
+<td align="left">One entry per type</td>
+<td align="left">Components are named by field.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.2.0/09-multiple-instances-of-the-same-type/">Chapter 9</a></td>
+</tr>
+<tr>
+<td align="left">Hidden dependencies</td>
+<td align="left">Services never see the container, so they can't ask it for anything; each constructor lists what its service needs.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.2.0/06-pure-domain-types/">Chapter 6</a>, <a href="/snapfit-rs/book/v0.2.0/15-working-with-coding-agents/">Chapter 15</a></td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="remember">Remember</h2>
+<ol>
+<li><code>snapfit</code> is dependency injection where the composition root is a struct you write and a macro completes.</li>
+<li>Services stay plain Rust: no attribute, trait or import of <code>snapfit</code> in them.</li>
+<li>The container is the only place that names implementations, orders construction and shares components, and the compiler checks it.</li>
+</ol></article><nav class="pager" aria-label="Previous and next pages"><ul><li class="pager__previous"><a href="/snapfit-rs/book/v0.2.0/03-who-builds-everything/" rel="prev"><span class="pager__direction">Previous</span><span class="pager__title">3. Who builds everything?</span></a></li><li class="pager__next"><a href="/snapfit-rs/book/v0.2.0/what-this-version-supports/" rel="next"><span class="pager__direction">Next</span><span class="pager__title">What this version supports</span></a></li></ul></nav></main><footer class="site-footer"><div class="site-footer__inner"><p><a href="/snapfit-rs/">snapfit</a> is a zero-cost, compile-time verified, pure-Rust dependency injection framework. Read <a href="/snapfit-rs/book/v0.2.0/">The Snapfit Book (v0.2.0)</a> or browse <a href="/snapfit-rs/releases/">all releases</a>.</p><p>For agents: <a href="/snapfit-rs/book/v0.2.0/llms.txt">llms.txt</a>, and <a href="/snapfit-rs/book/v0.2.0/04-why-we-built-snapfit.md">this page in Markdown</a>.</p><p><a href="https://github.com/marlon-sousa/snapfit-rs">Source on GitHub</a>, licensed under <a href="https://github.com/marlon-sousa/snapfit-rs/blob/v0.2.0/LICENSE-APACHE">Apache 2.0</a> or <a href="https://github.com/marlon-sousa/snapfit-rs/blob/v0.2.0/LICENSE-MIT">MIT</a>.</p></div></footer><script type="module" src="/snapfit-rs/_astro/Base.astro_astro_type_script_index_0_lang.Doi2bAkh.js"></script></body></html>

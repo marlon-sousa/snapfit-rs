@@ -1,5 +1,11 @@
 [
   {
+    "version": "v0.2.0",
+    "date": "2026-11-23",
+    "summary": "snapfit v0.2.0 release and verified edition of The Snapfit Book.",
+    "prerelease": false
+  },
+  {
     "version": "v0.1.1",
     "date": "2026-11-20",
     "summary": "snapfit v0.1.1 release and verified edition of The Snapfit Book.",
