@@ -11,29 +11,23 @@ impl ContainerWorld {
     }
 
     pub fn compile_selected_fixture(&mut self) {
-        let name = self
-            .selected_fixture
-            .as_deref()
-            .expect("fixture name must be selected in Given step");
-        self.compile_outcome = Some(fixture_outcome(name));
+        self.compile_outcome = Some(fixture_outcome(self.selected_fixture()));
     }
 
     pub fn lint_selected_fixture(&mut self) {
-        let name = self
-            .selected_fixture
-            .as_deref()
-            .expect("fixture name must be selected in Given step");
-        self.compile_outcome = Some(lint_outcome(name));
+        self.compile_outcome = Some(lint_outcome(self.selected_fixture()));
     }
 
     pub fn compiled_fixture(&self) -> (&str, &'static Outcome) {
-        let name = self
-            .selected_fixture
-            .as_deref()
-            .expect("fixture name must be selected in Given step");
         let outcome = self
             .compile_outcome
             .expect("fixture must be compiled before Then assertions");
-        (name, outcome)
+        (self.selected_fixture(), outcome)
+    }
+
+    fn selected_fixture(&self) -> &str {
+        self.selected_fixture
+            .as_deref()
+            .expect("fixture name must be selected in Given step")
     }
 }
