@@ -1,0 +1,3 @@
+[workspace]
+members = ["oneof", "dispatchable", "app", "probes"]
+resolver = "2"
