@@ -3,6 +3,7 @@
 
 pub mod built_desks;
 pub mod desks;
+pub mod keeping;
 pub mod local;
 pub mod readers;
 #[cfg(feature = "unstable")]

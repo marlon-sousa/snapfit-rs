@@ -1,6 +1,6 @@
 use cucumber::{then, when};
 
-use crate::swap_world::Source;
+use crate::swap_world::{KeptForm, PassedForm, Source};
 use crate::world::ContainerWorld;
 
 #[when(expr = "the desk that reads from {source} is opened")]
@@ -93,9 +93,9 @@ fn when_passed_desks_opened(world: &mut ContainerWorld) {
     world.built.swaps.open_passed_desks();
 }
 
-#[then(expr = "the desk whose implementation is passed as {string} should read from {source}")]
-fn then_passed_desk_reads_from(world: &mut ContainerWorld, form: String, source: Source) {
-    assert_eq!(world.built.swaps.passed(&form), source);
+#[then(expr = "the desk whose implementation is passed as {passed_form} should read from {source}")]
+fn then_passed_desk_reads_from(world: &mut ContainerWorld, form: PassedForm, source: Source) {
+    assert_eq!(world.built.swaps.passed(form), source);
 }
 
 #[when("the desk whose field type a macro_rules! passes as a type is opened")]
@@ -106,4 +106,14 @@ fn when_typed_desk_opened(world: &mut ContainerWorld) {
 #[then(expr = "its reader, built from its implementation, should read from {source}")]
 fn then_typed_reader_reads_from(world: &mut ContainerWorld, source: Source) {
     assert_eq!(world.built.swaps.typed(), source);
+}
+
+#[when("the desks whose services keep the reader's trait object inside their own type are opened")]
+fn when_keeping_desks_opened(world: &mut ContainerWorld) {
+    world.built.swaps.open_keeping_desks();
+}
+
+#[then(expr = "its service kept as {kept_form} should read from {source}")]
+fn then_kept_service_reads_from(world: &mut ContainerWorld, form: KeptForm, source: Source) {
+    assert_eq!(world.built.swaps.kept(form), source);
 }

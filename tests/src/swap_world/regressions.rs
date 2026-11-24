@@ -5,10 +5,37 @@
 
 use std::sync::Arc;
 
+use cucumber::Parameter;
+use strum::EnumString;
+
 use super::{Source, SwapRuns};
 use crate::swap_containers::local::{LocalDesk, LocalReader};
 use crate::swap_containers::readers::Reader;
 use crate::swap_containers::written_by_a_macro::{IdentDesk, TokenDesk, TypedDesk, WholeDesk};
+
+/// How a `macro_rules!` passes a desk its implementation, as a scenario names
+/// it.
+#[derive(Debug, Clone, Copy, EnumString, Parameter)]
+#[param(
+    name = "passed_form",
+    regex = "a token tree|an identifier|a whole struct"
+)]
+pub enum PassedForm {
+    #[strum(serialize = "a token tree")]
+    TokenTree,
+    #[strum(serialize = "an identifier")]
+    Identifier,
+    #[strum(serialize = "a whole struct")]
+    WholeStruct,
+}
+
+/// Where each desk whose implementation a `macro_rules!` passes reads from.
+#[derive(Debug, Clone, Copy)]
+pub struct PassedSources {
+    token_tree: Source,
+    identifier: Source,
+    whole_struct: Source,
+}
 
 impl SwapRuns {
     pub fn open_local_desk(&mut self) {
@@ -23,11 +50,11 @@ impl SwapRuns {
 
     pub fn open_passed_desks(&mut self) {
         let reads = |reader: Arc<dyn Reader>| Source::read(reader.source());
-        self.passed = Some(vec![
-            ("a token tree", reads(TokenDesk::new().get_reader())),
-            ("an identifier", reads(IdentDesk::new().get_reader())),
-            ("a whole struct", reads(WholeDesk::new().get_reader())),
-        ]);
+        self.passed = Some(PassedSources {
+            token_tree: reads(TokenDesk::new().get_reader()),
+            identifier: reads(IdentDesk::new().get_reader()),
+            whole_struct: reads(WholeDesk::new().get_reader()),
+        });
     }
 
     pub fn open_typed_desk(&mut self) {
@@ -39,12 +66,14 @@ impl SwapRuns {
             .expect("the typed desk must be opened before Then assertions")
     }
 
-    pub fn passed(&self, form: &str) -> Source {
-        self.passed
-            .iter()
-            .flatten()
-            .find(|(passed, _)| *passed == form)
-            .map(|(_, source)| *source)
-            .unwrap_or_else(|| panic!("no desk passed as {form} was opened"))
+    pub fn passed(&self, form: PassedForm) -> Source {
+        let passed = self
+            .passed
+            .expect("the passed desks must be opened before Then assertions");
+        match form {
+            PassedForm::TokenTree => passed.token_tree,
+            PassedForm::Identifier => passed.identifier,
+            PassedForm::WholeStruct => passed.whole_struct,
+        }
     }
 }

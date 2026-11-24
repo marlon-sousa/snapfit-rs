@@ -7,6 +7,10 @@ use syn::punctuated::Punctuated;
 
 use crate::domain::{AttributeProblem, TypeShape};
 
+use trait_objects::{Depth, find_trait_object, trait_object_depth};
+
+mod trait_objects;
+
 #[cfg(test)]
 mod tests;
 
@@ -46,24 +50,19 @@ pub(super) fn parse_dispatch_attribute(
         .ok_or(AttributeProblem::DispatchWithoutImplementations)
 }
 
-/// What building a value of `ty` has to know: whether it holds a trait
-/// object, which has no constructor, or is an `Arc`.
+/// What building a value of `ty` has to know: whether its value, once the
+/// field's own `Arc` is set aside, is a trait object, which has no
+/// constructor, or only keeps one deeper in its type arguments.
 pub(super) fn type_shape(ty: &syn::Type) -> TypeShape {
-    match (find_trait_object(ty), arc_inner_type(ty)) {
-        (Some(_), Some(inner)) if is_trait_object(inner) => TypeShape::ArcTraitObject,
-        (Some(_), _) => TypeShape::TraitObject,
-        (None, Some(_)) => TypeShape::Arc,
-        (None, None) => TypeShape::Value,
-    }
-}
-
-/// `dyn Trait` itself, also when a macro or parentheses wrap it.
-fn is_trait_object(ty: &syn::Type) -> bool {
-    match ty {
-        syn::Type::TraitObject(_) => true,
-        syn::Type::Group(group) => is_trait_object(&group.elem),
-        syn::Type::Paren(paren) => is_trait_object(&paren.elem),
-        _ => false,
+    let arc_inner = arc_inner_type(ty);
+    let value = arc_inner.unwrap_or(ty);
+    match (arc_inner, trait_object_depth(value)) {
+        (Some(_), Depth::Itself) => TypeShape::ArcTraitObject,
+        (_, Depth::Itself | Depth::Argument) => TypeShape::TraitObject,
+        (Some(_), Depth::Deeper) => TypeShape::ArcKeepsTraitObject,
+        (None, Depth::Deeper) => TypeShape::KeepsTraitObject,
+        (Some(_), Depth::Nowhere) => TypeShape::Arc,
+        (None, Depth::Nowhere) => TypeShape::Value,
     }
 }
 
@@ -119,29 +118,4 @@ fn extract_primary_trait_bound(bound: &syn::TypeParamBound) -> Option<String> {
     let path = &trait_bound.path;
     let is_auto_marker = path.is_ident("Send") || path.is_ident("Sync") || path.is_ident("Unpin");
     (!is_auto_marker).then(|| compact_type_tokens(quote!(#path)))
-}
-
-fn find_trait_object(ty: &syn::Type) -> Option<&syn::TypeTraitObject> {
-    match ty {
-        syn::Type::TraitObject(trait_obj) => Some(trait_obj),
-        syn::Type::Reference(r) => find_trait_object(&r.elem),
-        syn::Type::Paren(p) => find_trait_object(&p.elem),
-        syn::Type::Group(g) => find_trait_object(&g.elem),
-        syn::Type::Path(type_path) => {
-            type_path
-                .path
-                .segments
-                .last()
-                .and_then(|seg| match &seg.arguments {
-                    syn::PathArguments::AngleBracketed(args) => args.args.iter().find_map(|arg| {
-                        let syn::GenericArgument::Type(inner_ty) = arg else {
-                            return None;
-                        };
-                        find_trait_object(inner_ty)
-                    }),
-                    _ => None,
-                })
-        }
-        _ => None,
-    }
 }

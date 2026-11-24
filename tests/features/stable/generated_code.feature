@@ -65,6 +65,19 @@ Feature: Generated code follows the container as written
     And the compiler output should not mention "builder ="
     And the error should point at line 8 of the fixture
 
+  @v0_3_0
+  Scenario Outline: A type that has the trait object as its own type argument, inside the field's Arc, is told to build it in a factory
+    Given an invalid container fixture "<fixture>"
+    When the fixture is compiled
+    Then compilation should fail with "field 'archive' has a trait-object type, which has no constructor; add build = factory to the field and build it in the build_archive method of the container's factories trait"
+    And the error should point at line <line> of the fixture
+    And the compiler should report 1 errors
+
+    Examples:
+      | fixture                                | line |
+      | trait_object_inside_arc                | 10   |
+      | trait_object_inside_arc_passed_as_type | 12   |
+
   @v0_1_0 @regression
   Scenario Outline: Graph errors point at the declaration that caused them
     Given an invalid container fixture "<fixture>"

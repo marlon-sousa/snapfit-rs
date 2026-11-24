@@ -105,8 +105,14 @@ pub(crate) enum TypeShape {
     /// `Arc<dyn Trait>`, which holds the value of the implementation the
     /// field names.
     ArcTraitObject,
-    /// Any other type holding `dyn Trait`, which has no constructor of its own.
+    /// Any other type whose value is a trait object, which has no
+    /// constructor of its own.
     TraitObject,
+    /// A value that keeps a trait object deeper in its type arguments, such
+    /// as behind a pointer of its own, which its constructor takes.
+    KeepsTraitObject,
+    /// `Arc<T>` whose `T` keeps a trait object deeper in its type arguments.
+    ArcKeepsTraitObject,
 }
 
 /// Which type the container builds a field's value as.

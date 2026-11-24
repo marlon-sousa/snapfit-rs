@@ -11,6 +11,9 @@ pub(crate) enum TraitObjectProblem {
     WithoutImplementation,
     ImplementationWithoutTraitObject,
     ImplementationOutsideArc,
+    /// A type that keeps its trait object deeper in its type arguments than
+    /// the field's own `Arc`.
+    ImplementationKeptInside,
     ImplementationWithFactory,
 }
 
@@ -31,6 +34,7 @@ impl TraitObjectProblem {
             ),
             Self::ImplementationWithoutTraitObject => "names an implementation, but its type holds no trait object; write the trait object as the field's type, such as Arc<dyn PaymentGateway>, or remove implementation".to_owned(),
             Self::ImplementationOutsideArc => "names an implementation, but holds its trait object in something other than an Arc; write the field as an Arc of the trait object, such as Arc<dyn PaymentGateway>, or remove implementation and build the field with build = factory".to_owned(),
+            Self::ImplementationKeptInside => "names an implementation, but keeps its trait object inside another type, whose own constructor takes it; give the trait object a field of its own, such as Arc<dyn PaymentGateway> with its implementation, and list that field in deps, or remove implementation".to_owned(),
             Self::ImplementationWithFactory => "names an implementation and is built with build = factory, which returns the field itself; remove implementation, or remove build = factory so that the container builds the implementation".to_owned(),
         }
     }
