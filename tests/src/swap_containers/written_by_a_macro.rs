@@ -1,7 +1,8 @@
 //! Desks written by a `macro_rules!`: one that passes the trait object and
 //! the implementation as types, so that both and the `deps` entries carry the
-//! macro's hygiene, and three that pass the implementation as tokens, as a
-//! token tree, an identifier, or inside the whole struct.
+//! macro's hygiene, three that pass the implementation as tokens, as a token
+//! tree, an identifier, or inside the whole struct, and one that passes the
+//! field's whole `Arc` type.
 
 use std::sync::Arc;
 
@@ -66,6 +67,18 @@ macro_rules! whole {
     };
 }
 
+/// A desk whose field type a `macro_rules!` passes as `$t:ty`, which wraps
+/// the `Arc` in an invisible group.
+macro_rules! typed_desk {
+    ($desk:ident, $field:ty) => {
+        #[container]
+        pub struct $desk {
+            #[singleton(implementation = DiskReader)]
+            reader: $field,
+        }
+    };
+}
+
 token_desk!(TokenDesk, DiskReader);
 ident_desk!(IdentDesk, DiskReader);
 whole! {
@@ -74,3 +87,5 @@ whole! {
         reader: Arc<dyn Reader>,
     }
 }
+
+typed_desk!(TypedDesk, Arc<dyn Reader>);

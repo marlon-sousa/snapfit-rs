@@ -171,7 +171,7 @@ The settings are the arguments of the one `#[container(...)]` that declares the 
 | **`#[external]`** | **External Input (Planned)** | Passed as a parameter to `new(...)` / `init(...)` and exposed as a wireable leaf node in the DAG. |
 | *(Unannotated field)* | **Pre-Init Computed (Planned)** | Populated via an optional `before_init` hook prior to DAG wiring and exposed as a wireable node in the DAG. |
 
-A container written by a `macro_rules!` is read as if written by hand: a setting's value, a `deps` entry or any part of one that the macro passes as `$e:expr` means what the same words would mean typed into the attribute ([#64](https://github.com/marlon-sousa/snapfit-rs/issues/64)).
+A container written by a `macro_rules!` is read as if written by hand: a setting's value, a `deps` entry or any part of one that the macro passes as `$e:expr` means what the same words would mean typed into the attribute ([#64](https://github.com/marlon-sousa/snapfit-rs/issues/64)), and a field's type that the macro passes as `$t:ty`, such as `Arc<Mailer>` or `Arc<dyn Reader>`, is built as the same type typed into the struct ([#114](https://github.com/marlon-sousa/snapfit-rs/issues/114)).
 
 
 

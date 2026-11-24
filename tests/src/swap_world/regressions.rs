@@ -1,13 +1,14 @@
 //! What the regression scenarios about swapping a field's type saw: the
-//! desk whose reader is local to its thread, and the desks a `macro_rules!`
-//! passes their implementation to as tokens.
+//! desk whose reader is local to its thread, the desks a `macro_rules!`
+//! passes their implementation to as tokens, and the desk whose field type it
+//! passes.
 
 use std::sync::Arc;
 
 use super::{Source, SwapRuns};
 use crate::swap_containers::local::{LocalDesk, LocalReader};
 use crate::swap_containers::readers::Reader;
-use crate::swap_containers::written_by_a_macro::{IdentDesk, TokenDesk, WholeDesk};
+use crate::swap_containers::written_by_a_macro::{IdentDesk, TokenDesk, TypedDesk, WholeDesk};
 
 impl SwapRuns {
     pub fn open_local_desk(&mut self) {
@@ -27,6 +28,15 @@ impl SwapRuns {
             ("an identifier", reads(IdentDesk::new().get_reader())),
             ("a whole struct", reads(WholeDesk::new().get_reader())),
         ]);
+    }
+
+    pub fn open_typed_desk(&mut self) {
+        self.typed = Some(Source::read(TypedDesk::new().get_reader().source()));
+    }
+
+    pub fn typed(&self) -> Source {
+        self.typed
+            .expect("the typed desk must be opened before Then assertions")
     }
 
     pub fn passed(&self, form: &str) -> Source {

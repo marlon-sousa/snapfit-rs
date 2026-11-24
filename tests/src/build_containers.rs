@@ -126,9 +126,10 @@ pub mod archive {
     }
 }
 
-/// A container declared by a `macro_rules!` that passes its `leaf_build`, a
-/// `deps` entry and a constructor's name as `$e:expr`, which wraps each in an
-/// invisible group.
+/// Containers declared by a `macro_rules!`: one that passes its `leaf_build`,
+/// a `deps` entry and a constructor's name as `$e:expr`, and one that passes a
+/// field's type as `$t:ty`, each of which wraps what it passes in an invisible
+/// group.
 pub mod generated {
     use std::sync::Arc;
 
@@ -167,4 +168,19 @@ pub mod generated {
     }
 
     office!(default, settings, connect);
+
+    macro_rules! front_desk {
+        ($mailer:ty) => {
+            #[container]
+            pub struct FrontDesk {
+                #[singleton(build = default)]
+                settings: Arc<Settings>,
+
+                #[singleton(deps = [settings], build = constructor(connect))]
+                mailer: $mailer,
+            }
+        };
+    }
+
+    front_desk!(Arc<Mailer>);
 }

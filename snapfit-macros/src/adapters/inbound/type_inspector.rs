@@ -68,11 +68,16 @@ fn is_trait_object(ty: &syn::Type) -> bool {
 }
 
 /// `T` when `ty` is `Arc<T>`, `std::sync::Arc<T>`, `::std::sync::Arc<T>` or
-/// `alloc::sync::Arc<T>`.
+/// `alloc::sync::Arc<T>`, also when a macro wraps it.
 pub(super) fn arc_inner_type(ty: &syn::Type) -> Option<&syn::Type> {
-    let syn::Type::Path(type_path) = ty else {
-        return None;
-    };
+    match ty {
+        syn::Type::Path(type_path) => arc_path_inner_type(type_path),
+        syn::Type::Group(group) => arc_inner_type(&group.elem),
+        _ => None,
+    }
+}
+
+fn arc_path_inner_type(type_path: &syn::TypePath) -> Option<&syn::Type> {
     if type_path.qself.is_some() {
         return None;
     }

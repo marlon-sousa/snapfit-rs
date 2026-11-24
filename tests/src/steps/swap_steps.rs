@@ -97,3 +97,13 @@ fn when_passed_desks_opened(world: &mut ContainerWorld) {
 fn then_passed_desk_reads_from(world: &mut ContainerWorld, form: String, source: Source) {
     assert_eq!(world.built.swaps.passed(&form), source);
 }
+
+#[when("the desk whose field type a macro_rules! passes as a type is opened")]
+fn when_typed_desk_opened(world: &mut ContainerWorld) {
+    world.built.swaps.open_typed_desk();
+}
+
+#[then(expr = "its reader, built from its implementation, should read from {source}")]
+fn then_typed_reader_reads_from(world: &mut ContainerWorld, source: Source) {
+    assert_eq!(world.built.swaps.typed(), source);
+}

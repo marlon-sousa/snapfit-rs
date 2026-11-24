@@ -17,6 +17,7 @@ pub struct BuildContainers {
     shelves: Option<catalog::Shelves>,
     reports: Option<handmade::Reports>,
     office: Option<generated::Office>,
+    front_desk: Option<generated::FrontDesk>,
     pub fallible: FallibleRuns,
     pub swaps: SwapRuns,
 }
@@ -110,5 +111,15 @@ impl BuildContainers {
         self.office
             .as_ref()
             .expect("the Office container must be instantiated before Then assertions")
+    }
+
+    pub fn instantiate_front_desk(&mut self) {
+        self.front_desk = Some(generated::FrontDesk::new());
+    }
+
+    pub fn front_desk(&self) -> &generated::FrontDesk {
+        self.front_desk
+            .as_ref()
+            .expect("the FrontDesk container must be instantiated before Then assertions")
     }
 }
