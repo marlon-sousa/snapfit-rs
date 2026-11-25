@@ -90,9 +90,8 @@ impl<F, T> Resolver<F, T> {
 
     fn declare(&mut self, declaration: DependencyDeclaration<F, T>) {
         if self.pending.contains_key(&declaration.name) {
-            self.errors.push(DomainError::Declaration(
-                DeclarationProblem::DuplicateDependency(declaration.name),
-            ));
+            let duplicate = DeclarationProblem::DuplicateDependency(declaration.name);
+            self.errors.push(DomainError::Declaration(duplicate));
             return;
         }
         let position = self.declared.len();
