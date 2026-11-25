@@ -21,13 +21,14 @@ fn shop() -> syn::ItemStruct {
 }
 
 #[test]
-fn each_alias_nests_its_implementations_once_with_the_container_s_visibility_or_stands_for_unit() {
+fn each_alias_is_documented_and_nests_its_implementations_once_with_the_container_s_visibility() {
     let plan = plan_for(shop());
     let mut types = plan
         .dispatched_types
         .into_iter()
         .map(DispatchedTypeFallback::Planned);
     let mut fallbacks: Vec<_> = types.by_ref().collect();
+    // A type that holds no implementation stands for unit.
     let unplanned: DispatchSyntax = DispatchSyntax {
         trait_path: parse_quote!(Clock),
         name: parse_quote!(Clocks),
@@ -39,11 +40,13 @@ fn each_alias_nests_its_implementations_once_with_the_container_s_visibility_or_
     assert_eq!(
         aliases,
         compact(quote! {
+            #[doc = "One of the implementations of `Database` that the container dispatches statically; `Db::of(value)` wraps one."]
             #[allow(private_interfaces)]
             pub(crate) type Db = ::snapfit::__private::Either<
                 MySql,
                 ::snapfit::__private::Either<Sqlite, ::snapfit::__private::Only<Mock>>
             >;
+            #[doc = "One of the implementations of `Store` that the container dispatches statically; `Orders::of(value)` wraps one."]
             #[allow(private_interfaces)]
             pub(crate) type Orders = ::snapfit::__private::Only<Cache<Order> >;
             pub(crate) type Clocks = ();

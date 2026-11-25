@@ -55,11 +55,26 @@ fn emit_checked(planned: &DispatchedTypeSyntax, vis: &syn::Visibility) -> TokenS
 /// own items, not at the alias snapfit writes.
 fn emit_alias(planned: &DispatchedTypeSyntax, vis: &syn::Visibility) -> TokenStream {
     let name = &planned.syntax.name;
+    let doc = alias_doc(&planned.syntax);
     let nested = nested(&planned.first, &planned.rest);
     quote! {
+        #[doc = #doc]
         #[allow(private_interfaces)]
         #vis type #name = #nested;
     }
+}
+
+/// Names the trait by its last segment, as a reader of the container's
+/// module knows it.
+fn alias_doc(DispatchSyntax { trait_path, name }: &DispatchSyntax) -> String {
+    let trait_name = trait_path
+        .segments
+        .last()
+        .map(|segment| &segment.ident)
+        .map_or_else(String::new, ToString::to_string);
+    format!(
+        "One of the implementations of `{trait_name}` that the container dispatches statically; `{name}::of(value)` wraps one."
+    )
 }
 
 /// `Either<First, Either<Second, Only<Last>>>`.
