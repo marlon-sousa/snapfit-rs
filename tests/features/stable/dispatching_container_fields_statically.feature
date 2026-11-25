@@ -57,6 +57,12 @@ Feature: Dispatching a container's fields statically
       | scratch | scratch                  |
 
   @v0_3_0
+  Scenario: An implementation named by a field and by factories' lists is held once, and the field answers from it whatever the factories choose
+    Given a container whose factories choose its ledgers from the setting mirror
+    Then the ledger it builds itself should answer from "archive in ledgers"
+    And its shared and its owned ledger should both answer from "mirror of ledger.example"
+
+  @v0_3_0
   Scenario: A fallible dispatched field returns its error from try_new
     Then building the checked accounts should fail with "snapfit could not build the field `remote` of `CheckedAccounts`"
 

@@ -1,7 +1,8 @@
 //! A container whose factories choose which implementation its dispatched
 //! fields hold, one in an `Arc` and one as a value, from a setting read while
 //! the program starts. Each variant needs inputs of its own, and the factory
-//! receives the inputs of every variant.
+//! receives the inputs of every variant. `Archive` is also named by a field
+//! that the container builds itself, and by both factories' lists.
 
 use std::cell::Cell;
 use std::sync::Arc;
@@ -57,6 +58,12 @@ pub struct Archive {
     path: &'static str,
 }
 
+impl Archive {
+    pub fn new(folder: Arc<Folder>) -> Self {
+        Self { path: folder.path }
+    }
+}
+
 /// Reads its host from the `Config` only it needs.
 #[derive(Clone)]
 pub struct Mirror {
@@ -100,8 +107,11 @@ pub struct ChosenAccounts {
     #[singleton(deps = [setting, folder, config], build = factory, implementations = [Archive, Mirror])]
     shared: Arc<Chosen>,
 
-    #[singleton(deps = [setting, folder, config], build = factory, implementations = [Scratch])]
+    #[singleton(deps = [setting, folder, config], build = factory, implementations = [Scratch, Archive])]
     owned: Chosen,
+
+    #[singleton(deps = [folder], implementation = Archive)]
+    fixed: Arc<Chosen>,
 }
 
 impl ChosenAccountsFactories for ChosenAccounts {

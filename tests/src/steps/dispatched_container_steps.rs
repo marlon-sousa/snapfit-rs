@@ -90,3 +90,8 @@ fn then_chosen_answer_from(world: &mut ContainerWorld, expected: String) {
     assert_eq!(chosen.get_shared().source(), expected);
     assert_eq!(chosen.get_owned().source(), expected);
 }
+
+#[then(expr = "the ledger it builds itself should answer from {string}")]
+fn then_fixed_answers_from(world: &mut ContainerWorld, expected: String) {
+    assert_eq!(world.built.dispatch.chosen().get_fixed().source(), expected);
+}
