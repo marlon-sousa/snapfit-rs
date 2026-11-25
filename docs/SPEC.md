@@ -23,7 +23,7 @@ This document describes the full design. Only part of it ships as a stable API i
 | Async containers: `mode = "async"`, `#[singleton(async)]`, `init().await` (sequential) | Unstable | §8 |
 | `#[transient]` dependencies | Unstable | §4 |
 | Concurrent async boot (`join!` over independent async singletons) | Planned | §8 |
-| `#[dispatch(...)]` static trait dispatch | Planned | §7 |
+| Static dispatch: `#[snapfit::static_dispatch]` on a trait, `static_dispatch_for` and `extend_static_dispatch` on a container | Not in 0.2.0; stable from 0.3.0 | §7 |
 | Test overrides (`builder().with_*()` / `fork_with()`) | Planned | §9 |
 | Child containers (`parent = ...`, `parent(dep)`) | Planned | §10 |
 | Introspection (`introspection = true`, `dependency_graph()`) | Planned | §12 |
@@ -72,8 +72,10 @@ These are compile errors that point at the offending field or container, instead
 
 * **Generic containers** (`struct Repo<T>`): planned; the generated `impl` blocks and getters need a design for bounds first.
 * **`#[cfg]` / `#[cfg_attr]` on a dependency field**: conditional dependencies would change the graph per build, so they are refused.
-* **Trait-object fields without a way to build them**: a trait object has no constructor or builder to call. An `Arc<dyn PaymentGateway>` field that names no `implementation` (§5.E) and has no `build = factory` is refused, and the error offers both. Any other type whose value is a trait object, which is a type that has `dyn Trait` itself as a type argument once the field's own `Arc` is set aside, such as `Box<dyn PaymentGateway>`, `Arc<Box<dyn PaymentGateway>>` or `Arc<Archive<dyn Store>>`, needs `build = factory` (§5.B), and its error says so. Both errors are the same on both builds. A type that keeps a trait object only deeper in its type arguments, such as behind a pointer of its own in `Arc<Controller<Arc<dyn PaymentGateway>>>` or `Controller<Box<dyn PaymentGateway>>`, is not a trait object: it is built like any other field, by its `new`, its `build` or `leaf_build`, and the trait object is one of the values its constructor takes ([#136](https://github.com/marlon-sousa/snapfit-rs/issues/136)). Holding the concrete type (`Arc<StripeGateway>`) still works, and a constructor that takes `Arc<dyn PaymentGateway>` accepts that field, because Rust converts the `Arc` where the generated code passes it. `#[dispatch(...)]` is another way once implemented.
-* **An `implementation` that cannot be followed** (§5.E): a bare `implementation`, one in parentheses, a quoted one, one that is no type the container can build (`impl Reader`, `_`, `dyn Reader`, `3`), and a second one, are refused at the field. So are an `implementation` on a field whose type holds no trait object, on a trait object held in anything but an `Arc`, on a type that keeps its trait object deeper in its type arguments, and beside `build = factory`.
+* **Trait-object fields without a way to build them**: a trait object has no constructor or builder to call. An `Arc<dyn PaymentGateway>` field that names no `implementation` (§5.E) and has no `build = factory` is refused, and the error offers both. Any other type whose value is a trait object, which is a type that has `dyn Trait` itself as a type argument once the field's own `Arc` is set aside, such as `Box<dyn PaymentGateway>`, `Arc<Box<dyn PaymentGateway>>` or `Arc<Archive<dyn Store>>`, needs `build = factory` (§5.B), and its error says so. Both errors are the same on both builds. A type that keeps a trait object only deeper in its type arguments, such as behind a pointer of its own in `Arc<Controller<Arc<dyn PaymentGateway>>>` or `Controller<Box<dyn PaymentGateway>>`, is not a trait object: it is built like any other field, by its `new`, its `build` or `leaf_build`, and the trait object is one of the values its constructor takes ([#136](https://github.com/marlon-sousa/snapfit-rs/issues/136)). Holding the concrete type (`Arc<StripeGateway>`) still works, and a constructor that takes `Arc<dyn PaymentGateway>` accepts that field, because Rust converts the `Arc` where the generated code passes it. Static dispatch (§7) is another way, for a closed list of implementations.
+* **`#[dispatch(...)]` on a field**, the syntax planned for static dispatch before 0.3.0: refused at the field, naming its replacement, `static_dispatch_for` on the container (§7).
+* **Static dispatch that cannot be followed** (§7): a trait holding what an enum cannot forward, such as a method with no receiver or an associated const, refused at that item; a `static_dispatch_for` or `extend_static_dispatch` written above `#[container]`, or naming a type the container does not declare; and a field typed with a declared name that has neither `implementation` nor `build = factory`, or names it through a path.
+* **An `implementation` that cannot be followed** (§5.E): a bare `implementation`, one in parentheses, a quoted one, one that is no type the container can build (`impl Reader`, `_`, `dyn Reader`, `3`), and a second one, are refused at the field. So are an `implementation` on a field whose type holds no trait object and is no type the container's `static_dispatch_for` declares (§7), on a trait object held in anything but an `Arc`, on a type that keeps its trait object deeper in its type arguments, and beside `build = factory`.
 * **`build` values that are not a way of building** (§5), and **`constructor(...)` values that are not a plain function name** (`"connect()"`, `Db::connect`).
 * **`build = default` with `deps`**: `Default::default()` takes nothing, so the field's `deps` would never be passed.
 * **`build = default` on an async dependency** (unstable): `Default::default()` cannot be awaited.
@@ -102,7 +104,7 @@ Most dependency injection frameworks in Rust fall into two undesirable extremes:
 * **Zero Domain Pollution:** Your services, repositories, and controllers require **zero framework macros or traits**. They are standard Rust structs with plain `pub fn new(...)` constructors.
 * **Compile-Time Graph Verification:** The container macro builds the Directed Acyclic Graph (DAG) during `cargo build` and rejects dependency cycles with compile errors.
 * **Zero-Cost Direct Getters:** Direct, compile-time checked getters (`get_<dep>()`) for fast production code — singletons are cloned on read, and transients are freshly constructed on every call with zero `dyn Any` overhead.
-* **First-Class Static Polymorphism:** Integrates automatic `enum_dispatch` generation for traits, enabling test mocking and swappable backends with zero vtable overhead.
+* **First-Class Static Polymorphism:** One generated type stands for a closed list of a trait's implementations, called through a `match` with no vtable, so backends swap and tests build a mock variant without `Arc<dyn Trait>` (§7).
 * **Eager Async Boot with Synchronous Getters:** All async connections (databases, external APIs) are resolved during `Container::init().await`, while runtime getters remain **100% synchronous, non-blocking, and instant** for web request handlers.
 * **Child Containers & Testing Overrides:** Fluent `.builder().with_*(mock)` overrides for testing, and macro-driven child containers that copy parent singletons for request-scoped workflows.
 
@@ -117,6 +119,7 @@ use std::sync::Arc;
 use snapfit::container;
 
 #[container]
+#[static_dispatch_for(Database as Db)]
 pub struct AppContainer {
     // 1. Leaf Singleton: Instantiated via Config::new()
     #[singleton]
@@ -138,9 +141,10 @@ pub struct AppContainer {
     #[singleton(deps = [config, db], build = factory)]
     auth: Arc<AuthService>,
 
-    // 6. Static polymorphism (Planned): Macro rewrites field to generated enum!
-    #[dispatch(PostgresDb, MockDb)]
-    database: Arc<dyn Database>,
+    // 6. Static dispatch (§7): Db is declared by #[static_dispatch_for(Database as Db)]
+    // under #[container], and this field holds its PostgresDb variant
+    #[singleton(implementation = PostgresDb)]
+    database: Arc<Db>,
 }
 ```
 
@@ -167,7 +171,7 @@ The settings are the arguments of the one `#[container(...)]` that declares the 
 | **`#[singleton(deps = [...], build = factory)]`** | **Factory** | Stored in container struct. Built once at boot by the user's `build_<name>` method of the generated `<ContainerName>Factories` trait. |
 | **`#[singleton(implementation = StripeGateway)]`** | **Singleton Typed as its Trait** | An `Arc<dyn Trait>` field, stored as declared. Built once at boot by the named type's `new`, `Default`, named constructor or builder, then wrapped in `Arc::new` (§5.E). |
 | **`#[singleton(fallible = true, ...)]`** | **Fallible Singleton** | Stored in container struct. Built once at boot by its `build`, or its type's `new`, which returns a `Result`; the container is then built by `try_new()` (§5.D). |
-| **`#[dispatch(ImplA, ImplB)]`** | **Static Trait (Planned)** | Auto-generates `enum_dispatch` and **rewrites the struct field type** to the enum. |
+| **`#[singleton(implementation = MySql)] db: Arc<Db>`** | **Statically Dispatched Singleton** | An `Arc<Db>` field, where `Db` is declared by the container's `static_dispatch_for`, stored as declared. Built once at boot like an `implementation` field, then wrapped in its variant (§7). |
 | **`#[external]`** | **External Input (Planned)** | Passed as a parameter to `new(...)` / `init(...)` and exposed as a wireable leaf node in the DAG. |
 | *(Unannotated field)* | **Pre-Init Computed (Planned)** | Populated via an optional `before_init` hook prior to DAG wiring and exposed as a wireable node in the DAG. |
 
@@ -210,7 +214,7 @@ The `#[container]` attribute macro actively shapes the memory layout of the gene
 | :--- | :--- | :--- | :--- |
 | **Singleton** | `#[singleton]` or `#[singleton(deps = [...])]` | **Stored in struct.** | Constructed once during `init()`, `new()` or `try_new()`. Returned by `.clone()`. |
 | **Transient** | `#[transient]` or `#[transient(deps = [...])]` | **Stripped from struct memory.** | **Zero struct bytes allocated.** Reconstructed on every `get_<name>()` call. |
-| **Static Trait** | `#[dispatch(...)] name: dyn Trait` | **Field rewritten to static enum.** | Enum generated via `enum_dispatch`; zero heap allocation or vtable overhead. |
+| **Static Dispatch** | `#[static_dispatch_for(Trait as Name)]` on the container, fields typed `Arc<Name>` | **Stored in struct as declared.** | Calls go through a `match` over the implementations, with no vtable (§7). |
 | **Scoped** | `#[container(parent = ...)]` | Inherited / Scope-local. | Clones/borrows parent singletons and instantiates request-local instances. |
 
 ---
@@ -411,7 +415,7 @@ pub struct ShopContainer {
 ```
 
 * **The setting:** `implementation = <Type>`, a type written in full, such as `StripeGateway` or `Cache<Order>`, also when a `macro_rules!` passes it as `$t:ty`. A bare `implementation`, an empty one, one in parentheses or in quotes, a type that is no type the container can name or call a constructor of (`impl Trait` or `_` anywhere in it, or a trait object), any other value, and a second `implementation`, are refused at the field, each with every other problem the field has.
-* **Which fields take it:** only a field typed `Arc<dyn Trait>`, through any of the paths of `Arc` that §3 reads and with any bounds on the trait object (`Arc<dyn PaymentGateway + Send + Sync>`). A field whose type holds no trait object, one that holds its trait object in anything but an `Arc` (`Box<dyn Trait>`, `Arc<Archive<dyn Trait>>`), and one that keeps its trait object deeper in its type (`Arc<Controller<Arc<dyn Trait>>>`), are refused at the field: the first is built as it is, the second has no single place to put the implementation, and the third is built by its own constructor, which takes the trait object from another field.
+* **Which fields take it:** a field typed with a name its container's `static_dispatch_for` declares, which holds the implementation as a variant (§7), and otherwise only a field typed `Arc<dyn Trait>`, through any of the paths of `Arc` that §3 reads and with any bounds on the trait object (`Arc<dyn PaymentGateway + Send + Sync>`). A field whose type holds no trait object, one that holds its trait object in anything but an `Arc` (`Box<dyn Trait>`, `Arc<Archive<dyn Trait>>`), and one that keeps its trait object deeper in its type (`Arc<Controller<Arc<dyn Trait>>>`), are refused at the field: the first is built as it is, the second has no single place to put the implementation, and the third is built by its own constructor, which takes the trait object from another field.
 * **How it is built:** everything else about the field stays as it is. `build` is read as for an `Arc<T>` field whose `T` is the implementation: its `new` taking `deps` in order, `build = default`, `build = constructor(<fn>)`, or `build = builder`, and `leaf_build` applies to it as a leaf. The value is then wrapped in `Arc::new` and converted to the field's trait object, where an implementation that does not implement the trait is rustc's own error, at the type `implementation` names. The `Arc::new` the macro writes is not linted by clippy as the user's code, so an implementation that is not both `Send` and `Sync` meets no `arc_with_non_send_sync`, just as a field typed `Arc<T>` meets none. `fallible = true` works as §5.D says, and so does `#[transient]` (unstable), which builds a new `Arc` for every get. `build = factory` beside `implementation` is refused, because a factory returns the field itself and has no implementation to call.
 * **What does not change:** the getter returns the field's type exactly as declared, `Arc<dyn Trait>`, and every dependent, factory inputs included, receives a clone of that `Arc`.
 
@@ -436,57 +440,107 @@ error: dependency cycle: service_a depends on service_b, which depends on servic
 A field that needs only itself reads `dependency cycle: service_a depends on itself`.
 
 4. **Every problem at once:** The macro reports every problem it finds in one compile, each as its own error pointing at the field it is about (its snapfit attribute, or its name when it has none), or at the container's name when no field is at fault. Problems found while reading the fields, such as a missing `#[singleton]` or a quoted function name, are reported together; once every field reads, the unknown dependencies, cycles, refused features and other rules of the declaration are reported together. The struct is kept as written, without snapfit's attributes, so that the compiler adds no follow-on errors about a missing type.
-5. **Only what the build accepts:** snapfit's own advice on what to write offers only what the build in use accepts, and never a planned feature. On the stable build it offers no unstable feature: a field with no snapfit attribute reads `field 'config' has no snapfit attribute; add #[singleton] to have the container build it`, and an unknown mode reads `invalid container mode 'threaded': write mode = "sync", or leave mode out`, the same on both builds. A feature the user wrote is still named when it is refused, such as `#[dispatch(...)]` being planned. One exception is not snapfit's own advice: for a misspelt or unknown setting, darling, which reads the attributes, either suggests the closest name it knows, such as "Did you mean `build`?", or lists the names it knows, such as "Available values: `async`, `build`, `deps`", which could in principle include an unstable or planned setting.
+5. **Only what the build accepts:** snapfit's own advice on what to write offers only what the build in use accepts, and never a planned feature. On the stable build it offers no unstable feature: a field with no snapfit attribute reads `field 'config' has no snapfit attribute; add #[singleton] to have the container build it`, and an unknown mode reads `invalid container mode 'threaded': write mode = "sync", or leave mode out`, the same on both builds. A feature the user wrote is still named when it is refused, such as `parent` being planned. One exception is not snapfit's own advice: for a misspelt or unknown setting, darling, which reads the attributes, either suggests the closest name it knows, such as "Did you mean `build`?", or lists the names it knows, such as "Available values: `async`, `build`, `deps`", which could in principle include an unstable or planned setting.
 
 ---
 
-## 7. Trait Abstraction via Auto-Generated `enum_dispatch`
+## 7. Static dispatch (`static_dispatch_for`)
 
-To avoid `Arc<dyn Trait>` (heap allocation, vtable indirection, and inability to inline), `snapfit` automatically generates static dispatch enums:
+A trait object, `Arc<dyn Database>`, reaches its implementation through a vtable. Static dispatch reaches it through a `match` over a closed list: one type stands for every implementation on the list, and each call matches the variant it holds and calls that implementation directly, a call the compiler can inline. Every dependent receives that one type and calls the trait on it, without a `match` of its own, and a test can build any variant itself, including one no field injects ([#41](https://github.com/marlon-sousa/snapfit-rs/issues/41)).
 
-### User Code:
+### User code
+
 ```rust
+// db.rs: the trait, marked once where it is defined
+#[snapfit::static_dispatch]
 pub trait Database {
-    fn query(&self, sql: &str) -> String;
+    fn find(&self, id: u32) -> Option<Order>;
 }
 
-pub struct PostgresDb;
-impl Database for PostgresDb { ... }
+pub struct MySql { /* ... */ }
+pub struct Postgres { /* ... */ }
+pub struct Mock { /* ... */ }
+// impl Database for MySql, for Postgres and for Mock, as usual
 
-pub struct MockDb;
-impl Database for MockDb { ... }
-
+// container.rs
 #[container]
-pub struct AppContainer {
-    // Declares the trait and concrete implementations via #[dispatch(...)]
-    #[dispatch(PostgresDb, MockDb)]
-    db: Arc<dyn Database>,
+#[static_dispatch_for(Database as Db)]
+#[cfg_attr(test, extend_static_dispatch(Db, [Mock]))]
+pub struct Shop {
+    #[singleton]
+    config: Arc<Config>,
 
-    #[transient(deps = [db])]
-    controller: Controller,
+    #[singleton(implementation = MySql)]
+    orders_db: Arc<Db>,
+
+    #[singleton(implementation = Postgres, deps = [config], build = constructor(connect))]
+    reports_db: Arc<Db>,
+
+    // Orders::new takes Arc<Db>, and calls self.db.find(id)
+    #[singleton(deps = [orders_db])]
+    orders: Arc<Orders>,
+}
+
+// a test builds the variant it needs, with no container
+#[test]
+fn total_reads_the_order() {
+    let orders = Orders::new(Arc::new(Db::of(Mock::with_order(7, 30))));
+    assert_eq!(orders.total(7), 30);
 }
 ```
 
-### Generated Code (Struct Rewriting & Enum Dispatch):
-The attribute macro automatically creates the static dispatch enum and **rewrites the struct field type** so the user never has to invent or manage intermediate enum types:
+### The trait: `#[snapfit::static_dispatch]`
+
+The container's macro sees only the container, never a trait's methods, so the trait itself carries `#[snapfit::static_dispatch]`, written once where it is defined. It implements the trait for snapfit's dispatch types, in the trait's own module, so that every type its methods name is in scope. The implementations stay plain types with a plain `impl`.
+
+* **Which trait:** the one `static_dispatch_for` names, and each of its supertraits whose methods are called on the dispatched type. A supertrait without the attribute is rustc's own error, that the dispatched type does not implement it, pointing at the trait's attribute. A trait of another crate cannot carry the attribute, so it can only be dispatched dynamically (§5.E).
+* **What a trait may hold:** methods taking `self`, `&self` or `&mut self`, with any arguments, generic methods, `impl Trait` arguments, `async fn`, default methods, a method whose only return is `Self`, which is built back into the variant it came from, associated types, and type parameters and lifetimes of the trait itself (`Store<T>`).
+* **Associated types:** every implementation on a list gives each associated type the same type. One that differs is rustc's own error, where the container checks the list.
+* **What it refuses:** each at the item it is about, with every other problem of the trait:
+  * a method with no receiver, such as `fn create() -> Self`, because no value says which implementation to call;
+  * an associated const, because the implementations could disagree;
+  * a receiver other than `self`, `&self` or `&mut self`, such as `self: Box<Self>` or `self: Pin<&mut Self>`;
+  * `Self` anywhere in a method's signature other than its receiver, its whole return type and `Self::` paths, such as an argument `other: Self` or a return `Option<Self>`, because two values could hold different variants;
+  * a return type that is `impl Trait`, because each implementation returns its own type; the message asks for a named type, such as `Box<dyn Iterator<Item = Order>>`.
+
+### The container: `static_dispatch_for` and `extend_static_dispatch`
 
 ```rust
-// 1. Auto-generated static dispatch enum:
-#[derive(Clone)]
-#[enum_dispatch::enum_dispatch(Database)]
-pub enum AppContainerDb {
-    PostgresDb(PostgresDb),
-    MockDb(MockDb),
-}
-
-// 2. Struct field is automatically rewritten by the attribute macro:
-pub struct AppContainer {
-    db: Arc<AppContainerDb>, // Rewritten from Arc<dyn Database>
-}
+#[container]
+#[static_dispatch_for(Database as Db, extra = [Sqlite])]
+#[cfg_attr(test, extend_static_dispatch(Db, [Mock1, Mock2]))]
+pub struct Shop { /* ... */ }
 ```
-* **Performance:** 100% static dispatch, compiler-inlined calls, zero `dyn Any`, zero `vtable`.
-* **Trait Annotation Contract:** Because Rust procedural macros operate syntactically and cannot inspect external trait method definitions, static dispatch leverages `enum_dispatch` (which requires `#[enum_dispatch]` on the trait).
-* **When dynamic dispatch is desired (Zero Trait Macros):** Omit `#[dispatch]` and use `Arc<dyn Database + Send + Sync>` directly, built from the type its `implementation` names (§5.E) or by a factory (`build = factory`, §5.B). This requires zero annotations on the trait definition and supports dynamic plugin architectures.
+
+* **`static_dispatch_for(<Trait> as <Name>)`** declares the dispatched type: the trait, as a path with any type arguments (`Store<Order> as Orders`), and the name the fields and the dependents write, a bare identifier. It is required: the container never deduces a dispatched type, so that a misspelt type or one that already exists is not taken for one. A container may declare several, each with a name of its own.
+* **What the type holds:** the implementations named by `implementation =` on the fields typed `Arc<Name>`, in the order of the fields, then those of `extra = [...]`, then those of every `extend_static_dispatch(Name, [...])` present in the build. Each is a type written in full, as `implementation` takes it (§5.E). A type named more than once counts once. A list of one implementation is allowed, such as a production build whose only other implementation is a mock added under `cfg(test)`.
+* **`extra = [...]`** adds implementations that every build holds but no field names, such as one only a factory returns.
+* **`extend_static_dispatch(<Name>, [...])`** adds implementations to a type the same container declares, typically under a condition: `#[cfg_attr(test, extend_static_dispatch(Db, [Mock]))]`. Rust removes the attribute where its condition is false before the container sees it, so the mocks, which can themselves be `#[cfg(test)]` types, exist only in test builds. Several may extend one type, and they only add. Tests under `tests/` build the library without `cfg(test)`, so they extend under a feature instead, such as `cfg_attr(feature = "mocks", ...)`.
+* **Where they go:** under `#[container]`, which reads and removes them, as it does `#[singleton]`. Above `#[container]`, the attribute is refused, asking for it to be written below.
+* **The generated name:** `<Name>` is a type alias with the container's visibility, declared next to the container, and the only name snapfit generates for it. It stands for one of snapfit's dispatch types, whose shape is not part of the API: code names `<Name>`, builds a value with `<Name>::of(value)`, and calls the trait on it.
+* **`<Name>::of(value)`** wraps an implementation into its variant. It accepts only a type on the list; any other is a compile error whose message names the type and the list, set through `#[diagnostic::on_unimplemented]`.
+* **The checks at the attribute:** the type implements the trait, which fails with rustc's own error, pointing at the trait in `static_dispatch_for`, when the trait lacks `#[snapfit::static_dispatch]` or an implementation disagrees on an associated type; and each implementation implements the trait, which fails with rustc's own error pointing at the field or the list that names it.
+
+### The fields
+
+A field's type decides how it is dispatched, so one container can hold both kinds, even for the same trait:
+
+| Field's type | Dispatched | `implementation = X` |
+| :--- | :--- | :--- |
+| `Arc<dyn Database>` | Dynamically, through the trait object (§5.E) | Builds X and hands it out as the trait object |
+| `Arc<Db>`, where `Db` is a name this container's `static_dispatch_for` declares | Statically | Builds X and wraps it in X's variant |
+| Any other type | Not dispatched | Refused, as §5.E says |
+
+* **With `implementation = X`:** X is built as §5.E says, by its `new` taking `deps` in order, `build = default`, `build = constructor(<fn>)` or `build = builder`, with `leaf_build` and `fallible = true` as for any field, then wrapped in its variant and in `Arc::new`. Each field states its own implementation's needs, so the variants never have to agree on their `deps`.
+* **With `build = factory`:** the factory returns `Arc<Name>` and chooses the variant while the program starts, such as `Arc::new(Db::of(Postgres::connect(&inputs.config)))`. Its `deps` are every input of every variant it may build, and the container builds all of them, also those the chosen variant does not use. A dependency that is costly to build, such as one that opens a connection, is better built by the factory itself, from a setting.
+* **Refused at the field:** a field typed `Arc<Name>` with neither `implementation` nor `build = factory`, asking for one of them; `implementation` beside `build = factory`, as §5.E refuses it; and a field typed with a path that ends in a declared name, such as `Arc<crate::shop::Db>`, asking for the name as declared.
+* **What does not change:** the getter returns `Arc<Name>`, and every dependent, factory inputs included, receives a clone of that `Arc`. `#[transient]` (unstable) builds a new value for every get, as §4 says.
+
+### What it costs, and when to choose dynamic dispatch
+
+* **A closed list:** adding an implementation means a field or a list names it, and the container is compiled again.
+* **Size:** a value of the type is as large as its largest implementation. The singleton is still kept in one `Arc`, so that it can be shared, as a dynamic one is.
+* **Dynamic dispatch instead:** a trait of another crate, a set of implementations that is open, such as plugins, or a trait that holds what static dispatch refuses, uses `Arc<dyn Trait>` (§5.E), which needs no attribute on the trait.
 
 ---
 
