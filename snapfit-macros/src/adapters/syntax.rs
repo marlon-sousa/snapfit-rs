@@ -2,6 +2,9 @@
 //! declaration and the outbound adapter writes back out.
 
 use derive_new::new;
+use proc_macro2::TokenStream;
+use quote::ToTokens;
+use syn::parse::ParseStream;
 use syn::punctuated::Punctuated;
 use syn::{Token, parse_quote};
 
@@ -137,16 +140,28 @@ pub(crate) fn conditional_part(meta: &syn::Meta) -> Option<syn::Meta> {
     if !list.path.is_ident("cfg_attr") {
         return None;
     }
-    let mut parts = list
-        .parse_args_with(Punctuated::<syn::Meta, Token![,]>::parse_terminated)
-        .ok()?
-        .into_iter();
-    let condition = parts.next()?;
-    let written: Vec<_> = parts.filter_map(|part| conditional_part(&part)).collect();
-    if written.is_empty() {
+    let Ok((condition, written)) = list.parse_args_with(cfg_attr_arguments) else {
+        // rustc reports a cfg_attr it cannot read; until then, it may remove the item.
+        return Some(meta.clone());
+    };
+    let kept: Vec<_> = written.iter().filter_map(conditional_part).collect();
+    if kept.is_empty() {
         return None;
     }
-    Some(parse_quote!(cfg_attr(#condition, #(#written),*)))
+    Some(parse_quote!(cfg_attr(#condition, #(#kept),*)))
+}
+
+/// A `cfg_attr`'s condition, which may be `true` or `false` as well as a
+/// predicate, then the attributes it writes.
+fn cfg_attr_arguments(input: ParseStream) -> syn::Result<(TokenStream, Vec<syn::Meta>)> {
+    let condition = if input.peek(syn::LitBool) {
+        input.parse::<syn::LitBool>()?.into_token_stream()
+    } else {
+        input.parse::<syn::Meta>()?.into_token_stream()
+    };
+    input.parse::<Token![,]>()?;
+    let written = Punctuated::<syn::Meta, Token![,]>::parse_terminated(input)?;
+    Ok((condition, written.into_iter().collect()))
 }
 
 #[cfg(test)]

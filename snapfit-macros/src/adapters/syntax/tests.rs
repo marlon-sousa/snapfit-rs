@@ -4,10 +4,12 @@ use super::*;
 
 #[test]
 fn a_cfg_and_a_cfg_attr_that_can_write_one_are_conditional() {
-    let conditional: [syn::Attribute; 3] = [
+    let conditional: [syn::Attribute; 5] = [
         parse_quote!(#[cfg(test)]),
         parse_quote!(#[cfg_attr(all(), cfg(any()))]),
         parse_quote!(#[cfg_attr(unix, cfg_attr(test, cfg(feature = "mocks")))]),
+        parse_quote!(#[cfg_attr(true, cfg(false))]),
+        parse_quote!(#[cfg_attr(all(), cfg_attr(true, cfg(false)))]),
     ];
 
     assert!(conditional.iter().all(is_conditional));
