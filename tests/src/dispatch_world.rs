@@ -5,6 +5,7 @@ use cucumber::Parameter;
 use strum::{EnumString, IntoStaticStr};
 
 use crate::dispatched_containers::accounts::Accounts;
+use crate::dispatched_containers::chosen::ChosenAccounts;
 use crate::dispatched_containers::conversions::Conversions;
 use crate::dispatched_traits::databases::{Db, Mock, MySql, Postgres};
 use crate::dispatched_traits::stores::{Counting, Memory, Shelves};
@@ -57,6 +58,7 @@ pub struct DispatchRuns {
     pub rack: Option<Racks>,
     pub accounts: Option<Accounts>,
     pub conversions: Option<Conversions>,
+    pub chosen: Option<ChosenAccounts>,
 }
 
 impl DispatchRuns {
@@ -82,6 +84,12 @@ impl DispatchRuns {
         self.conversions
             .as_ref()
             .expect("the Conversions container must be built in a Given step")
+    }
+
+    pub fn chosen(&self) -> &ChosenAccounts {
+        self.chosen
+            .as_ref()
+            .expect("the ChosenAccounts container must be built in a Given step")
     }
 
     pub fn database_mut(&mut self) -> &mut Db {

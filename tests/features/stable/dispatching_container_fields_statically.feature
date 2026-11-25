@@ -46,6 +46,17 @@ Feature: Dispatching a container's fields statically
       | the extension | spare  |
 
   @v0_3_0
+  Scenario Outline: A factory chooses the variant its field holds from a setting, building it from the inputs of every variant
+    Given a container whose factories choose its ledgers from the setting <backend>
+    Then its shared and its owned ledger should both answer from "<source>"
+
+    Examples:
+      | backend | source                   |
+      | archive | archive in ledgers       |
+      | mirror  | mirror of ledger.example |
+      | scratch | scratch                  |
+
+  @v0_3_0
   Scenario: A fallible dispatched field returns its error from try_new
     Then building the checked accounts should fail with "snapfit could not build the field `remote` of `CheckedAccounts`"
 

@@ -2,6 +2,7 @@ use cucumber::{given, then};
 
 use crate::dispatched_containers::accounts::{Accounts, Ledgers, Spare};
 use crate::dispatched_containers::checked::CheckedAccounts;
+use crate::dispatched_containers::chosen::{self, Backend};
 use crate::dispatched_containers::conversions::{Conversions, Convert};
 use crate::dispatched_containers::ledgers::{Fake, Ledger};
 use crate::dispatched_containers::written_by_a_macro::{Passed, PassedAccounts};
@@ -73,4 +74,16 @@ fn then_converter_turns(world: &mut ContainerWorld, field: String, value: u8, ex
         other => panic!("the Conversions container has no converter field '{other}'"),
     };
     assert_eq!(converted, expected);
+}
+
+#[given(expr = "a container whose factories choose its ledgers from the setting {backend}")]
+fn given_chosen(world: &mut ContainerWorld, backend: Backend) {
+    world.built.dispatch.chosen = Some(chosen::start_with(backend));
+}
+
+#[then(expr = "its shared and its owned ledger should both answer from {string}")]
+fn then_chosen_answer_from(world: &mut ContainerWorld, expected: String) {
+    let chosen = world.built.dispatch.chosen();
+    assert_eq!(chosen.get_shared().source(), expected);
+    assert_eq!(chosen.get_owned().source(), expected);
 }
