@@ -33,3 +33,15 @@ archive!(Self);
 pub trait Cloned where Self: Clone {
     fn source(&self) -> &'static str;
 }
+
+#[snapfit::static_dispatch]
+pub trait Rows where Self::Row: Clone {
+    type Row;
+    fn row(&self) -> Self::Row;
+}
+
+#[snapfit::static_dispatch]
+pub trait Keyed: Ordered<Self::Key> where Self: Clone {
+    type Key;
+    fn key(&self) -> Self::Key;
+}

@@ -49,18 +49,20 @@ Feature: Refusing a trait that static dispatch cannot follow
     And the compiler should report 1 errors
 
   @v0_3_0 @regression
-  Scenario: Self in the trait's own bounds is refused at the bounds, also through a macro_rules!, and a bound on Self itself is not
+  Scenario: Self in the trait's own parameters or bounds is refused at the bounds, also through a macro_rules!, and a bound on Self itself or a Self:: path in a supertrait is not
     Given an invalid dispatched trait fixture "static_dispatch_self_in_trait_bounds"
     When the fixture is compiled
-    Then compilation should fail with "trait 'Store' names Self in its own bounds, such as where T: Into<Self>, which snapfit cannot promise of the type that dispatches it; remove Self from the trait's bounds, or bound Self itself, such as where Self: Clone"
-    And compilation should fail with "trait 'Inline' names Self in its own bounds"
-    And compilation should fail with "trait 'Ranked' names Self in its own bounds"
-    And compilation should fail with "trait 'Archive' names Self in its own bounds"
+    Then compilation should fail with "trait 'Store' names Self in its parameters or bounds, such as where T: Into<Self> or where Self::Item: Clone, which snapfit cannot promise of the type that dispatches it; remove Self from them, or bound Self itself, as a supertrait or as where Self: Clone"
+    And compilation should fail with "trait 'Inline' names Self in its parameters or bounds"
+    And compilation should fail with "trait 'Ranked' names Self in its parameters or bounds"
+    And compilation should fail with "trait 'Archive' names Self in its parameters or bounds"
+    And compilation should fail with "trait 'Rows' names Self in its parameters or bounds"
     And the error should point at line 2 of the fixture
     And the error should point at line 7 of the fixture
     And the error should point at line 17 of the fixture
     And the error should point at line 24 of the fixture
-    And the compiler should report 4 errors
+    And the error should point at line 38 of the fixture
+    And the compiler should report 5 errors
 
   @v0_3_0
   Scenario: The attribute on anything but a trait is refused at the item

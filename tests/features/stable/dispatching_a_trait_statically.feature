@@ -70,6 +70,12 @@ Feature: Dispatching a trait statically
     When a torch whose trait a macro_rules! writes with a cfg_attr is dispatched statically, holding a bulb
     Then the lamp should shine "bulb beam"
 
+  @v0_3_0 @regression
+  Scenario: A trait whose supertrait names Self::Item and whose where clause bounds Self itself is dispatched
+    Given a dispatched trait fixture "static_dispatch_self_bounds" for clippy
+    When the fixture is linted with clippy
+    Then clippy should report no warning
+
   @v0_3_0
   Scenario: Clippy does not lint the impls snapfit writes for a dispatched trait
     Given a dispatched trait fixture "static_dispatch_trait" for clippy

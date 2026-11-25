@@ -1,8 +1,11 @@
 //! Adapter: finds where a signature or a bound names `Self` itself, and what
 //! a `where` clause bounds `Self` by. Plays the role of its parent.
 
+use proc_macro2::{TokenStream, TokenTree};
+use quote::ToTokens;
 use syn::visit::{self, Visit};
 
+pub(super) use crate::adapters::syntax::{is_bare_self, unwrapped};
 use crate::domain::{SelfBound, SelfUse};
 
 /// `Self` where an implementation's type could not stand for it: anywhere
@@ -36,18 +39,38 @@ impl<'ast> Visit<'ast> for SelfFinder {
     }
 }
 
-/// The type inside the invisible group a `macro_rules!` puts around `$t:ty`,
-/// or inside parentheses.
-pub(super) fn unwrapped(ty: &syn::Type) -> &syn::Type {
-    match ty {
-        syn::Type::Group(group) => unwrapped(&group.elem),
-        syn::Type::Paren(paren) => unwrapped(&paren.elem),
-        _ => ty,
-    }
+/// Whether `tokens` name `Self` anywhere, also inside the group a
+/// `macro_rules!` puts around what it passes.
+pub(super) fn names_self(tokens: TokenStream) -> bool {
+    tokens.into_iter().any(|token| match token {
+        TokenTree::Ident(ident) => ident == "Self",
+        TokenTree::Group(group) => names_self(group.stream()),
+        _ => false,
+    })
 }
 
-pub(super) fn is_bare_self(ty: &syn::Type) -> bool {
-    matches!(ty, syn::Type::Path(path) if path.qself.is_none() && path.path.is_ident("Self"))
+/// Whether the trait's parameters or `where` clause name `Self`, which the
+/// impls for the dispatch types could only hold through themselves, other
+/// than as the bounded type of a bound on `Self` that names it nowhere else.
+pub(super) fn generics_name_self(generics: &syn::Generics) -> bool {
+    let predicates = generics
+        .where_clause
+        .iter()
+        .flat_map(|clause| &clause.predicates);
+    generics
+        .params
+        .iter()
+        .any(|param| names_self(param.to_token_stream()))
+        || predicates.into_iter().any(predicate_names_self)
+}
+
+fn predicate_names_self(predicate: &syn::WherePredicate) -> bool {
+    match predicate {
+        syn::WherePredicate::Type(predicate) if is_bare_self(unwrapped(&predicate.bounded_ty)) => {
+            names_self(predicate.bounds.to_token_stream())
+        }
+        other => names_self(other.to_token_stream()),
+    }
 }
 
 /// The strongest bound the `where` clause puts on `Self`: a trait, then a

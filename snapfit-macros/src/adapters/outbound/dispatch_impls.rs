@@ -47,9 +47,7 @@ fn emit_impl(plan: &TraitPlan, target: Target) -> TokenStream {
         .flat_map(|clause| &clause.predicates);
     let bounds = target.bounds(&path, &associated);
     let self_type = target.self_type(&path.runtime);
-    // Each supertrait is assumed, so that one the dispatch type does not
-    // implement fails where the container uses it, and in words where
-    // `emit_supertrait_checks` checks it, not at this impl.
+    // Assumed, so that a supertrait the dispatch type lacks is reported by `emit_supertrait_checks`.
     let supertraits = plan.syntax.supertraits.iter();
     let items = plan
         .items

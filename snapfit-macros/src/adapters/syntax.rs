@@ -170,5 +170,19 @@ fn cfg_attr_arguments(input: ParseStream) -> syn::Result<(TokenStream, Vec<syn::
     Ok((condition, written.into_iter().collect()))
 }
 
+/// The type inside the invisible group a `macro_rules!` puts around `$t:ty`,
+/// or inside parentheses.
+pub(crate) fn unwrapped(ty: &syn::Type) -> &syn::Type {
+    match ty {
+        syn::Type::Group(group) => unwrapped(&group.elem),
+        syn::Type::Paren(paren) => unwrapped(&paren.elem),
+        _ => ty,
+    }
+}
+
+pub(crate) fn is_bare_self(ty: &syn::Type) -> bool {
+    matches!(ty, syn::Type::Path(path) if path.qself.is_none() && path.path.is_ident("Self"))
+}
+
 #[cfg(test)]
 mod tests;

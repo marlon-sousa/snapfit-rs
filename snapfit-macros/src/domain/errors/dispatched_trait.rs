@@ -22,7 +22,7 @@ pub(crate) enum DispatchProblem {
     )]
     UnsafeTrait(TraitName),
     #[error(
-        "trait '{0}' names Self in its own bounds, such as where T: Into<Self>, which snapfit cannot promise of the type that dispatches it; remove Self from the trait's bounds, or bound Self itself, such as where Self: Clone"
+        "trait '{0}' names Self in its parameters or bounds, such as where T: Into<Self> or where Self::Item: Clone, which snapfit cannot promise of the type that dispatches it; remove Self from them, or bound Self itself, as a supertrait or as where Self: Clone"
     )]
     SelfInTraitBounds(TraitName),
     #[error(

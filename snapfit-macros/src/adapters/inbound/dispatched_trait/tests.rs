@@ -93,7 +93,7 @@ fn a_macro_call_is_named_by_the_last_segment_of_its_path() {
 
 #[test]
 fn self_in_the_trait_s_own_bounds_is_read_wherever_it_is_written() {
-    let elsewhere: [syn::Item; 5] = [
+    let elsewhere: [syn::Item; 8] = [
         parse_quote!(
             trait Store<T>
             where
@@ -121,6 +121,25 @@ fn self_in_the_trait_s_own_bounds_is_read_wherever_it_is_written() {
             {
             }
         ),
+        parse_quote!(
+            trait Rows
+            where
+                Self::Row: Clone,
+            {
+                type Row;
+            }
+        ),
+        parse_quote!(
+            trait Store
+            where
+                Self: Holder<Self::Item>,
+            {
+                type Item;
+            }
+        ),
+        parse_quote!(
+            trait Store<T = Self> {}
+        ),
     ];
     let forwardable: [syn::Item; 3] = [
         parse_quote!(
@@ -138,11 +157,8 @@ fn self_in_the_trait_s_own_bounds_is_read_wherever_it_is_written() {
             }
         ),
         parse_quote!(
-            trait Rows
-            where
-                Self::Row: Clone,
-            {
-                type Row;
+            trait Store: Holder<Self::Item> {
+                type Item;
             }
         ),
     ];
@@ -161,4 +177,21 @@ fn self_in_the_trait_s_own_bounds_is_read_wherever_it_is_written() {
             .map(bounds)
             .all(|bounds| bounds.is_forwardable())
     );
+}
+
+#[test]
+fn a_supertrait_that_names_self_is_not_checked_by_snapfit() {
+    let declaration = trait_of(read(
+        quote!(),
+        parse_quote!(
+            trait Store: Named + Holder<Self::Item> + ?Sized + 'static {
+                type Item;
+            }
+        ),
+    ));
+
+    let supertraits = &declaration.syntax.supertraits;
+
+    assert_eq!(supertraits.len(), 1);
+    assert!(supertraits.iter().all(|bound| bound.path.is_ident("Named")));
 }

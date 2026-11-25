@@ -9,6 +9,7 @@ mod signature;
 mod tests;
 
 use proc_macro2::{TokenStream, TokenTree};
+use quote::ToTokens;
 use syn::ext::IdentExt;
 
 use super::runtime_path::{crate_path, default_runtime_path, settings};
@@ -19,7 +20,7 @@ use crate::domain::{
     TraitItemDeclaration, TraitName, TypeName,
 };
 use associated_type::associated_type_shape;
-use self_use::SelfFinder;
+use self_use::{SelfFinder, generics_name_self, names_self};
 use signature::method_shape;
 use syn::visit::Visit;
 
@@ -94,13 +95,15 @@ fn trait_declaration(
     ))
 }
 
-/// A supertrait the dispatch types must implement: not `?Sized`, which
-/// relaxes a bound, nor a lifetime, which they outlive whenever their
-/// implementations do.
+/// A supertrait the dispatch types are checked against: not `?Sized`, which
+/// relaxes a bound, a lifetime, which they outlive whenever their
+/// implementations do, nor one that names `Self::`, which rustc checks at the
+/// impl without snapfit's help.
 fn supertrait(bound: &syn::TypeParamBound) -> Option<syn::TraitBound> {
     match bound {
         syn::TypeParamBound::Trait(bound)
-            if matches!(bound.modifier, syn::TraitBoundModifier::None) =>
+            if matches!(bound.modifier, syn::TraitBoundModifier::None)
+                && !names_self(bound.to_token_stream()) =>
         {
             Some(bound.clone())
         }
@@ -108,14 +111,18 @@ fn supertrait(bound: &syn::TypeParamBound) -> Option<syn::TraitBound> {
     }
 }
 
-/// Where the trait's supertraits, parameters and `where` clause name `Self`.
+/// Where the trait's supertraits name `Self` other than through a `Self::`
+/// path, and whether its parameters and `where` clause name it at all.
 fn bounds(item: &syn::ItemTrait) -> SelfUse {
     let mut finder = SelfFinder::new();
     item.supertraits
         .iter()
         .for_each(|bound| finder.visit_type_param_bound(bound));
-    finder.visit_generics(&item.generics);
-    finder.0
+    if generics_name_self(&item.generics) {
+        SelfUse::Elsewhere
+    } else {
+        finder.0
+    }
 }
 
 /// The item as the domain sees it, at its position among every item of the

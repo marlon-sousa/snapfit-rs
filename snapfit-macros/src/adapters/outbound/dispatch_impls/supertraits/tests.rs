@@ -38,25 +38,27 @@ fn each_impl_assumes_every_supertrait_but_sized_relaxed_and_lifetimes() {
 }
 
 #[test]
-fn each_supertrait_is_checked_for_the_last_implementation_with_the_trait_s_own_parameters() {
+fn each_supertrait_is_checked_for_the_last_implementation_with_the_trait_s_own_parameters_but_its_bounds_on_self()
+ {
     let code = compact(emitted(parse_quote!(
         trait Store<T>: Named<T>
         where
             T: Copy,
+            Self: Clone,
         {
             fn find(&self) -> T;
         }
     )));
 
     assert!(code.contains(&compact(quote! {
-        trait __SnapfitSupertrait<T> where T: Copy, {
+        trait __SnapfitSupertrait<T> where T: Copy {
             fn __snapfit_holds() {}
         }
         #[diagnostic::do_not_recommend]
         impl<T, __SnapfitHolder: ?::core::marker::Sized + Named<T> > __SnapfitSupertrait<T>
-            for __SnapfitHolder where T: Copy, {}
+            for __SnapfitHolder where T: Copy {}
         #[allow(dead_code)]
-        fn __snapfit_supertrait<T, __SnapfitLast: Store<T> >() where T: Copy, {
+        fn __snapfit_supertrait<T, __SnapfitLast: Store<T> >() where T: Copy {
             <::snapfit::__private::Only<__SnapfitLast> as __SnapfitSupertrait<T> >::__snapfit_holds();
         }
     })));
