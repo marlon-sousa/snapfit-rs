@@ -4,12 +4,12 @@ Every release of snapfit and snapfit-macros, which share one version. Each secti
 
 ## [0.3.0]
 
-Static dispatch: a field of a trait can hold one of a closed list of its implementations in place, and reach it through a `match` instead of a pointer and a vtable.
+Static dispatch: a field typed as a trait can hold one of a closed list of its implementations in place, and reach it through a `match` instead of a pointer and a vtable.
 
 ### Added
 
 - `#[snapfit::static_dispatch]` on a trait lets a container dispatch it statically, through a `match` over a closed list of its implementations.
-- `#[static_dispatch_for(Trait as Name)]` under `#[container]` declares the dispatched type `Name`, which holds the implementations that the fields typed `Name` or `Arc<Name>` name with `implementation =`; `extend_static_dispatch(Name, [...])` adds others, such as a test's mocks under `#[cfg_attr(test, ...)]`.
+- `#[static_dispatch_for(Trait as Name)]` under `#[container]` declares the dispatched type `Name`, which holds the implementations that the fields typed `Name` or `Arc<Name>` name with `implementation =` or `implementations = [...]`; `extend_static_dispatch(Name, [...])` adds others, such as a test's mocks under `#[cfg_attr(test, ...)]`.
 - `Name::of(value)` wraps an implementation into its variant of the dispatched type, so that a test can build any variant itself; a type that is not on the list is a compile error that says so.
 - `implementations = [A, B]` beside `build = factory` on a field of a dispatched type lists the variants its factory returns.
 - A field whose type keeps a trait object deeper in its type arguments, such as `Arc<Controller<Arc<dyn PaymentGateway>>>`, is built by its constructor, builder or `Default` instead of needing `build = factory`.
@@ -20,6 +20,7 @@ Static dispatch: a field of a trait can hold one of a closed list of its impleme
 - A field marked `#[dispatch(...)]` is refused with a message that names `static_dispatch_for`, instead of as a planned feature.
 - An `implementation` on a field that keeps its trait object deeper in its type, such as `Arc<Controller<Arc<dyn PaymentGateway>>>`, is refused with words that ask for a field of its own for the trait object, instead of asking for `build = factory`.
 - A type that keeps a trait object deeper but has no constructor snapfit can call, such as `Option<Box<dyn PaymentGateway>>`, is reported by rustc where the container builds it, instead of by snapfit asking for `build = factory`.
+- `implementation = [A, B]` is refused with words that point to `implementations`, instead of as a token that was not expected.
 - The settings a field's error offers for a misspelt setting include `implementations`.
 
 ### Fixed

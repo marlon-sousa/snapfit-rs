@@ -1,6 +1,6 @@
 # Unreleased chapters
 
-These chapters were written for `v0.1.0` but cover APIs that ship only behind snapfit's `unstable` feature, so they are not part of the `0.2` editions of the book and are not built or checked by `cargo xtask book-check`:
+These chapters were written for `v0.1.0` but cover APIs that ship only behind snapfit's `unstable` feature, so they are not part of the `0.2` and `0.3` editions of the book and are not built or checked by `cargo xtask book-check`:
 
 1. `chapters/07-transient-dependencies.md`, with `examples/ch07_transients.rs` and `expected/ch07_transients.txt`.
 2. `chapters/08-asynchronous-containers.md`, with `examples/ch08_async_container.rs` and `expected/ch08_async_container.txt`.
