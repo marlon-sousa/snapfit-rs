@@ -113,3 +113,75 @@ fn a_macro_call_is_named_by_the_last_segment_of_its_path() {
         ["macro sources"]
     );
 }
+
+#[test]
+fn self_in_the_trait_s_own_bounds_is_read_wherever_it_is_written() {
+    let elsewhere: [syn::Item; 5] = [
+        parse_quote!(
+            trait Store<T>
+            where
+                T: Into<Self>,
+            {
+            }
+        ),
+        parse_quote!(
+            trait Store<T: Into<Self>> {}
+        ),
+        parse_quote!(
+            trait Ranked: Ordered<Self> {}
+        ),
+        parse_quote!(
+            trait Twin
+            where
+                Self: PartialEq<Self>,
+            {
+            }
+        ),
+        parse_quote!(
+            trait Pair
+            where
+                Option<Self>: Clone,
+            {
+            }
+        ),
+    ];
+    let forwardable: [syn::Item; 3] = [
+        parse_quote!(
+            trait Store<T>: Send + Sync
+            where
+                T: Clone,
+            {
+            }
+        ),
+        parse_quote!(
+            trait Cloned
+            where
+                Self: Clone + 'static,
+            {
+            }
+        ),
+        parse_quote!(
+            trait Rows
+            where
+                Self::Row: Clone,
+            {
+                type Row;
+            }
+        ),
+    ];
+
+    let bounds = |item: &syn::Item| trait_of(read(quote!(), item.clone())).bounds;
+
+    assert!(
+        elsewhere
+            .iter()
+            .map(bounds)
+            .all(|bounds| bounds.is_elsewhere())
+    );
+    assert!(
+        forwardable
+            .iter()
+            .map(bounds)
+            .all(|bounds| bounds.is_forwardable())
+    );
+}

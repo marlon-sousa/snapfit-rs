@@ -131,12 +131,19 @@ pub(crate) fn dispatch_attribute<'a>(
     )
 }
 
-/// A safe trait named `Database` holding `items`, in order.
+/// A safe trait named `Database`, whose bounds name no `Self`, holding
+/// `items`, in order.
 pub(crate) fn dispatched_trait<'a>(
     items: Vec<TraitItemDeclaration<&'a str, &'a str>>,
 ) -> TraitDeclaration<(), &'a str, &'a str> {
     let items = items.into_iter().enumerate().map(placed).collect();
-    TraitDeclaration::new(TraitName::new("Database").unwrap(), (), Safety::Safe, items)
+    TraitDeclaration::new(
+        TraitName::new("Database").unwrap(),
+        (),
+        Safety::Safe,
+        SelfUse::Forwardable,
+        items,
+    )
 }
 
 fn placed<'a>(

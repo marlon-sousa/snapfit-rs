@@ -22,6 +22,10 @@ pub(crate) enum DispatchProblem {
     )]
     UnsafeTrait(TraitName),
     #[error(
+        "trait '{0}' names Self in its own bounds, such as where T: Into<Self>, which snapfit cannot promise of the type that dispatches it; remove Self from the trait's bounds, or bound Self itself, such as where Self: Clone"
+    )]
+    SelfInTraitBounds(TraitName),
+    #[error(
         "#[snapfit::static_dispatch] goes on a trait, and this item is not one; put it on the trait the container dispatches"
     )]
     NotATrait,
@@ -85,6 +89,7 @@ impl DispatchProblem {
         match self {
             Self::Item { position, .. } => DispatchSubject::Item(*position),
             Self::UnsafeTrait(_) => DispatchSubject::Safety,
+            Self::SelfInTraitBounds(_) => DispatchSubject::Bounds,
             Self::Arguments => DispatchSubject::Arguments,
             Self::NotATrait => DispatchSubject::Annotated,
         }

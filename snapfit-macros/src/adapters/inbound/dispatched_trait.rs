@@ -14,11 +14,13 @@ use syn::ext::IdentExt;
 use crate::adapters::syntax::{DispatchDeclaration, TraitSyntax};
 use crate::domain::{
     Annotated, ConstantName, DispatchArguments, DispatchAttribute, DomainError, DomainErrors,
-    ItemPosition, MacroName, MethodName, PlacedItem, Safety, TraitDeclaration,
+    ItemPosition, MacroName, MethodName, PlacedItem, Safety, SelfUse, TraitDeclaration,
     TraitItemDeclaration, TraitName, TypeName,
 };
 use associated_type::associated_type_shape;
+use self_use::SelfFinder;
 use signature::method_shape;
+use syn::visit::Visit;
 
 type ItemDeclaration = TraitItemDeclaration<syn::TraitItemFn, syn::TraitItemType>;
 type Placed = PlacedItem<syn::TraitItemFn, syn::TraitItemType>;
@@ -62,7 +64,23 @@ fn trait_declaration(
         generics: item.generics.clone(),
     };
     let safety = item.unsafety.map_or(Safety::Safe, |_| Safety::Unsafe);
-    Ok(TraitDeclaration::new(name, syntax, safety, items))
+    Ok(TraitDeclaration::new(
+        name,
+        syntax,
+        safety,
+        bounds(item),
+        items,
+    ))
+}
+
+/// Where the trait's supertraits, parameters and `where` clause name `Self`.
+fn bounds(item: &syn::ItemTrait) -> SelfUse {
+    let mut finder = SelfFinder::new();
+    item.supertraits
+        .iter()
+        .for_each(|bound| finder.visit_type_param_bound(bound));
+    finder.visit_generics(&item.generics);
+    finder.0
 }
 
 /// The item as the domain sees it, at its position among every item of the

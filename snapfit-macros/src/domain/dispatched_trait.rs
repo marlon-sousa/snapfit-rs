@@ -174,6 +174,8 @@ pub(crate) struct TraitDeclaration<T, M, A> {
     pub(crate) name: TraitName,
     pub(crate) syntax: T,
     pub(crate) safety: Safety,
+    /// Where its supertraits, parameters and `where` clause name `Self`.
+    pub(crate) bounds: SelfUse,
     /// In the order the trait declares them.
     pub(crate) items: Vec<PlacedItem<M, A>>,
 }

@@ -33,3 +33,17 @@ fn an_unsafe_trait_is_refused() {
         )))
     );
 }
+
+#[test]
+fn a_trait_whose_bounds_name_self_is_refused() {
+    let mut declaration = dispatched_trait(Vec::new());
+    assert_eq!(bounds_refusal(&declaration), None);
+    declaration.bounds = SelfUse::Elsewhere;
+
+    assert_eq!(
+        bounds_refusal(&declaration),
+        Some(DomainError::DispatchedTrait(
+            DispatchProblem::SelfInTraitBounds(declaration.name.clone())
+        ))
+    );
+}
