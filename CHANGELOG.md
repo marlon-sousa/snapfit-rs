@@ -4,7 +4,7 @@ Every release of snapfit and snapfit-macros, which share one version. Each secti
 
 ## [0.3.0]
 
-Static dispatch: a field typed as a trait can hold one of a closed list of its implementations in place, and reach it through a `match` instead of a pointer and a vtable.
+Static dispatch: a field typed with a name the container declares holds one of a closed list of a trait's implementations, and calls it through a `match` instead of a vtable.
 
 ### Added
 

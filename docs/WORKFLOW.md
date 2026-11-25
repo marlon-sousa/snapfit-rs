@@ -35,7 +35,7 @@ Stacks 1 to 4 built the core of `v0.1.0`:
 3. Inbound and outbound adapters.
 4. Walking skeleton, with the first Gherkin scenario green: `v0.1.0`. The Snapfit Book and its site follow it.
 
-What comes after it, such as async containers, transients, static dispatch, test overrides and child containers, is planned in the [open issues labelled `feature`](https://github.com/marlon-sousa/snapfit-rs/issues?q=is%3Aissue%20is%3Aopen%20label%3Afeature), as section 10 says.
+What comes after it, such as async containers, transients, test overrides and child containers, is planned in the [open issues labelled `feature`](https://github.com/marlon-sousa/snapfit-rs/issues?q=is%3Aissue%20is%3Aopen%20label%3Afeature), as section 10 says.
 
 ### 0.1.0 scope
 
