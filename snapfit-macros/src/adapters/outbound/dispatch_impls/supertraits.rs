@@ -78,13 +78,13 @@ fn without_bounds_on_self(generics: &syn::Generics) -> syn::Generics {
         clause.predicates = clause
             .predicates
             .iter()
-            .filter(|predicate| !bounds_self(predicate))
+            .filter(does_not_bound_self)
             .cloned()
             .collect();
     }
     kept
 }
 
-fn bounds_self(predicate: &&syn::WherePredicate) -> bool {
-    matches!(predicate, syn::WherePredicate::Type(predicate) if is_bare_self(unwrapped(&predicate.bounded_ty)))
+fn does_not_bound_self(predicate: &&syn::WherePredicate) -> bool {
+    !matches!(predicate, syn::WherePredicate::Type(predicate) if is_bare_self(unwrapped(&predicate.bounded_ty)))
 }
