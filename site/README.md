@@ -18,7 +18,7 @@ Then open <http://localhost:4321/snapfit-rs/>.
 - `BOOK_SOURCE_REF`: The git ref (`main` or tag `v0.1.0`) that links to repository files point at on GitHub.
 - `BOOK_ROOT`: The repository root directory (defaults to `..`).
 - `SNAPFIT_RELEASES_FILE`: Optional path to an existing `snapfit-site.json` manifest (such as the one on the `site` branch) to merge previously published releases into the front page and `/releases/`.
-- `SNAPFIT_PUBLISHED_PAGES`: Optional path to the `site` branch's pages, read by `scripts/pages.mjs`. A link to an edition other than `BOOK_VERSION` is looked for there too, since a build makes only its own edition. Set it with `SNAPFIT_RELEASES_FILE` when that file lists older editions.
+- `SNAPFIT_PUBLISHED_PAGES`: Optional path to the `site` branch's pages, read by `scripts/pages.mjs`. A link to an edition other than `BOOK_VERSION` is looked for there too, since a build makes only its own edition. Set it with `SNAPFIT_RELEASES_FILE` when that file, or `site/releases.json`, lists older editions. CI sets both, as the publish workflow does.
 
 ## Verification gate (`npm run verify`)
 
