@@ -1,6 +1,7 @@
 //! Adapter: reads `#[snapfit::static_dispatch]` and the item it is on, through
 //! syn, into a dispatch attribute.
 
+mod arguments;
 mod associated_type;
 mod self_use;
 mod signature;
@@ -8,17 +9,17 @@ mod signature;
 #[cfg(test)]
 mod tests;
 
-use proc_macro2::{TokenStream, TokenTree};
+use proc_macro2::TokenStream;
 use quote::ToTokens;
 use syn::ext::IdentExt;
 
-use super::runtime_path::{crate_path, default_runtime_path, settings};
 use crate::adapters::syntax::{DispatchDeclaration, TraitSyntax};
 use crate::domain::{
-    Annotated, ConstantName, DispatchArguments, DispatchAttribute, DomainError, DomainErrors,
-    ItemPosition, MacroName, MethodName, PlacedItem, Safety, SelfUse, TraitDeclaration,
-    TraitItemDeclaration, TraitName, TypeName,
+    Annotated, ConstantName, DispatchAttribute, DomainError, DomainErrors, ItemPosition, MacroName,
+    MethodName, PlacedItem, Safety, SelfUse, TraitDeclaration, TraitItemDeclaration, TraitName,
+    TypeName,
 };
+use arguments::arguments;
 use associated_type::associated_type_shape;
 use self_use::{SelfFinder, generics_name_self, names_self};
 use signature::method_shape;
@@ -38,38 +39,6 @@ pub(crate) fn read_dispatch_attribute(
         _ => Annotated::Other,
     };
     Ok(DispatchAttribute::new(arguments, annotated))
-}
-
-/// `crate = <path>`, given once, is the one setting the attribute takes, and
-/// `remote = ...`, whatever follows the `=`, the setting snapfit plans, which
-/// is refused as planned whatever else is given; anything else, a second
-/// `crate` among it, is one the attribute does not take.
-fn arguments(args: &TokenStream) -> (DispatchArguments, syn::Path) {
-    let settings = settings(args);
-    let paths: Vec<_> = settings.iter().filter_map(crate_path).collect();
-    let remote = settings.iter().any(is_remote);
-    let others = settings.len() - paths.len() - usize::from(remote);
-    let arguments = match (remote, others, paths.len()) {
-        (true, _, _) => DispatchArguments::Remote,
-        (false, 0, 0 | 1) => DispatchArguments::None,
-        _ => DispatchArguments::Other,
-    };
-    let runtime = paths
-        .into_iter()
-        .next()
-        .unwrap_or_else(default_runtime_path);
-    (arguments, runtime)
-}
-
-/// `remote = ` and something after it.
-fn is_remote(setting: &TokenStream) -> bool {
-    let mut tokens = setting.clone().into_iter();
-    match (tokens.next(), tokens.next(), tokens.next()) {
-        (Some(TokenTree::Ident(name)), Some(TokenTree::Punct(equals)), Some(_)) => {
-            name == "remote" && equals.as_char() == '='
-        }
-        _ => false,
-    }
 }
 
 fn trait_declaration(

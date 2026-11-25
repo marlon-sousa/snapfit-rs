@@ -9,14 +9,19 @@ use crate::domain::{
 #[cfg(test)]
 mod tests;
 
-/// The refusal of what the attribute was given, if any.
+/// The refusal of what the attribute was given, if any: `remote` is planned,
+/// whatever else is given, and anything but one `crate` is not taken.
 pub(crate) fn arguments_refusal(arguments: DispatchArguments) -> Option<DomainError> {
     match arguments {
-        DispatchArguments::None => None,
-        DispatchArguments::Remote => {
+        DispatchArguments { remote: 1.., .. } => {
             Some(FeatureProblem::NotYetImplemented(Feature::RemoteStaticDispatch).into())
         }
-        DispatchArguments::Other => Some(DispatchProblem::Arguments.into()),
+        DispatchArguments {
+            runtime: 0 | 1,
+            other: 0,
+            ..
+        } => None,
+        DispatchArguments { .. } => Some(DispatchProblem::Arguments.into()),
     }
 }
 

@@ -2,34 +2,30 @@ use quote::quote;
 use syn::parse_quote;
 
 use super::*;
+use crate::domain::DispatchArguments;
 
 #[test]
-fn the_arguments_are_read_as_none_remote_or_other() {
+fn the_arguments_are_counted_by_kind() {
     let item: syn::Item = parse_quote!(
         trait Database {}
     );
     let cases = [
-        (quote!(), DispatchArguments::None),
-        (quote!(remote = other::Store), DispatchArguments::Remote),
-        (quote!(remote), DispatchArguments::Other),
-        (quote!(inline), DispatchArguments::Other),
-        (
-            quote!(remote = other::Store<u32>),
-            DispatchArguments::Remote,
-        ),
-        (
-            quote!(remote = other::Store, inline),
-            DispatchArguments::Remote,
-        ),
-        (quote!(crate = di), DispatchArguments::None),
-        (quote!(crate = ::shop::di,), DispatchArguments::None),
-        (quote!(crate = di, crate = di), DispatchArguments::Other),
-        (quote!(crate = "di"), DispatchArguments::Other),
-        (quote!(crate = di, inline), DispatchArguments::Other),
-        (quote!(crate), DispatchArguments::Other),
+        (quote!(), (0, 0, 0)),
+        (quote!(remote = other::Store), (1, 0, 0)),
+        (quote!(remote), (0, 0, 1)),
+        (quote!(inline), (0, 0, 1)),
+        (quote!(remote = other::Store<u32>), (1, 0, 0)),
+        (quote!(remote = other::Store, inline), (1, 0, 1)),
+        (quote!(crate = di), (0, 1, 0)),
+        (quote!(crate = ::shop::di,), (0, 1, 0)),
+        (quote!(crate = di, crate = di), (0, 2, 0)),
+        (quote!(crate = "di"), (0, 0, 1)),
+        (quote!(crate = di, inline), (0, 1, 1)),
+        (quote!(crate), (0, 0, 1)),
     ];
-    for (args, arguments) in cases {
+    for (args, (remote, runtime, other)) in cases {
         let written = args.to_string();
+        let arguments = DispatchArguments::new(remote, runtime, other);
         assert_eq!(read(args, item.clone()).arguments, arguments, "{written}");
     }
 }

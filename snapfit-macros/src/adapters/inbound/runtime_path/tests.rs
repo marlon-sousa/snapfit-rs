@@ -72,6 +72,8 @@ fn a_crate_setting_that_is_no_path_gives_none() {
         quote!(crate =),
         quote!(crate = "di"),
         quote!(crate = di::<u32>()),
+        quote!(crate = di::<u32>),
+        quote!(crate = ::shop<u32>::di),
         quote!(remote = di),
     ];
     for setting in cases {

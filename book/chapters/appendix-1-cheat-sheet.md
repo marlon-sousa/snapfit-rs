@@ -9,6 +9,7 @@ Every container attribute and field attribute in `snapfit` `0.3`, with a link to
 | `#[container]` | Keeps the struct as written (attributes, docs, visibility), builds each field after the fields it needs, and generates `new()`, `Default`, `Container`, and `get_<name>()` methods; with a fallible field, `try_new()` and `FallibleContainer` instead of `new()`, `Default` and `Container`. | [Chapter 5](05-installing-and-first-singleton.md), [Chapter 15](15-when-building-can-fail.md) |
 | `#[container(leaf_build = default)]` | Builds every field with no `deps` and no `build` of its own with `Default`; a field's own `build` always wins. Without it, such fields call `new()`. A fallible field can't be one of them: give it a `build` of its own. | [Chapter 7](07-wiring-dependencies-and-constructors.md), [Chapter 15](15-when-building-can-fail.md) |
 | `#[container(leaf_build = constructor(<fn>))]` | Builds those same fields with `<Type>::<fn>()`; `constructor(new)` is what a container does without `leaf_build`. Unless `<fn>` is `new`, a fallible field can't be one of them. | [Chapter 7](07-wiring-dependencies-and-constructors.md) |
+| `#[di::container(crate = di)]` | For a crate whose `Cargo.toml` depends on `snapfit` under another name, such as `di = { package = "snapfit", version = "0.3" }`: the code the macro writes reaches `snapfit` through `di`. A trait it dispatches statically says the same, with `#[di::static_dispatch(crate = di)]`. | No chapter: this sheet only |
 
 ## Static dispatch
 

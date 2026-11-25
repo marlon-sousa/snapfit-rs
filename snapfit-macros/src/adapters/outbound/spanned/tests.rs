@@ -6,7 +6,7 @@ use super::*;
 // whose constructor returns a plain value, which rustc reports once only
 // when every token of the path is at the field's fallible word.
 #[test]
-fn the_runtime_path_is_written_as_it_was_given() {
+fn the_runtime_path_keeps_its_text_whatever_its_span() {
     let cases: [syn::Path; 3] = [
         parse_quote!(::snapfit),
         parse_quote!(crate::di),

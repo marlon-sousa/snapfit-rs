@@ -1,6 +1,6 @@
-# snapfit under the name di, for the fixtures of tests/fixtures/renamed: the
-# crate a user's Cargo.toml writes as di = { package = "snapfit", ... },
-# which compile-outcomes cannot write.
+# snapfit as the fixtures of tests/fixtures/renamed reach it: a crate named
+# di, since compile-outcomes cannot write a renamed dependency, which depends
+# on snapfit itself under the name inject, as a user's Cargo.toml would.
 [package]
 name = "di"
 version = "0.0.0"
@@ -11,4 +11,4 @@ publish = false
 path = "lib.rs"
 
 [dependencies]
-snapfit = { path = "../../../snapfit" }
+inject = { package = "snapfit", path = "../../../snapfit" }

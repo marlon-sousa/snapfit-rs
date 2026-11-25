@@ -6,21 +6,23 @@ use syn::parse::{ParseStream, Parser};
 use syn::{Token, parse_quote};
 
 use super::darling_models::RuntimeMeta;
-use crate::domain::ArgumentProblem;
+use crate::domain::{ArgumentProblem, AttributeProblem, DomainError};
 
 /// `::snapfit`, when the attribute gives no `crate`.
 pub(in crate::adapters) fn default_runtime_path() -> syn::Path {
     parse_quote!(::snapfit)
 }
 
-/// The path `crate = ...` gives, or the problem with what it was given.
-pub(super) fn runtime_path(meta: Option<RuntimeMeta>) -> Result<syn::Path, ArgumentProblem> {
-    match meta {
-        None => Ok(default_runtime_path()),
-        Some(RuntimeMeta::Path(path)) => Ok(path),
-        Some(RuntimeMeta::Quoted(text)) => Err(ArgumentProblem::QuotedRuntimePath(text)),
-        Some(RuntimeMeta::Other(text)) => Err(ArgumentProblem::NotARuntimePath(text)),
-    }
+/// The path `crate = ...` gives, or the container's problem with what it
+/// was given.
+pub(super) fn runtime_path(meta: Option<RuntimeMeta>) -> Result<syn::Path, DomainError> {
+    let problem = match meta {
+        None => return Ok(default_runtime_path()),
+        Some(RuntimeMeta::Path(path)) => return Ok(path),
+        Some(RuntimeMeta::Quoted(text)) => ArgumentProblem::QuotedRuntimePath(text),
+        Some(RuntimeMeta::Other(text)) => ArgumentProblem::NotARuntimePath(text),
+    };
+    Err(AttributeProblem::Container { problem }.into())
 }
 
 /// The `crate` path among `args` that can be read, whatever else is wrong
@@ -62,7 +64,7 @@ pub(super) fn crate_path(setting: &TokenStream) -> Option<syn::Path> {
 fn crate_setting(input: ParseStream) -> syn::Result<syn::Path> {
     input.parse::<Token![crate]>()?;
     input.parse::<Token![=]>()?;
-    input.parse()
+    syn::Path::parse_mod_style(input)
 }
 
 #[cfg(test)]

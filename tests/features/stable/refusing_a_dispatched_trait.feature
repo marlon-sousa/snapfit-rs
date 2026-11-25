@@ -87,6 +87,16 @@ Feature: Refusing a trait that static dispatch cannot follow
       | static_dispatch_remote        | #[snapfit::static_dispatch(remote = ...)] is planned for a future version of snapfit and is not implemented yet |
 
   @v0_3_0
+  Scenario: A crate given twice, or one that is no path of modules, is refused at the attribute
+    Given an invalid dispatched trait fixture "static_dispatch_crate_forms"
+    When the fixture is compiled
+    Then compilation should fail with "#[snapfit::static_dispatch] takes no arguments but crate, given once"
+    And the error should point at line 1 of the fixture
+    And the error should point at line 6 of the fixture
+    And the error should point at line 11 of the fixture
+    And the compiler should report 3 errors
+
+  @v0_3_0
   Scenario: Every problem of the attribute and of the trait is reported in one compile
     Given an invalid dispatched trait fixture "static_dispatch_several_problems"
     When the fixture is compiled

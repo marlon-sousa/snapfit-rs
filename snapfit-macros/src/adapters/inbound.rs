@@ -108,9 +108,7 @@ fn container_settings(meta: ContainerAttrMeta) -> Result<ContainerSettings, Doma
         .transpose()
         .map_err(DomainErrors::from);
     let leaf = build_setting::leaf_constructor(meta.leaf_build).map_err(DomainErrors::from);
-    let runtime = runtime_path::runtime_path(meta.runtime).map_err(|problem| {
-        DomainErrors::from(DomainError::from(AttributeProblem::Container { problem }))
-    });
+    let runtime = runtime_path::runtime_path(meta.runtime).map_err(DomainErrors::from);
     let (mode, (parent, ((leaf_constructor, leaf_ident), runtime))) = DomainErrors::both(
         mode,
         DomainErrors::both(parent, DomainErrors::both(leaf, runtime)),

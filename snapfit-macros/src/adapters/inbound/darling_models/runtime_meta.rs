@@ -20,7 +20,9 @@ pub(in crate::adapters::inbound) enum RuntimeMeta {
 impl FromMeta for RuntimeMeta {
     fn from_expr(expr: &syn::Expr) -> darling::Result<Self> {
         Ok(match ungrouped(expr) {
-            syn::Expr::Path(path) if path.qself.is_none() && path.attrs.is_empty() => {
+            syn::Expr::Path(path)
+                if path.qself.is_none() && path.attrs.is_empty() && is_mod_style(&path.path) =>
+            {
                 Self::Path(path.path.clone())
             }
             syn::Expr::Lit(syn::ExprLit {
@@ -31,3 +33,13 @@ impl FromMeta for RuntimeMeta {
         })
     }
 }
+
+/// A path of modules, such as `::shop::di`, with no type arguments.
+fn is_mod_style(path: &syn::Path) -> bool {
+    path.segments
+        .iter()
+        .all(|segment| segment.arguments.is_none())
+}
+
+#[cfg(test)]
+mod tests;

@@ -81,9 +81,10 @@ impl ShopFactories for Shop {
     }
 }
 
-/// The balance and the name the shop's fields give.
+/// The balance and the name the shop's fields give, with the balance of the
+/// books di keeps through its own renamed dependency.
 pub fn report() -> Result<(u32, String), di::BuildError> {
     let shop = Shop::try_new()?;
     let balance = shop.get_ledger().balance() + shop.get_chosen().balance();
-    Ok((balance, shop.get_name().name()))
+    Ok((balance + di::renamed::balance(), shop.get_name().name()))
 }

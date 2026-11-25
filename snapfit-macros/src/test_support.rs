@@ -126,7 +126,7 @@ pub(crate) fn dispatch_attribute<'a>(
     items: Vec<TraitItemDeclaration<&'a str, &'a str>>,
 ) -> DispatchAttribute<(), &'a str, &'a str> {
     DispatchAttribute::new(
-        DispatchArguments::None,
+        DispatchArguments::default(),
         Annotated::Trait(dispatched_trait(items)),
     )
 }
