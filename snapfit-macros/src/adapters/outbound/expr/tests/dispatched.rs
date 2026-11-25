@@ -25,7 +25,7 @@ fn a_dispatched_field_wraps_the_implementation_it_names_in_its_variant_then_in_i
         ("plain", "::std::sync::Arc::new(<Db>::of(<MySql>::new()))"),
         (
             "connected",
-            "::std::sync::Arc::new(<Db>::of(<Postgres>::connect(__snapfit_config.clone())))",
+            "::std::sync::Arc::new(<Db>::of(<Postgres>::connect(<Arc<Config>as::std::clone::Clone>::clone(&__snapfit_config))))",
         ),
         (
             "defaulted",
@@ -33,7 +33,7 @@ fn a_dispatched_field_wraps_the_implementation_it_names_in_its_variant_then_in_i
         ),
         (
             "built",
-            "::std::sync::Arc::new(<Db>::of(<Cache<Order>>::builder().config(__snapfit_config.clone()).build()))",
+            "::std::sync::Arc::new(<Db>::of(<Cache<Order>>::builder().config(<Arc<Config>as::std::clone::Clone>::clone(&__snapfit_config)).build()))",
         ),
     ];
     for (field, expected) in cases {

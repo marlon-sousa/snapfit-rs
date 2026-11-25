@@ -127,4 +127,18 @@ jobs:
           cache-dependency-path: site/package-lock.json
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+      # Like site.yml, the check builds the edition of the workspace's version
+      # and finds the editions published before on the site branch, which
+      # site/releases.json may list.
+      - name: Open site branch worktree
+        working-directory: .
+        run: site/scripts/publish.sh open "$RUNNER_TEMP/site-pages"
+      - name: Name the edition of the workspace's version
+        working-directory: .
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)
+          echo "BOOK_VERSION=v$version" >> "$GITHUB_ENV"
       - run: npm run verify
+        env:
+          SNAPFIT_RELEASES_FILE: ${{ runner.temp }}/site-pages/snapfit-site.json
+          SNAPFIT_PUBLISHED_PAGES: ${{ runner.temp }}/site-pages

@@ -1,6 +1,7 @@
 //! Adapter: reads `#[snapfit::static_dispatch]` and the item it is on, through
 //! syn, into a dispatch attribute.
 
+mod arguments;
 mod associated_type;
 mod self_use;
 mod signature;
@@ -8,17 +9,21 @@ mod signature;
 #[cfg(test)]
 mod tests;
 
-use proc_macro2::{TokenStream, TokenTree};
+use proc_macro2::TokenStream;
+use quote::ToTokens;
 use syn::ext::IdentExt;
 
 use crate::adapters::syntax::{DispatchDeclaration, TraitSyntax};
 use crate::domain::{
-    Annotated, ConstantName, DispatchArguments, DispatchAttribute, DomainError, DomainErrors,
-    ItemPosition, MacroName, MethodName, PlacedItem, Safety, TraitDeclaration,
-    TraitItemDeclaration, TraitName, TypeName,
+    Annotated, ConstantName, DispatchAttribute, DomainError, DomainErrors, ItemPosition, MacroName,
+    MethodName, PlacedItem, Safety, SelfUse, TraitDeclaration, TraitItemDeclaration, TraitName,
+    TypeName,
 };
+use arguments::arguments;
 use associated_type::associated_type_shape;
+use self_use::{SelfFinder, generics_name_self, names_self};
 use signature::method_shape;
+use syn::visit::Visit;
 
 type ItemDeclaration = TraitItemDeclaration<syn::TraitItemFn, syn::TraitItemType>;
 type Placed = PlacedItem<syn::TraitItemFn, syn::TraitItemType>;
@@ -28,31 +33,17 @@ pub(crate) fn read_dispatch_attribute(
     args: &TokenStream,
     item: &syn::Item,
 ) -> Result<DispatchDeclaration, DomainErrors> {
+    let (arguments, runtime) = arguments(args);
     let annotated = match item {
-        syn::Item::Trait(item) => Annotated::Trait(trait_declaration(item)?),
+        syn::Item::Trait(item) => Annotated::Trait(trait_declaration(item, runtime)?),
         _ => Annotated::Other,
     };
-    Ok(DispatchAttribute::new(arguments(args), annotated))
-}
-
-/// `remote = ...`, whatever follows the `=`, is the setting snapfit plans;
-/// anything else is one it does not take.
-fn arguments(args: &TokenStream) -> DispatchArguments {
-    let mut tokens = args.clone().into_iter();
-
-    match (tokens.next(), tokens.next(), tokens.next()) {
-        (None, _, _) => DispatchArguments::None,
-        (Some(TokenTree::Ident(name)), Some(TokenTree::Punct(equals)), Some(_))
-            if name == "remote" && equals.as_char() == '=' =>
-        {
-            DispatchArguments::Remote
-        }
-        _ => DispatchArguments::Other,
-    }
+    Ok(DispatchAttribute::new(arguments, annotated))
 }
 
 fn trait_declaration(
     item: &syn::ItemTrait,
+    runtime: syn::Path,
 ) -> Result<TraitDeclaration<TraitSyntax, syn::TraitItemFn, syn::TraitItemType>, DomainErrors> {
     let name = TraitName::new(item.ident.unraw().to_string()).map_err(DomainErrors::from);
     let items = DomainErrors::collect(item.items.iter().enumerate().filter_map(placed_item));
@@ -60,9 +51,47 @@ fn trait_declaration(
     let syntax = TraitSyntax {
         ident: item.ident.clone(),
         generics: item.generics.clone(),
+        supertraits: item.supertraits.iter().filter_map(supertrait).collect(),
+        runtime,
     };
     let safety = item.unsafety.map_or(Safety::Safe, |_| Safety::Unsafe);
-    Ok(TraitDeclaration::new(name, syntax, safety, items))
+    Ok(TraitDeclaration::new(
+        name,
+        syntax,
+        safety,
+        bounds(item),
+        items,
+    ))
+}
+
+/// A supertrait the dispatch types are checked against: not `?Sized`, which
+/// relaxes a bound, a lifetime, which they outlive whenever their
+/// implementations do, nor one that names `Self::`, which rustc checks at the
+/// impl without snapfit's help.
+fn supertrait(bound: &syn::TypeParamBound) -> Option<syn::TraitBound> {
+    match bound {
+        syn::TypeParamBound::Trait(bound)
+            if matches!(bound.modifier, syn::TraitBoundModifier::None)
+                && !names_self(bound.to_token_stream()) =>
+        {
+            Some(bound.clone())
+        }
+        _ => None,
+    }
+}
+
+/// Where the trait's supertraits name `Self` other than through a `Self::`
+/// path, and whether its parameters and `where` clause name it at all.
+fn bounds(item: &syn::ItemTrait) -> SelfUse {
+    let mut finder = SelfFinder::new();
+    item.supertraits
+        .iter()
+        .for_each(|bound| finder.visit_type_param_bound(bound));
+    if generics_name_self(&item.generics) {
+        SelfUse::Elsewhere
+    } else {
+        finder.0
+    }
 }
 
 /// The item as the domain sees it, at its position among every item of the

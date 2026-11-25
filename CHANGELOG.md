@@ -13,6 +13,7 @@ Static dispatch: a field typed with a name the container declares holds one of a
 - `Name::of(value)` wraps an implementation into its variant of the dispatched type, so that a test can build any variant itself; a type that is not on the list is a compile error that says so.
 - `implementations = [A, B]` beside `build = factory` on a field of a dispatched type lists the variants its factory returns.
 - A field whose type keeps a trait object deeper in its type arguments, such as `Arc<Controller<Arc<dyn PaymentGateway>>>`, is built by its constructor, builder or `Default` instead of needing `build = factory`.
+- `crate = <path>` on `#[container]` and `#[snapfit::static_dispatch]`, such as `#[di::container(crate = di)]`, names the path the generated code reaches snapfit through, for a crate that depends on snapfit under another name or through a crate that re-exports it.
 - The book's 0.3 edition teaches static dispatch in chapter 13, and how to choose between static and dynamic dispatch, with what a field of several types holds, in chapter 14; the chapters that followed are now chapters 15 to 17.
 
 ### Changed
@@ -28,6 +29,7 @@ Static dispatch: a field typed with a name the container declares holds one of a
 - A public container no longer fails a crate that warns on or denies `missing_docs`: `new()`, `try_new()`, `init()` and every getter carry a doc comment, as a dispatched type's alias does.
 - The doc of a raw container's factories trait names it without `r#`.
 - A field whose `Arc` type a `macro_rules!` passes as `$t:ty`, such as `Arc<Mailer>` or `Arc<dyn Reader>` with an `implementation`, is built inside its `Arc`, as when the type is written by hand.
+- A singleton whose type is not `Clone` is reported at the type its field declares, instead of at `#[container]`.
 
 ## [0.2.0]
 

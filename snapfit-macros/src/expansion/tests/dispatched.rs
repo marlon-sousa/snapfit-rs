@@ -27,10 +27,10 @@ fn a_dispatched_type_becomes_an_alias_with_the_container_s_visibility_and_its_ch
     assert!(code.contains(
         "#[allow(private_interfaces)]pubtypeLedgers=::snapfit::__private::Either<Disk,::snapfit::__private::Either<Fake,::snapfit::__private::Only<Spare>>>;"
     ));
-    assert!(code.contains("__snapfit_implements::<Ledgers>"));
+    assert!(code.contains("__snapfit_dispatches::<Ledgers>"));
     assert!(code.contains("__snapfit_implements::<Spare>"));
     assert!(code.contains("::std::sync::Arc::new(<Ledgers>::of(<Disk>::new()))"));
-    assert!(!code.contains("static_dispatch_for"));
+    assert!(!code.contains("#[static_dispatch_for("));
 }
 
 #[test]
@@ -76,4 +76,30 @@ fn a_container_whose_fields_cannot_be_read_still_writes_each_alias_with_what_rea
     ));
     assert!(code.contains("pubtypeClocks=();"));
     assert!(code.contains("pubtypeStores=();"));
+}
+
+#[test]
+fn the_crate_setting_is_the_path_every_item_reaches_snapfit_through() {
+    let fallible = quote! {
+        #[static_dispatch_for(Ledger as Ledgers)]
+        pub struct Accounts {
+            #[singleton(implementation = Disk)]
+            main: Arc<Ledgers>,
+
+            #[singleton(fallible = true)]
+            config: Config,
+        }
+    };
+    let cases = [
+        (quote!(crate = di), accounts(quote!(implementation = Disk))),
+        (quote!(crate = di), fallible),
+        (quote!(mode = "threaded", crate = di), accounts(quote!())),
+    ];
+    for (args, input) in cases {
+        let written = args.to_string();
+        let code = compact(expand_attribute(args, input, FeatureGate::Stable));
+
+        assert!(!code.contains("::snapfit::"), "{written}: {code}");
+        assert!(code.contains("=di::__private::"), "{written}: {code}");
+    }
 }

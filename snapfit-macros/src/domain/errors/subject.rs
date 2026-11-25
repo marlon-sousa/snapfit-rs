@@ -40,6 +40,8 @@ pub(crate) enum DispatchSubject {
     Item(ItemPosition),
     /// The `unsafe` of an `unsafe trait`.
     Safety,
+    /// The trait's supertraits, parameters and `where` clause.
+    Bounds,
     /// What the attribute was given between its parentheses.
     Arguments,
     /// The item the attribute is on.

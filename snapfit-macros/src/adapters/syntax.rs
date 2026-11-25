@@ -22,6 +22,8 @@ pub(crate) struct ContainerSyntax {
     pub(crate) attrs: Vec<syn::Attribute>,
     /// The function of `leaf_build = constructor(...)` as the user wrote it.
     pub(crate) leaf_constructor: Option<syn::Ident>,
+    /// The path to snapfit's runtime crate, `crate = <path>` or `::snapfit`.
+    pub(crate) runtime: syn::Path,
 }
 
 /// One field, without snapfit's own attributes.
@@ -69,6 +71,10 @@ pub(crate) struct DispatchSyntax {
 pub(crate) struct TraitSyntax {
     pub(crate) ident: syn::Ident,
     pub(crate) generics: syn::Generics,
+    /// The traits its supertraits name, without `?Sized` or lifetimes.
+    pub(crate) supertraits: Vec<syn::TraitBound>,
+    /// The path to snapfit's runtime crate, `crate = <path>` or `::snapfit`.
+    pub(crate) runtime: syn::Path,
 }
 
 pub(crate) type Declaration =
@@ -162,6 +168,20 @@ fn cfg_attr_arguments(input: ParseStream) -> syn::Result<(TokenStream, Vec<syn::
     input.parse::<Token![,]>()?;
     let written = Punctuated::<syn::Meta, Token![,]>::parse_terminated(input)?;
     Ok((condition, written.into_iter().collect()))
+}
+
+/// The type inside the invisible group a `macro_rules!` puts around `$t:ty`,
+/// or inside parentheses.
+pub(crate) fn unwrapped(ty: &syn::Type) -> &syn::Type {
+    match ty {
+        syn::Type::Group(group) => unwrapped(&group.elem),
+        syn::Type::Paren(paren) => unwrapped(&paren.elem),
+        _ => ty,
+    }
+}
+
+pub(crate) fn is_bare_self(ty: &syn::Type) -> bool {
+    matches!(ty, syn::Type::Path(path) if path.qself.is_none() && path.path.is_ident("Self"))
 }
 
 #[cfg(test)]

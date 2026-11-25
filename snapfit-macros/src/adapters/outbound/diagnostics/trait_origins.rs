@@ -15,19 +15,28 @@ pub(crate) struct TraitOrigins {
     /// The attribute's arguments, or the annotated item when it has none.
     arguments: TokenStream,
     safety: Option<Span>,
+    /// The trait's supertraits, parameters and `where` clause, or its name
+    /// when it has none.
+    bounds: TokenStream,
     /// Every item of the trait, in order, so that an item's position finds it.
     items: Vec<TokenStream>,
 }
 
 impl TraitOrigins {
     pub(crate) fn new(args: &TokenStream, item: &syn::Item) -> Self {
-        let (annotated, safety, items) = match item {
+        let (annotated, safety, bounds, items) = match item {
             syn::Item::Trait(item) => (
                 item.ident.to_token_stream(),
                 item.unsafety.map(|unsafety| unsafety.span),
+                bounds_tokens(item),
                 item.items.iter().map(item_tokens).collect(),
             ),
-            _ => (item.to_token_stream(), None, Vec::new()),
+            _ => (item.to_token_stream(), None, TokenStream::new(), Vec::new()),
+        };
+        let bounds = if bounds.is_empty() {
+            annotated.clone()
+        } else {
+            bounds
         };
         let arguments = if args.is_empty() {
             annotated.clone()
@@ -38,6 +47,7 @@ impl TraitOrigins {
             annotated,
             arguments,
             safety,
+            bounds,
             items,
         }
     }
@@ -60,6 +70,7 @@ impl TraitOrigins {
                 Some(span) => syn::Error::new(span, error),
                 None => syn::Error::new_spanned(&self.annotated, error),
             },
+            DispatchSubject::Bounds => syn::Error::new_spanned(&self.bounds, error),
             DispatchSubject::Annotated => syn::Error::new_spanned(&self.annotated, error),
         }
     }
@@ -76,4 +87,12 @@ fn item_tokens(item: &syn::TraitItem) -> TokenStream {
         syn::TraitItem::Fn(method) => method.sig.to_token_stream(),
         _ => item.to_token_stream(),
     }
+}
+
+/// `<T: Into<Self>>: Ordered<Self> where ...`, as the trait writes them.
+fn bounds_tokens(item: &syn::ItemTrait) -> TokenStream {
+    let mut tokens = item.generics.params.to_token_stream();
+    item.supertraits.to_tokens(&mut tokens);
+    item.generics.where_clause.to_tokens(&mut tokens);
+    tokens
 }

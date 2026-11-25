@@ -52,7 +52,7 @@ fn every_problem_of_the_attribute_and_of_each_item_is_reported_together() {
             ReturnShape::ImplTrait,
         ),
     ]);
-    attribute.arguments = DispatchArguments::Other;
+    attribute.arguments = DispatchArguments::new(0, 0, 1);
 
     let errors = messages(plan_dispatch(attribute).unwrap_err());
 
@@ -65,7 +65,7 @@ fn every_problem_of_the_attribute_and_of_each_item_is_reported_together() {
 #[test]
 fn an_attribute_on_something_other_than_a_trait_is_refused_beside_its_arguments() {
     let attribute =
-        DispatchAttribute::<(), &str, &str>::new(DispatchArguments::Other, Annotated::Other);
+        DispatchAttribute::<(), &str, &str>::new(DispatchArguments::new(0, 0, 1), Annotated::Other);
 
     let errors = messages(plan_dispatch(attribute).unwrap_err());
 

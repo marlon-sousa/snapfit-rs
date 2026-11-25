@@ -53,7 +53,7 @@ Feature: Choosing how a field is built
   Scenario: A bad build, leaf_build or mode is reported beside a setting the attribute does not know
     Given an invalid container fixture "unreadable_build_settings"
     When the fixture is compiled
-    Then compilation should fail with "Unknown field: `bogus`. Available values: `introspection`, `leaf_build`, `mode`, `parent`"
+    Then compilation should fail with "Unknown field: `bogus`. Available values: `crate`, `introspection`, `leaf_build`, `mode`, `parent`"
     And compilation should fail with "invalid container mode 'threaded': write mode = "sync", or leave mode out"
     And compilation should fail with "leaf_build = frobnicate cannot build the container's fields that have no deps"
     And compilation should fail with "field 'cache': Unknown field: `bogus`. Available values: `async`, `build`, `deps`, `fallible`, `implementation`, `implementations`"

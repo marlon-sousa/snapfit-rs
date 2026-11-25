@@ -14,6 +14,16 @@ fn given_dispatched_trait_clippy_fixture(world: &mut ContainerWorld, fixture_nam
     world.select_fixture(fixture_name);
 }
 
+#[given(expr = "a fixture {string} of a crate that depends on snapfit only under the name di")]
+fn given_renamed_dependency_fixture(world: &mut ContainerWorld, fixture_name: String) {
+    world.select_fixture(fixture_name);
+}
+
+#[when("that crate is linted with clippy")]
+fn when_renamed_fixture_is_linted(world: &mut ContainerWorld) {
+    world.lint_selected_renamed_fixture();
+}
+
 #[when("the fixture is linted with clippy")]
 fn when_fixture_is_linted(world: &mut ContainerWorld) {
     world.lint_selected_fixture();

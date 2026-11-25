@@ -3,7 +3,7 @@
 use compile_outcomes::Outcome;
 
 use super::ContainerWorld;
-use crate::fixture_outcomes::{fixture_outcome, lint_outcome};
+use crate::fixture_outcomes::{fixture_outcome, lint_outcome, renamed_outcome};
 
 impl ContainerWorld {
     pub fn select_fixture(&mut self, fixture_name: String) {
@@ -16,6 +16,10 @@ impl ContainerWorld {
 
     pub fn lint_selected_fixture(&mut self) {
         self.compile_outcome = Some(lint_outcome(self.selected_fixture()));
+    }
+
+    pub fn lint_selected_renamed_fixture(&mut self) {
+        self.compile_outcome = Some(renamed_outcome(self.selected_fixture()));
     }
 
     pub fn compiled_fixture(&self) -> (&str, &'static Outcome) {

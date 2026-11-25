@@ -12,15 +12,16 @@ use strum::EnumIs;
 use crate::domain::declaration::{Execution, TypeParameters};
 use crate::domain::names::{ConstantName, MacroName, MethodName, TraitName, TypeName};
 
-/// What the attribute itself was given, between its parentheses.
-#[derive(EnumIs, Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub(crate) enum DispatchArguments {
-    #[default]
-    None,
+/// How many settings of each kind the attribute itself was given, between
+/// its parentheses.
+#[derive(new, Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) struct DispatchArguments {
     /// `remote = <path>`, the trait of another crate it would copy.
-    Remote,
-    /// Anything else, which the attribute does not take.
-    Other,
+    pub(crate) remote: usize,
+    /// `crate = <path>`, the path to snapfit.
+    pub(crate) runtime: usize,
+    /// Anything else.
+    pub(crate) other: usize,
 }
 
 #[derive(EnumIs, Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -174,6 +175,8 @@ pub(crate) struct TraitDeclaration<T, M, A> {
     pub(crate) name: TraitName,
     pub(crate) syntax: T,
     pub(crate) safety: Safety,
+    /// Where its supertraits, parameters and `where` clause name `Self`.
+    pub(crate) bounds: SelfUse,
     /// In the order the trait declares them.
     pub(crate) items: Vec<PlacedItem<M, A>>,
 }

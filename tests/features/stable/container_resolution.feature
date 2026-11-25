@@ -175,3 +175,16 @@ Feature: Container Dependency Resolution
       | planned_parent_container | 7    | #[container(parent = ...)]              |
       | planned_introspection    | 7    | #[container(introspection = true)]      |
       | generic_container        | 4    | generic parameters on container 'Repo'  |
+
+  @v0_3_0 @regression
+  Scenario Outline: A singleton whose type is not Clone is rustc's own error at the type its field declares
+    Given an invalid container fixture "<fixture>"
+    When the fixture is compiled
+    Then compilation should fail with "the trait bound `<type>: Clone` is not satisfied"
+    And the error should point at line <line> of the fixture
+    And the compiler should report 1 errors
+
+    Examples:
+      | fixture                    | type     | line |
+      | singleton_not_clone        | Config   | 9    |
+      | dispatched_value_not_clone | Postgres | 22   |

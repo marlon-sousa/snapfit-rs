@@ -42,7 +42,7 @@ pub(super) fn forwarded_method(
         forwarding,
     };
     let arms = target
-        .variants()
+        .variants(&path.runtime)
         .into_iter()
         .map(|variant| call.arm(variant));
     let cfgs = method

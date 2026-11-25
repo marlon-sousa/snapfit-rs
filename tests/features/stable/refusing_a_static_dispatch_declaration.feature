@@ -95,20 +95,17 @@ Feature: Refusing a static dispatch declaration that cannot be followed
     And the compiler should report 3 errors
 
   @v0_3_0
-  Scenario: A trait without #[snapfit::static_dispatch] is rustc's own error at the trait the declaration names
-    Given an invalid container fixture "static_dispatch_unmarked_trait"
+  Scenario Outline: A trait without #[snapfit::static_dispatch], or whose implementations disagree on an associated type, is refused in words at the trait the declaration names
+    Given an invalid container fixture "<fixture>"
     When the fixture is compiled
-    Then compilation should fail with "Only<MySql>: Database` is not satisfied"
-    And the error should point at line 13 of the fixture
+    Then compilation should fail with "`Db` cannot dispatch the trait `Database` that static_dispatch_for names, because the trait, or one of its supertraits, is not marked #[snapfit::static_dispatch], an implementation on its list does not implement it, or the implementations disagree on an associated type"
+    And the error should point at line <line> of the fixture
     And the compiler should report 1 errors
 
-  @v0_3_0
-  Scenario: Implementations that disagree on an associated type are rustc's own error at the trait the declaration names
-    Given an invalid container fixture "static_dispatch_disagreeing_associated_types"
-    When the fixture is compiled
-    Then compilation should fail with "as Database>::Row == u32`"
-    And the error should point at line 20 of the fixture
-    And the compiler should report 1 errors
+    Examples:
+      | fixture                                      | line |
+      | static_dispatch_unmarked_trait               | 13   |
+      | static_dispatch_disagreeing_associated_types | 20   |
 
   @v0_3_0
   Scenario Outline: An implementation of another trait is rustc's own error where its list names it

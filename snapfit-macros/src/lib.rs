@@ -32,6 +32,11 @@ use proc_macro::TokenStream;
 /// into its variant, and calling the trait on a `Name` reaches the
 /// implementation it holds through a `match`.
 ///
+/// A crate that depends on snapfit under another name, such as
+/// `di = { package = "snapfit", version = "0.3" }`, writes
+/// `#[di::container(crate = di)]`, so that the code the macro writes reaches
+/// snapfit through `di` instead of `::snapfit`.
+///
 /// Use it through the `snapfit` crate, as `snapfit::container`.
 /// [The Snapfit Book](https://marlon-sousa.github.io/snapfit-rs/book/v0.3.0/), in the
 /// edition of this release, teaches it step by step, with
@@ -48,9 +53,11 @@ pub fn container(args: TokenStream, input: TokenStream) -> TokenStream {
 /// Written once, on the trait, where it is defined:
 /// `#[snapfit::static_dispatch] pub trait Database { ... }`. It keeps the
 /// trait as written and implements it for snapfit's dispatch types, each
-/// method forwarding to the implementation the value holds. It takes no
-/// arguments, and it refuses, at the item, what a `match` cannot forward,
-/// such as a method with no receiver or an associated const.
+/// method forwarding to the implementation the value holds. Its one
+/// setting, `crate = <path>`, as in `#[di::static_dispatch(crate = di)]`,
+/// is for a crate that depends on snapfit under another name. It refuses,
+/// at the item, what a `match` cannot forward, such as a method with no
+/// receiver or an associated const.
 ///
 /// The container then declares the type that holds the implementations,
 /// with `#[static_dispatch_for(Database as Db)]` under `#[container]`, and

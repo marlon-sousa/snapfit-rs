@@ -48,6 +48,22 @@ Feature: Refusing a trait that static dispatch cannot follow
     And the error should point at line 2 of the fixture
     And the compiler should report 1 errors
 
+  @v0_3_0 @regression
+  Scenario: Self in the trait's own parameters or bounds is refused at the bounds, also through a macro_rules!, and a bound on Self itself or a Self:: path in a supertrait is not
+    Given an invalid dispatched trait fixture "static_dispatch_self_in_trait_bounds"
+    When the fixture is compiled
+    Then compilation should fail with "trait 'Store' names Self in its parameters or bounds, such as where T: Into<Self> or where Self::Item: Clone, which snapfit cannot promise of the type that dispatches it; remove Self from them, bound an associated type where it is declared, such as type Row: Clone, or write a bound on Self as a supertrait, such as trait Store: Holder<Self::Item>"
+    And compilation should fail with "trait 'Inline' names Self in its parameters or bounds"
+    And compilation should fail with "trait 'Ranked' names Self in its parameters or bounds"
+    And compilation should fail with "trait 'Archive' names Self in its parameters or bounds"
+    And compilation should fail with "trait 'Rows' names Self in its parameters or bounds"
+    And the error should point at line 2 of the fixture
+    And the error should point at line 7 of the fixture
+    And the error should point at line 17 of the fixture
+    And the error should point at line 24 of the fixture
+    And the error should point at line 38 of the fixture
+    And the compiler should report 5 errors
+
   @v0_3_0
   Scenario: The attribute on anything but a trait is refused at the item
     Given an invalid dispatched trait fixture "static_dispatch_on_struct"
@@ -57,7 +73,7 @@ Feature: Refusing a trait that static dispatch cannot follow
     And the compiler should report 1 errors
 
   @v0_3_0
-  Scenario: An argument is refused, and remote is refused as planned
+  Scenario Outline: An argument other than one crate is refused, and remote is refused as planned
     Given an invalid dispatched trait fixture "<fixture>"
     When the fixture is compiled
     Then compilation should fail with "<message>"
@@ -66,14 +82,25 @@ Feature: Refusing a trait that static dispatch cannot follow
 
     Examples:
       | fixture                       | message                                                                                                    |
-      | static_dispatch_with_argument | #[snapfit::static_dispatch] takes no arguments; write it alone, as #[snapfit::static_dispatch]             |
+      | static_dispatch_with_argument | #[snapfit::static_dispatch] takes no arguments but crate, given once, the path to snapfit when a crate depends on it under another name; write it alone, as #[snapfit::static_dispatch], or as #[snapfit::static_dispatch(crate = di)] |
+      | static_dispatch_quoted_crate  | #[snapfit::static_dispatch] takes no arguments but crate, given once                                         |
       | static_dispatch_remote        | #[snapfit::static_dispatch(remote = ...)] is planned for a future version of snapfit and is not implemented yet |
+
+  @v0_3_0
+  Scenario: A crate given twice, or one that is no path of modules, is refused at the attribute
+    Given an invalid dispatched trait fixture "static_dispatch_crate_forms"
+    When the fixture is compiled
+    Then compilation should fail with "#[snapfit::static_dispatch] takes no arguments but crate, given once"
+    And the error should point at line 1 of the fixture
+    And the error should point at line 6 of the fixture
+    And the error should point at line 11 of the fixture
+    And the compiler should report 3 errors
 
   @v0_3_0
   Scenario: Every problem of the attribute and of the trait is reported in one compile
     Given an invalid dispatched trait fixture "static_dispatch_several_problems"
     When the fixture is compiled
-    Then compilation should fail with "#[snapfit::static_dispatch] takes no arguments"
+    Then compilation should fail with "#[snapfit::static_dispatch] takes no arguments but crate"
     And compilation should fail with "associated const 'LIMIT' in trait 'Database' could have a different value in each implementation"
     And compilation should fail with "method 'create' in trait 'Database' has no receiver"
     And compilation should fail with "method 'orders' in trait 'Database' returns impl Trait"

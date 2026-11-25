@@ -19,9 +19,13 @@ fn a_documented_getter_clones_a_singleton_and_builds_a_transient_fresh() {
 
     let code = compact(emit_getters_impl(&plan));
 
-    assert!(code.contains("pubfnget_config(&self)->std::sync::Arc<Config>{self.config.clone()}"));
-    assert!(code.contains("pubfnget_cart(&self)->Cart{<Cart>::new(self.config.clone())}"));
-    assert!(code.contains("pubfnget_type(&self)->Kind{self.r#type.clone()}"));
+    assert!(code.contains("pubfnget_config(&self)->std::sync::Arc<Config>{<std::sync::Arc<Config>as::std::clone::Clone>::clone(&self.config)}"));
+    assert!(code.contains("pubfnget_cart(&self)->Cart{<Cart>::new(<std::sync::Arc<Config>as::std::clone::Clone>::clone(&self.config))}"));
+    assert!(
+        code.contains(
+            "pubfnget_type(&self)->Kind{<Kindas::std::clone::Clone>::clone(&self.r#type)}"
+        )
+    );
     assert!(code.contains(&compact(quote! {
         #[doc = "Returns a clone of `config`, built once with the container."]
         pub fn get_config

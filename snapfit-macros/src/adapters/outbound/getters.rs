@@ -4,7 +4,7 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::ext::IdentExt;
 
-use super::expr::{Site, ValueSource, construct};
+use super::expr::{Site, ValueSource, cloned, construct};
 use crate::adapters::syntax::{FieldSyntax, Plan};
 use crate::domain::Step;
 
@@ -37,7 +37,7 @@ fn emit_getter(step: &Step<FieldSyntax>, site: Site<'_>) -> TokenStream {
             "Returns a clone of `{}`, built once with the container.",
             ident.unraw()
         );
-        (quote!(self.#ident.clone()), doc)
+        (cloned(ty, quote!(self.#ident)), doc)
     } else {
         let doc = format!("Builds a new `{}` for this call.", ident.unraw());
         (construct(step, site), doc)
