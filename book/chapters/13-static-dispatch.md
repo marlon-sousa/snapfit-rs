@@ -124,8 +124,12 @@ region: container
 No field names `ListPrice` or `SalePrice` any more, so the list would be empty. `extra = [ListPrice, SalePrice]` puts them on it, in every build. If we forgot it, the container would be refused at `static_dispatch_for`:
 
 ```compile-error
-name: ch13_rule_without_extra
-``` Let's run it, once with today's configuration, and once calling the factory on its own with a sale:
+name: ch13_prices_without_extra
+```
+
+An older compiler, such as Rust 1.85, may also report your impl of the factories trait, which the refused container doesn't write; adding `extra` makes those errors go too.
+
+Let's run it, once with today's configuration, and once calling the factory on its own with a sale:
 
 ```example
 name: ch13_choosing_the_rule
