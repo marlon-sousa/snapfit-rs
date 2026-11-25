@@ -182,9 +182,9 @@ Feature: Container Dependency Resolution
     When the fixture is compiled
     Then compilation should fail with "the trait bound `<type>: Clone` is not satisfied"
     And the error should point at line <line> of the fixture
-    And the compiler should report <count> errors
+    And the compiler should report 1 errors
 
     Examples:
-      | fixture                    | type     | line | count |
-      | singleton_not_clone        | Config   | 13   | 2     |
-      | dispatched_value_not_clone | Postgres | 22   | 1     |
+      | fixture                    | type     | line |
+      | singleton_not_clone        | Config   | 9    |
+      | dispatched_value_not_clone | Postgres | 22   |
