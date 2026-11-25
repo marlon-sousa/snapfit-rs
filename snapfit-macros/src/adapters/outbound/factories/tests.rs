@@ -109,7 +109,7 @@ fn a_fallible_factory_returns_a_result_of_its_field_s_type_with_a_boxed_error() 
 }
 
 #[test]
-fn an_input_of_a_dispatched_type_allows_a_more_private_implementation() {
+fn only_an_input_of_a_dispatched_type_allows_a_more_private_implementation() {
     let plan = plan_for(parse_quote! {
         #[static_dispatch_for(Database as Db)]
         pub struct Shop {
@@ -126,13 +126,17 @@ fn an_input_of_a_dispatched_type_allows_a_more_private_implementation() {
 
     assert!(code.contains("pubconfig:Arc<Config>,"), "{code}");
     assert!(
+        !code.contains("#[allow(private_interfaces)]pubconfig"),
+        "{code}"
+    );
+    assert!(
         code.contains("#[allow(private_interfaces)]pubdb:Arc<Db>,"),
         "{code}"
     );
 }
 
 #[test]
-fn the_build_method_of_a_dispatched_field_allows_a_more_private_implementation() {
+fn only_the_build_method_of_a_dispatched_field_allows_a_more_private_implementation() {
     let plan = plan_for(parse_quote! {
         #[static_dispatch_for(Database as Db, extra = [MySql])]
         pub struct Shop {
@@ -158,7 +162,11 @@ fn the_build_method_of_a_dispatched_field_allows_a_more_private_implementation()
         "{code}"
     );
     assert!(
-        code.contains("]fnbuild_orders(inputs:ShopOrdersInputs)->Arc<Orders>;"),
+        code.contains("fnbuild_orders(inputs:ShopOrdersInputs)->Arc<Orders>;"),
+        "{code}"
+    );
+    assert!(
+        !code.contains("#[allow(private_interfaces)]fnbuild_orders"),
         "{code}"
     );
 }

@@ -24,8 +24,7 @@ pub enum Backend {
 }
 
 thread_local! {
-    /// Stands for an environment variable, which a scenario cannot set
-    /// without touching every other scenario that runs beside it.
+    /// Stands for an environment variable.
     static BACKEND: Cell<Backend> = Cell::default();
 }
 
