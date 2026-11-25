@@ -1,5 +1,0 @@
-error: the dispatched type 'Prices' holds no implementation in this build; name one with implementation on a field of type Arc<Prices>, or list it in extra = [...]
-  --> book/compile-errors/ch13_prices_without_extra.rs:20:1
-   |
-20 | #[static_dispatch_for(PriceRule as Prices)]
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

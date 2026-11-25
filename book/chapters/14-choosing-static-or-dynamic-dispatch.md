@@ -1,6 +1,15 @@
 # Choosing between static and dynamic dispatch
 
-We now have two ways to hand a service "something that implements this trait". A trait object, `Arc<dyn PaymentGateway>`, finds its implementation while the program runs, by following a pointer to a table of methods. That is called dynamic dispatch. A type like `Prices` from [Chapter 13](13-static-dispatch.md) finds it with a `match` over a list the compiler knows in full. That is static dispatch. Neither is better in general, so let's go through the shop, decide for each part, and see what each choice costs.
+We now have two ways to hand a service "something that implements this trait". A trait object, `Arc<dyn PaymentGateway>`, is called dynamic dispatch, and a type like `Prices` from [Chapter 13](13-static-dispatch.md) is called static dispatch. Both pick the implementation that answers a call while the program runs; what differs is how they find it. Neither is better in general, so let's first look at what each one holds, then go through the shop, decide for each part, and see what each choice costs.
+
+## What a field of several types holds
+
+Rust wants to know how big every value is before the program runs. That's how it lays out a struct, field after field, and how it knows how much room a local variable takes. Most of the time we never notice, because each field has one type, and each type has one size.
+
+A field that may hold any of several types breaks that. `ListPrice` holds nothing at all, `MemberPrice` holds a percentage, and a rule we write next year might hold a whole table of discounts. If the field could be any of them, how much room should the struct keep for it? There are two ways out, and they are exactly our two kinds of dispatch.
+
+1. **Keep the value somewhere else, and hold a pointer to it.** A pointer is always the same size, whatever it points at, so the field's size is settled. That's what `dyn` means: the value lives behind the pointer, and the compiler no longer knows which type it is. So beside the pointer, Rust keeps a second one, to a small table of the methods of the type behind it. A call follows that table to the right method. This is dynamic dispatch, and because the compiler never needs the list of types, it can hold any implementation, even one another crate writes years later.
+2. **Keep room for the largest, and a tag saying which one is there.** This is an enum: it is as big as its biggest variant, plus a small tag. A call checks the tag in a `match`, and each arm calls its own implementation directly. That check happens while the program runs too, but it goes through no pointer and no table, and the compiler sees every arm, so it can fold a short method, such as our price arithmetic, right into the code that calls it. This is static dispatch, and what it costs is the list: the enum can hold only the types it was written with.
 
 ## One container, both kinds
 
@@ -77,12 +86,12 @@ region: test
 
 | Question | Dynamic dispatch, `Arc<dyn Trait>` | Static dispatch, `Name` or `Arc<Name>` |
 | :--- | :--- | :--- |
-| Which implementations can it hold? | Any type that implements the trait, from any crate | The list the container collects from its fields, `extra` and extensions |
-| What does a call cost? | A pointer to the table of methods; the compiler rarely inlines it | A `match`, which the compiler can inline |
+| Which implementations can it hold? | Any type that implements the trait, from any crate | The list the container collects from its fields, factory lists included, and its extensions |
+| How does a call find its implementation? | While the program runs, through a pointer to the table of methods; the compiler rarely inlines it | While the program runs, through a `match` on the tag, with no pointer or table; the compiler sees every arm and can inline it |
 | What does the trait need? | Nothing, but it must be one a trait object can hold: no generic methods, for example | `#[snapfit::static_dispatch]`, so it must be a trait of your own crate |
 | Generic methods? | No | Yes |
 | A supertrait of another crate, such as `Display`? | Yes | No |
-| What is stored? | Each implementation at its own size, behind the `Arc` | Room for the largest implementation and which one it holds, behind the `Arc` or held by value |
+| What is stored? | A pointer to the value, at its own size, and one to its table of methods | Room for the largest implementation and a tag saying which one it holds, behind the `Arc` or held by value |
 | What do dependents name? | The trait | The container's type, or a type parameter the container fills in |
 | How does a test hand in a stand-in? | Any type that implements the trait | A type on the list, through an extension, or directly to a generic dependent |
 
@@ -104,7 +113,8 @@ Picking a dispatch is like picking between a taxi rank and the shop's own delive
 
 ## Remember
 
-1. A field's type decides its dispatch: `Arc<dyn Trait>` is dynamic, and `Name` or `Arc<Name>`, for a name the container's `static_dispatch_for` declares, is static. One container can hold both.
-2. Prefer a trait object until a closed list of cheap, frequent calls, or a generic method, asks for static dispatch.
-3. A trait of another crate, or one with a supertrait of another crate such as `Display`, is dispatched dynamically.
-4. A service that lives outside the container's crate is generic over the trait, and the container names the dispatched type in the field, such as `Arc<Checkout<Prices>>`.
+1. Both kinds pick the implementation while the program runs: a trait object through a pointer and a table of methods, a dispatched type through a `match` on its tag, whose every arm the compiler sees.
+2. A field's type decides its dispatch: `Arc<dyn Trait>` is dynamic, and `Name` or `Arc<Name>`, for a name the container's `static_dispatch_for` declares, is static. One container can hold both.
+3. Prefer a trait object until a closed list of cheap, frequent calls, or a generic method, asks for static dispatch.
+4. A trait of another crate, or one with a supertrait of another crate such as `Display`, is dispatched dynamically.
+5. A service that lives outside the container's crate is generic over the trait, and the container names the dispatched type in the field, such as `Arc<Checkout<Prices>>`.

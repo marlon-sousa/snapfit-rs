@@ -69,7 +69,7 @@ The guest's basket and the member's basket are the same `Basket` type, holding t
 ## What snapfit wrote
 
 1. **One type for the list.** `Prices` is a type alias that the container writes next to itself, with the container's visibility. It stands for one of snapfit's dispatch types, holding either a `ListPrice` or a `MemberPrice`. What that type looks like inside is snapfit's business: your code names `Prices`, and calls the trait on it.
-2. **The list comes from the fields.** `Prices` holds the implementation of every field typed `Prices` or `Arc<Prices>`, in the order of the fields. A rule two fields name counts once. Later in this chapter we'll add rules that no field names.
+2. **The list comes from the fields.** `Prices` holds the implementation of every field typed `Prices` or `Arc<Prices>`, in the order of the fields. A rule two fields name counts once. Later in this chapter we'll add rules that only a test or a factory builds.
 3. **Every call is a `match`.** The trait's attribute implements `PriceRule` for the dispatch type: each method looks at which rule the value holds, and calls that rule directly. That is the enum of Chapter 2, and the compiler sees through it the same way.
 4. **The field is built like any other.** The container builds the implementation, with its `new`, `build = constructor(...)`, `build = default` or `build = builder`, and its `deps`, wraps it in its variant, and then in an `Arc`, because the field says `Arc`.
 5. **Mistakes don't compile.** A type in `implementation` that doesn't implement the trait is refused where the field names it, and a trait without `#[snapfit::static_dispatch]` is refused where `static_dispatch_for` names it.
@@ -96,7 +96,7 @@ The test builds the basket directly, as [Chapter 6](06-pure-domain-types.md) tau
 1. **`extend_static_dispatch(Prices, [FixedPrice])`** adds `FixedPrice` to the list of `Prices`, beside the rules the fields name.
 2. **`cfg_attr(test, ...)`** keeps that line only when the crate's own tests are built. Rust removes the attribute from every other build before the container sees it, so production holds only the two real rules, and `FixedPrice`, which is itself `#[cfg(test)]`, doesn't exist there at all.
 
-A type that isn't on the list doesn't compile: `Prices::of(HalfPrice)` is refused, saying that `HalfPrice` is not one of the implementations this dispatched type holds. Several extensions can add to one type, each under its own condition, and they only ever add. Integration tests under `tests/` build your crate without `cfg(test)`, just as [Chapter 12](12-testing-a-service-on-its-own.md) said of mocks, so they extend the list under a feature instead, such as `cfg_attr(feature = "mocks", ...)`.
+A type that isn't on the list doesn't compile: `Prices::of(HalfPrice)` is refused, saying that `HalfPrice` is not one of the implementations this dispatched type holds. Several extensions can add to one type, each under its own condition, and they only ever add. Written without `cfg_attr`, an extension adds to every build, for a rule that only code outside the container builds. Integration tests under `tests/` build your crate without `cfg(test)`, just as [Chapter 12](12-testing-a-service-on-its-own.md) said of mocks, so they extend the list under a feature instead, such as `cfg_attr(feature = "mocks", ...)`.
 
 One more detail: `FixedPrice` is `pub`. `Basket::new` is public and names `Prices`, so if a rule on the list were more private than `Basket::new`, rustc's `private_interfaces` lint would warn about `Basket::new`, and about every other public item of yours that names `Prices`, such as the methods of your impl of a factories trait. Making the stand-in as visible as the code that names `Prices` keeps the build quiet; you can also allow that lint on your own item.
 
@@ -114,20 +114,20 @@ name: ch13_choosing_the_rule
 region: sale
 ```
 
-Now the container can't name the rule in a field, because it doesn't know whether today is a sale day until the configuration has been read. That's the situation at the end of [Chapter 11](11-choosing-an-implementation.md), and the answer is the same: a factory. It returns the field's type, `Arc<Prices>`, and picks the variant:
+Now the container can't build the rule itself, because it doesn't know whether today is a sale day until the configuration has been read. That's the situation at the end of [Chapter 11](11-choosing-an-implementation.md), and the answer is the same: a factory. It returns the field's type, `Arc<Prices>`, and picks the variant:
 
 ```example
 name: ch13_choosing_the_rule
 region: container
 ```
 
-No field names `ListPrice` or `SalePrice` any more, so the list would be empty. `extra = [ListPrice, SalePrice]` puts them on it, in every build. If we forgot it, the container would be refused at `static_dispatch_for`:
+The factory chooses, but `Prices` still needs to know which rules it may choose from, so that it can hold either. That's what `implementation` says on a factory field: not the one rule the container builds, but the list of rules the factory may return, `implementation = [ListPrice, SalePrice]`. They join the list of `Prices` like the rule of any other field. A factory that returns only one rule can name it alone, as `implementation = ListPrice`. If we left the list out, no field would name a rule, the list would be empty, and the container would be refused at `static_dispatch_for`:
 
 ```compile-error
-name: ch13_prices_without_extra
+name: ch13_prices_without_variants
 ```
 
-An older compiler, such as Rust 1.85, may also report your impl of the factories trait, which the refused container doesn't write; adding `extra` makes those errors go too.
+An older compiler, such as Rust 1.85, may also report your impl of the factories trait, which the refused container doesn't write; adding the list makes those errors go too.
 
 Let's run it, once with today's configuration, and once calling the factory on its own with a sale:
 
@@ -161,7 +161,7 @@ A supertrait needs the attribute too, when it is a trait of your own crate, beca
 ## Which problem this solves
 
 1. **Forwarding by hand** ([Chapter 2](02-choosing-between-implementations.md)): `#[snapfit::static_dispatch]` writes the `match` of every method for every implementation, and the container collects the implementations from its fields.
-2. **A closed list** ([Chapter 2](02-choosing-between-implementations.md)): the list is still closed, which is what lets the compiler see every case, but it lives in the container alone. Adding a rule means a type and a field, or an entry of `extra`, and no service changes.
+2. **A closed list** ([Chapter 2](02-choosing-between-implementations.md)): the list is still closed, which is what lets the compiler see every case, but it lives in the container alone. Adding a rule means a type and a field or a factory's list that names it, and no service changes.
 3. **Spreading type parameters** ([Chapter 2](02-choosing-between-implementations.md)): `Basket` takes one type, `Arc<Prices>`, whatever rule it holds, and nothing above it needs a parameter.
 4. **Hard to test** ([Chapter 1](01-a-service-that-builds-its-own-dependencies.md)): a test builds `Prices::of(FixedPrice(100))` itself, from a stand-in that an extension adds to the list in test builds only.
 
@@ -169,7 +169,7 @@ A supertrait needs the attribute too, when it is a trait of your own crate, beca
 
 1. Mark the trait with `#[snapfit::static_dispatch]`, once, where it is defined; the implementations stay plain types.
 2. Declare the type under `#[container]` with `#[static_dispatch_for(Trait as Name)]`, and type the fields `Name` or `Arc<Name>`, each with its `implementation`, or with `build = factory`.
-3. The list is the fields' implementations, then `extra = [...]`, then every `extend_static_dispatch(Name, [...])` in the build; put test stand-ins under `cfg_attr(test, ...)`.
+3. The list is the fields' implementations, then every `extend_static_dispatch(Name, [...])` in the build; put test stand-ins under `cfg_attr(test, ...)`.
 4. `Name::of(value)` builds a variant, and accepts only a type on the list.
-5. A factory returns `Name` or `Arc<Name>`, and the implementations it may build go in `extra`.
+5. A factory returns `Name` or `Arc<Name>`, and lists the implementations it may return beside it: `build = factory, implementation = [A, B]`.
 6. Static dispatch fits a closed list of implementations of your own trait whose calls are frequent and cheap; measure before you trade a trait object for it.

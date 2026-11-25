@@ -84,12 +84,12 @@ impl Basket {
 
 // ANCHOR: container
 #[container]
-#[static_dispatch_for(PriceRule as Prices, extra = [ListPrice, SalePrice])]
+#[static_dispatch_for(PriceRule as Prices)]
 pub struct SaleShopContainer {
     #[singleton(build = constructor(load))]
     config: Arc<ShopConfig>,
 
-    #[singleton(deps = [config], build = factory)]
+    #[singleton(deps = [config], build = factory, implementation = [ListPrice, SalePrice])]
     prices: Arc<Prices>,
 
     #[singleton(deps = [prices])]
