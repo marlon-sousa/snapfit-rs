@@ -3,6 +3,7 @@
 
 use derive_more::Display;
 
+use super::DispatchSubject;
 use crate::domain::dispatched_trait::{ItemPosition, TraitItem};
 use crate::domain::names::TraitName;
 
@@ -76,4 +77,15 @@ pub(crate) enum ItemProblem {
         "writes items that snapfit cannot see, so it cannot forward them; write the items in the trait itself"
     )]
     Macro,
+}
+
+impl DispatchProblem {
+    pub(super) fn subject(&self) -> DispatchSubject {
+        match self {
+            Self::Item { position, .. } => DispatchSubject::Item(*position),
+            Self::UnsafeTrait(_) => DispatchSubject::Safety,
+            Self::Arguments => DispatchSubject::Arguments,
+            Self::NotATrait => DispatchSubject::Annotated,
+        }
+    }
 }

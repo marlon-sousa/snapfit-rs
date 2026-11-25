@@ -1,5 +1,5 @@
-//! Error: why a field built with build = builder cannot reach its builder's
-//! settings and setters.
+//! Error: why a field's builder settings, labelled deps or setters cannot be
+//! used.
 
 use derive_more::Display;
 

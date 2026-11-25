@@ -5,7 +5,6 @@ use derive_more::Display;
 
 use crate::domain::names::{ContainerName, DependencyName};
 
-/// Why this build refuses a feature.
 #[derive(Debug, Clone, PartialEq, Eq, Display)]
 pub(crate) enum FeatureProblem {
     #[display(

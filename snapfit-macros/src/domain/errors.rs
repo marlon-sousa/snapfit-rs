@@ -1,7 +1,6 @@
 //! Error: what makes snapfit refuse a container or a dispatched trait, each
 //! worded as the sentence the compiler shows, which must read well spoken by
-//! a screen reader. The error is composed of parts, one for each kind of
-//! problem, each with its own words and subject.
+//! a screen reader.
 
 mod accumulated;
 mod arguments;

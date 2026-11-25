@@ -1,6 +1,6 @@
 //! Error: which field or trait item an error is about, for the diagnostic to point at.
 
-use super::{DispatchProblem, DomainError, Feature, FeatureProblem};
+use super::{DomainError, Feature, FeatureProblem};
 use crate::domain::dispatched_trait::ItemPosition;
 use crate::domain::dispatched_type::AttributePosition;
 use crate::domain::names::DependencyName;
@@ -44,17 +44,6 @@ pub(crate) enum DispatchSubject {
     Arguments,
     /// The item the attribute is on.
     Annotated,
-}
-
-impl DispatchProblem {
-    fn subject(&self) -> DispatchSubject {
-        match self {
-            Self::Item { position, .. } => DispatchSubject::Item(*position),
-            Self::UnsafeTrait(_) => DispatchSubject::Safety,
-            Self::Arguments => DispatchSubject::Arguments,
-            Self::NotATrait => DispatchSubject::Annotated,
-        }
-    }
 }
 
 impl DomainError {

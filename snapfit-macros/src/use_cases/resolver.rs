@@ -4,6 +4,7 @@
 
 mod call;
 mod cycle;
+mod refusals;
 mod resolved_steps;
 mod step;
 #[cfg(test)]
@@ -11,6 +12,7 @@ mod tests;
 mod walk;
 
 use super::repeats::repeats;
+use refusals::{duplicate, unknown_prerequisites};
 pub(crate) use resolved_steps::ResolvedSteps;
 use step::step_of;
 use walk::{Declared, OnPath, Outcome, Placed, is_unknown, name_of_outcome};
@@ -19,8 +21,8 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use crate::domain::{
-    Constructor, ContainerDeclaration, DeclarationProblem, DependencyDeclaration, DependencyName,
-    DomainError, DomainErrors, GraphProblem, Step,
+    Constructor, ContainerDeclaration, DependencyDeclaration, DependencyName, DomainError,
+    DomainErrors, Step,
 };
 use crate::use_cases::static_dispatch::{DispatchedNames, dispatch_of};
 
@@ -90,8 +92,7 @@ impl<F, T> Resolver<F, T> {
 
     fn declare(&mut self, declaration: DependencyDeclaration<F, T>) {
         if self.pending.contains_key(&declaration.name) {
-            let duplicate = DeclarationProblem::DuplicateDependency(declaration.name);
-            self.errors.push(DomainError::Declaration(duplicate));
+            self.errors.push(duplicate(declaration.name));
             return;
         }
         let position = self.declared.len();
@@ -171,12 +172,9 @@ impl<F, T> Resolver<F, T> {
         )
         .distinct;
         if !missing.is_empty() {
-            self.errors
-                .push(DomainError::Graph(GraphProblem::UnknownPrerequisites {
-                    available: self.others_than(&dependency.name),
-                    dependency: dependency.name.clone(),
-                    missing,
-                }));
+            let available = self.others_than(&dependency.name);
+            let unknown = unknown_prerequisites(dependency.name.clone(), missing, available);
+            self.errors.push(unknown);
         }
         outcomes.into_iter().map(Outcome::into_step).collect()
     }

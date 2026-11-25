@@ -12,10 +12,14 @@ pub(super) fn ensure_unconditional(
         .attrs
         .iter()
         .any(|attr| attr.path().is_ident("cfg") || attr.path().is_ident("cfg_attr"));
-    (!is_conditional).then_some(()).ok_or_else(|| {
-        DomainError::Declaration(DeclarationProblem::ConditionalField {
-            dependency: name.clone(),
-        })
+    (!is_conditional)
+        .then_some(())
+        .ok_or_else(|| conditional_field(name))
+}
+
+fn conditional_field(name: &DependencyName) -> DomainError {
+    DomainError::Declaration(DeclarationProblem::ConditionalField {
+        dependency: name.clone(),
     })
 }
 

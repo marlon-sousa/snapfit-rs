@@ -2,7 +2,6 @@
 
 use derive_more::Display;
 
-/// What is wrong with an attribute's arguments, apart from which attribute.
 #[derive(Debug, Clone, PartialEq, Eq, Display)]
 pub(crate) enum ArgumentProblem {
     /// The words of darling or syn, which read the arguments.
