@@ -97,10 +97,10 @@ pub struct ChosenAccounts {
     #[singleton]
     config: Arc<Config>,
 
-    #[singleton(deps = [setting, folder, config], build = factory, implementation = [Archive, Mirror])]
+    #[singleton(deps = [setting, folder, config], build = factory, implementations = [Archive, Mirror])]
     shared: Arc<Chosen>,
 
-    #[singleton(deps = [setting, folder, config], build = factory, implementation = Scratch)]
+    #[singleton(deps = [setting, folder, config], build = factory, implementations = [Scratch])]
     owned: Chosen,
 }
 

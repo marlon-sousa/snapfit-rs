@@ -41,19 +41,26 @@ fn a_dispatched_field_without_an_implementation_or_a_factory_is_refused() {
 }
 
 #[test]
-fn a_dispatched_factory_field_may_name_the_variants_it_returns_one_or_a_list() {
+fn a_dispatched_factory_field_lists_the_variants_it_returns_and_names_no_single_one() {
     let db = TypeName::new("Db").unwrap();
-    let implementations = [
-        Implementation::Named(variant("MySql")),
-        Implementation::Listed(vec![variant("MySql"), variant("Sqlite")]),
-    ];
+    let mut factory = dependency(TypeShape::Arc, Some(Construction::Factory));
+    factory.implementation = Implementation::Listed(vec![variant("MySql"), variant("Sqlite")]);
+    assert_eq!(
+        call_for(&factory, &Constructor::New, Some(&db)),
+        Ok(Call::Factory)
+    );
 
-    for implementation in implementations {
-        let mut factory = dependency(TypeShape::Arc, Some(Construction::Factory));
-        factory.implementation = implementation;
-        let call = call_for(&factory, &Constructor::New, Some(&db));
-        assert_eq!(call, Ok(Call::Factory), "{:?}", factory.implementation);
-    }
+    factory.implementation = Implementation::Named(variant("MySql"));
+    assert_eq!(
+        call_for(&factory, &Constructor::New, Some(&db)),
+        Err(DomainError::StaticDispatch(
+            StaticDispatchProblem::ImplementationWithFactory {
+                dependency: store(),
+                name: db.clone(),
+                implementation: TypeName::new("MySql").unwrap(),
+            }
+        ))
+    );
 }
 
 #[test]

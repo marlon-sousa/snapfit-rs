@@ -14,7 +14,7 @@ fn shop() -> syn::ItemStruct {
             orders_db: Arc<Db>,
             #[singleton(implementation = Cache<Order>)]
             orders: Arc<Orders>,
-            #[singleton(build = factory, implementation = [Sqlite, MySql])]
+            #[singleton(build = factory, implementations = [Sqlite, MySql])]
             reports_db: Arc<Db>,
         }
     }

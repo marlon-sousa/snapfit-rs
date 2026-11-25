@@ -4,13 +4,14 @@
 
 use derive_more::Display;
 
-use super::sentences::join_names;
 use crate::domain::dispatched_type::AttributePosition;
 use crate::domain::names::{DependencyName, TypeName};
 
 mod unreadability;
+mod wording;
 
 pub(crate) use unreadability::Unreadability;
+use wording::{example, undeclared};
 
 /// Which of the container's dispatch attributes an error is about.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
@@ -95,7 +96,7 @@ pub(crate) enum StaticDispatchProblem {
         declared: Vec<TypeName>,
     },
     #[display(
-        "the dispatched type '{name}' holds no implementation in this build; name one with implementation on a field of type Arc<{name}>, list those a factory returns with implementation = [...] beside build = factory, or add one with extend_static_dispatch({name}, [...])"
+        "the dispatched type '{name}' holds no implementation in this build; name one with implementation on a field of type Arc<{name}>, list those a factory returns with implementations = [...] beside build = factory, or add one with extend_static_dispatch({name}, [...])"
     )]
     WithoutImplementations {
         position: AttributePosition,
@@ -110,12 +111,21 @@ pub(crate) enum StaticDispatchProblem {
         name: TypeName,
     },
     #[display(
-        "field '{dependency}' lists implementations of the dispatched type {name} in square brackets, which only a factory can choose between; add build = factory to the field and return one of them from the build_{} method of the container's factories trait, or name the one it builds, such as implementation = MySql",
+        "field '{dependency}' lists implementations of the dispatched type {name}, which only a factory can choose between; add build = factory to the field and return one of them from the build_{} method of the container's factories trait, or name the one it builds with implementation, such as implementation = MySql",
         dependency.without_raw_prefix()
     )]
     ListWithoutFactory {
         dependency: DependencyName,
         name: TypeName,
+    },
+    /// The implementation as written, such as `MySql`.
+    #[display(
+        "field '{dependency}' names the one implementation {implementation} of the dispatched type {name}, and is built with build = factory, which returns the field itself; list the variants its factory may return with implementations = [{implementation}], or remove build = factory so that the container builds {implementation}"
+    )]
+    ImplementationWithFactory {
+        dependency: DependencyName,
+        name: TypeName,
+        implementation: TypeName,
     },
     /// The path as written, such as `crate::shop::Db`.
     #[display(
@@ -137,6 +147,7 @@ impl StaticDispatchProblem {
         match self {
             Self::WithoutImplementation { dependency, .. }
             | Self::ListWithoutFactory { dependency, .. }
+            | Self::ImplementationWithFactory { dependency, .. }
             | Self::ThroughPath { dependency, .. }
             | Self::OldAttribute { dependency } => Some(dependency),
             Self::Unreadable { .. }
@@ -166,31 +177,10 @@ impl StaticDispatchProblem {
             | Self::WithoutImplementations { position, .. } => Some(*position),
             Self::WithoutImplementation { .. }
             | Self::ListWithoutFactory { .. }
+            | Self::ImplementationWithFactory { .. }
             | Self::ThroughPath { .. }
             | Self::OldAttribute { .. } => None,
         }
-    }
-}
-
-fn example(kind: DispatchAttributeKind) -> &'static str {
-    match kind {
-        DispatchAttributeKind::Declaration => "static_dispatch_for(Database as Db)",
-        DispatchAttributeKind::Extension => "extend_static_dispatch(Db, [Mock])",
-    }
-}
-
-/// The names a container does declare, or that it declares none.
-fn undeclared(name: &TypeName, declared: &[TypeName]) -> String {
-    let extended =
-        format!("extend_static_dispatch extends '{name}', which this container does not declare");
-    match declared {
-        [] => {
-            format!("{extended}; declare it first, such as static_dispatch_for(Database as {name})")
-        }
-        _ => format!(
-            "{extended}; extend one of the types its static_dispatch_for declares: [{}]",
-            join_names(declared)
-        ),
     }
 }
 

@@ -15,7 +15,7 @@ macro_rules! accounts {
             #[singleton(implementation = $implementation)]
             main: $field,
 
-            #[singleton(build = factory, implementation = [$listed])]
+            #[singleton(build = factory, implementations = [$listed])]
             chosen: $field,
         }
     };

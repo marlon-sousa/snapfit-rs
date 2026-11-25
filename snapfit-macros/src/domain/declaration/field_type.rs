@@ -34,7 +34,7 @@ pub(crate) enum Implementation<T> {
     /// The type of `implementation = ...`, whose value the field's trait
     /// object, or its dispatched type, holds.
     Named(Variant<T>),
-    /// The types of `implementation = [...]`, which a factory may return as
+    /// The types of `implementations = [...]`, which a factory may return as
     /// the field's dispatched type.
     Listed(Vec<Variant<T>>),
 }

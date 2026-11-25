@@ -52,7 +52,7 @@ Feature: Building a container whose fields can fail
   Scenario: A bad fallible is reported beside a setting the attribute does not know
     Given an invalid container fixture "unreadable_fallible_setting"
     When the fixture is compiled
-    Then compilation should fail with "field 'config': Unknown field: `bogus`. Available values: `async`, `build`, `deps`, `fallible`, `implementation`"
+    Then compilation should fail with "field 'config': Unknown field: `bogus`. Available values: `async`, `build`, `deps`, `fallible`, `implementation`, `implementations`"
     And compilation should fail with "field 'config': fallible takes true or false, not maybe; write fallible = true, or fallible = false"
     And the compiler should report 2 errors
     And the error should point at line 9 of the fixture

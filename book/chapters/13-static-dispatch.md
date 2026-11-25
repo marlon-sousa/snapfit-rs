@@ -121,7 +121,7 @@ name: ch13_choosing_the_rule
 region: container
 ```
 
-The factory chooses, but `Prices` still needs to know which rules it may choose from, so that it can hold either. That's what `implementation` says on a factory field: not the one rule the container builds, but the list of rules the factory may return, `implementation = [ListPrice, SalePrice]`. They join the list of `Prices` like the rule of any other field. A factory that returns only one rule can name it alone, as `implementation = ListPrice`. If we left the list out, no field would name a rule, the list would be empty, and the container would be refused at `static_dispatch_for`:
+The factory chooses, but `Prices` still needs to know which rules it may choose from, so that it can hold either. That's what `implementations`, with an s, says on a factory field: not the one rule the container builds, which is what `implementation` names, but the list of rules the factory may return, `implementations = [ListPrice, SalePrice]`. They join the list of `Prices` like the rule of any other field. It is always a list, even of one rule, and writing `implementation` on a factory field is refused, pointing you to `implementations`. If we left the list out, no field would name a rule, the list would be empty, and the container would be refused at `static_dispatch_for`:
 
 ```compile-error
 name: ch13_prices_without_variants
@@ -171,5 +171,5 @@ A supertrait needs the attribute too, when it is a trait of your own crate, beca
 2. Declare the type under `#[container]` with `#[static_dispatch_for(Trait as Name)]`, and type the fields `Name` or `Arc<Name>`, each with its `implementation`, or with `build = factory`.
 3. The list is the fields' implementations, then every `extend_static_dispatch(Name, [...])` in the build; put test stand-ins under `cfg_attr(test, ...)`.
 4. `Name::of(value)` builds a variant, and accepts only a type on the list.
-5. A factory returns `Name` or `Arc<Name>`, and lists the implementations it may return beside it: `build = factory, implementation = [A, B]`.
+5. A factory returns `Name` or `Arc<Name>`, and lists the implementations it may return beside it: `build = factory, implementations = [A, B]`.
 6. Static dispatch fits a closed list of implementations of your own trait whose calls are frequent and cheap; measure before you trade a trait object for it.

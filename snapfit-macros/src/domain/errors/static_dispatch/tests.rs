@@ -1,4 +1,5 @@
 use super::*;
+use crate::domain::errors::sentences::join_names;
 
 fn type_name(text: &str) -> TypeName {
     TypeName::new(text).unwrap()

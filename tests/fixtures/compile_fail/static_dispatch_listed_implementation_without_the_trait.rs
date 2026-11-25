@@ -16,7 +16,7 @@ impl Csv { pub fn new() -> Self { Self } }
 #[container]
 #[static_dispatch_for(Database as Db)]
 pub struct Shop {
-    #[singleton(build = factory, implementation = [MySql, Csv])]
+    #[singleton(build = factory, implementations = [MySql, Csv])]
     db: Arc<Db>,
 }
 

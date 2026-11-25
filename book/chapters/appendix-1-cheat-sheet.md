@@ -16,7 +16,7 @@ Every container attribute and field attribute in `snapfit` `0.3`, with a link to
 | :--- | :--- | :--- |
 | `#[snapfit::static_dispatch]` on a trait | Implements the trait for `snapfit`'s dispatch types, in the trait's module, forwarding every method through a `match`. Written once, where the trait is defined; the trait must be of your own crate. | [Chapter 13](13-static-dispatch.md) |
 | `#[static_dispatch_for(PriceRule as Prices)]` under `#[container]` | Declares `Prices`, a type alias with the container's visibility, for the implementations that the `implementation` of the fields typed `Prices` or `Arc<Prices>` name. | [Chapter 13](13-static-dispatch.md) |
-| `#[singleton(deps = [config], build = factory, implementation = [ListPrice, SalePrice])]` on a field typed `Arc<Prices>` | Lists the implementations the field's factory may return, and adds them to the list of `Prices`; one alone is written `implementation = ListPrice`. | [Chapter 13](13-static-dispatch.md) |
+| `#[singleton(deps = [config], build = factory, implementations = [ListPrice, SalePrice])]` on a field typed `Arc<Prices>` | Lists the implementations the field's factory may return, always in square brackets, even one, and adds them to the list of `Prices`. | [Chapter 13](13-static-dispatch.md) |
 | `#[cfg_attr(test, extend_static_dispatch(Prices, [FixedPrice]))]` | Adds implementations where the condition holds, such as test stand-ins; written without `cfg_attr`, adds them to every build. Extensions only add. | [Chapter 13](13-static-dispatch.md) |
 | `Prices::of(value)` | Puts an implementation in its variant; a type not on the list doesn't compile. | [Chapter 13](13-static-dispatch.md) |
 

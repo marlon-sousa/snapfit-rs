@@ -89,7 +89,7 @@ pub struct SaleShopContainer {
     #[singleton(build = constructor(load))]
     config: Arc<ShopConfig>,
 
-    #[singleton(deps = [config], build = factory, implementation = [ListPrice, SalePrice])]
+    #[singleton(deps = [config], build = factory, implementations = [ListPrice, SalePrice])]
     prices: Arc<Prices>,
 
     #[singleton(deps = [prices])]

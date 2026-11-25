@@ -56,7 +56,7 @@ fn a_container_whose_fields_cannot_be_read_still_writes_each_alias_with_what_rea
             main: Arc<Ledgers>,
             #[singleton(implementation = Disk)]
             backup: Arc<Ledgers>,
-            #[singleton(build = factory, implementation = [Fake])]
+            #[singleton(build = factory, implementations = [Fake])]
             chosen: Arc<Ledgers>,
             clock: Arc<Clocks>,
         }

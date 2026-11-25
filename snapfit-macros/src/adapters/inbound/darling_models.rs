@@ -22,7 +22,9 @@ pub(super) use expressions::single_word;
 use expressions::ungrouped;
 pub(super) use fallible_meta::FallibleMeta;
 use implementation_meta::FieldSettings;
-pub(super) use implementation_meta::{ImplementationEntry, ImplementationMeta};
+pub(super) use implementation_meta::{
+    ImplementationEntry, ImplementationKey, ImplementationMeta, ImplementationValue,
+};
 pub(super) use prerequisites::{PrerequisiteEntry, PrerequisiteList, PrerequisiteMeta};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, FromMeta)]
@@ -84,6 +86,9 @@ pub(super) struct DependencyAttrMeta {
     /// `implementation` out of the settings it offers.
     #[darling(default, rename = "implementation")]
     implementation_name: Option<darling::util::Ignored>,
+    /// Never filled, as `implementation_name`.
+    #[darling(default, rename = "implementations")]
+    implementations_name: Option<darling::util::Ignored>,
 }
 
 impl DependencyAttrMeta {

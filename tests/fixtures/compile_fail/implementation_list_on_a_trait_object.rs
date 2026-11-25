@@ -16,6 +16,6 @@ pub struct Shop {
     #[singleton(implementation = MySql)]
     db: Arc<Db>,
 
-    #[singleton(build = factory, implementation = [MySql])]
+    #[singleton(build = factory, implementations = [MySql])]
     replica: Arc<dyn Database>,
 }

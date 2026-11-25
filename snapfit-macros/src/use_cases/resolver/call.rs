@@ -30,14 +30,25 @@ pub(super) fn call_for<F, T>(
     })
 }
 
-/// A factory returns the field itself: the implementations a dispatched
-/// field names are the variants it may return, and any other field names none.
+/// A factory returns the field itself: a dispatched field lists the variants
+/// it may return with `implementations`, and no field names the one type
+/// the container builds.
 fn factory_call<F, T>(
     dependency: &DependencyDeclaration<F, T>,
     dispatched: Option<&TypeName>,
 ) -> Result<Call, DomainError> {
     let problem = match (&dependency.implementation, dispatched) {
-        (Implementation::OfField, _) | (_, Some(_)) => return Ok(Call::Factory),
+        (Implementation::OfField, _) | (Implementation::Listed(_), Some(_)) => {
+            return Ok(Call::Factory);
+        }
+        (Implementation::Named(variant), Some(name)) => {
+            return Err(StaticDispatchProblem::ImplementationWithFactory {
+                dependency: dependency.name.clone(),
+                name: name.clone(),
+                implementation: variant.name.clone(),
+            }
+            .into());
+        }
         (Implementation::Named(_), None) => TraitObjectProblem::ImplementationWithFactory,
         (Implementation::Listed(_), None) => TraitObjectProblem::ImplementationList,
     };

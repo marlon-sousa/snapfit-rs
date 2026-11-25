@@ -1,28 +1,37 @@
-//! Adapter: reads `implementation = <type>`, or `implementation = [<type>, ...]`, on a field.
+//! Adapter: reads `implementation = <type>`, or `implementations = [<type>, ...]`, on a field.
 
-use super::super::darling_models::{ImplementationEntry, ImplementationMeta};
+use super::super::darling_models::{
+    ImplementationEntry, ImplementationKey, ImplementationMeta, ImplementationValue,
+};
 use super::rules::attribute_error;
 use crate::domain::{ArgumentProblem, DependencyName, DomainErrors};
 
 #[cfg(test)]
 mod tests;
 
-/// What a field's `implementation` names: one type, or a list of them.
+/// What a field names: one type with `implementation`, or a list of them with `implementations`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum WrittenImplementation {
     One(syn::Type),
     List(Vec<syn::Type>),
 }
 
-/// What the container builds for the field, or none when the field
-/// leaves `implementation` out; every setting written in another shape is
-/// refused, every entry of a list that is no type, an empty list, and a
-/// second setting.
+/// What the container builds for the field, or the types its factory may
+/// return, or none when the field leaves both settings out. Every setting
+/// written in another shape is refused, every entry of a list that is no
+/// type, an empty list, a list given to `implementation`, a single type
+/// given to `implementations`, a second setting of either, and both.
 pub(super) fn read_implementation(
     name: &DependencyName,
     implementations: Vec<ImplementationMeta>,
 ) -> Result<Option<WrittenImplementation>, DomainErrors> {
-    let repeated = (implementations.len() > 1).then_some(ArgumentProblem::RepeatedImplementation);
+    let ones = implementations.iter().filter(is_one).count();
+    let lists = implementations.len() - ones;
+    let repeated = [
+        (ones > 1).then_some(ArgumentProblem::RepeatedImplementation),
+        (lists > 1).then_some(ArgumentProblem::RepeatedImplementations),
+        (ones > 0 && lists > 0).then_some(ArgumentProblem::BothImplementationKeys),
+    ];
     let (written, problems): (Vec<_>, Vec<_>) = implementations
         .into_iter()
         .map(written_implementation)
@@ -31,24 +40,36 @@ pub(super) fn read_implementation(
         .into_iter()
         .filter_map(Result::err)
         .flatten()
-        .chain(repeated)
+        .chain(repeated.into_iter().flatten())
         .map(|problem| attribute_error(name, problem))
         .collect();
     DomainErrors::check(errors)?;
     Ok(written.into_iter().find_map(Result::ok))
 }
 
+fn is_one(meta: &&ImplementationMeta) -> bool {
+    meta.key.is_one()
+}
+
 fn written_implementation(
     meta: ImplementationMeta,
 ) -> Result<WrittenImplementation, Vec<ArgumentProblem>> {
-    match meta {
-        ImplementationMeta::One(entry) => implementation_type(entry)
+    match (meta.key, meta.value) {
+        (ImplementationKey::One, ImplementationValue::One(entry)) => implementation_type(entry)
             .map(WrittenImplementation::One)
             .map_err(|problem| vec![problem]),
-        ImplementationMeta::List(entries) if entries.is_empty() => {
+        (ImplementationKey::One, ImplementationValue::List(_)) => {
+            Err(vec![ArgumentProblem::ListInImplementation])
+        }
+        (ImplementationKey::Several, ImplementationValue::One(_)) => {
+            Err(vec![ArgumentProblem::ImplementationsWithoutList])
+        }
+        (ImplementationKey::Several, ImplementationValue::List(entries)) if entries.is_empty() => {
             Err(vec![ArgumentProblem::EmptyImplementationList])
         }
-        ImplementationMeta::List(entries) => listed_types(entries).map(WrittenImplementation::List),
+        (ImplementationKey::Several, ImplementationValue::List(entries)) => {
+            listed_types(entries).map(WrittenImplementation::List)
+        }
     }
 }
 

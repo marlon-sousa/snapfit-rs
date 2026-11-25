@@ -1,5 +1,5 @@
-//! Adapter: each `implementation` setting of a field attribute, read apart
-//! from the settings darling reads.
+//! Adapter: each `implementation` and `implementations` setting of a field
+//! attribute, read apart from the settings darling reads.
 
 use darling::ast::NestedMeta;
 use proc_macro2::{TokenStream, TokenTree};
@@ -9,9 +9,26 @@ use syn::punctuated::Punctuated;
 
 use super::super::type_inspector::{compact_type_tokens, is_buildable};
 
-/// One `implementation` setting: a type, or a list of types in square brackets.
+/// One `implementation` or `implementations` setting: which of the two
+/// words, and its value.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(in crate::adapters::inbound) enum ImplementationMeta {
+pub(in crate::adapters::inbound) struct ImplementationMeta {
+    pub(in crate::adapters::inbound) key: ImplementationKey,
+    pub(in crate::adapters::inbound) value: ImplementationValue,
+}
+
+/// The word a setting is written with.
+#[derive(EnumIs, Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::adapters::inbound) enum ImplementationKey {
+    /// `implementation`, the one type the container builds.
+    One,
+    /// `implementations`, the types a factory may return.
+    Several,
+}
+
+/// A setting's value: a type, or a list of types in square brackets.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(in crate::adapters::inbound) enum ImplementationValue {
     One(ImplementationEntry),
     List(Vec<ImplementationEntry>),
 }
@@ -31,7 +48,7 @@ pub(in crate::adapters::inbound) enum ImplementationEntry {
 }
 
 /// The settings of a field attribute in the order written, with each
-/// `implementation` taken out of them, whose value, a type such as
+/// `implementation` and `implementations` taken out of them, whose value, a type such as
 /// `Cache<Order>`, darling cannot read.
 pub(super) struct FieldSettings {
     pub(super) settings: Vec<NestedMeta>,
@@ -65,28 +82,30 @@ impl Parse for FieldSettings {
 
 impl Parse for Setting {
     fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
-        if !starts_implementation(input) {
+        let Some(key) = implementation_key(input) else {
             return input.parse().map(Self::Other);
-        }
+        };
         input.parse::<syn::Ident>()?;
-        let meta = if input.peek(syn::token::Paren) {
+        let value = if input.peek(syn::token::Paren) {
             let inner;
             syn::parenthesized!(inner in input);
-            ImplementationMeta::One(in_parentheses(inner.parse()?))
+            ImplementationValue::One(in_parentheses(inner.parse()?))
         } else if input.parse::<Option<syn::Token![=]>>()?.is_some() {
             implementation_value(input)?
         } else {
-            ImplementationMeta::One(ImplementationEntry::Bare)
+            ImplementationValue::One(ImplementationEntry::Bare)
         };
-        Ok(Self::Implementation(meta))
+        Ok(Self::Implementation(ImplementationMeta { key, value }))
     }
 }
 
-fn starts_implementation(input: ParseStream<'_>) -> bool {
-    input
-        .fork()
-        .parse::<syn::Ident>()
-        .is_ok_and(|word| word == "implementation")
+fn implementation_key(input: ParseStream<'_>) -> Option<ImplementationKey> {
+    let word = input.fork().parse::<syn::Ident>().ok()?;
+    match word.to_string().as_str() {
+        "implementation" => Some(ImplementationKey::One),
+        "implementations" => Some(ImplementationKey::Several),
+        _ => None,
+    }
 }
 
 fn in_parentheses(tokens: TokenStream) -> ImplementationEntry {
@@ -99,14 +118,14 @@ fn in_parentheses(tokens: TokenStream) -> ImplementationEntry {
 
 /// The value after `implementation =`, up to the next setting: a list when
 /// it is one pair of square brackets, and one type otherwise.
-fn implementation_value(input: ParseStream<'_>) -> syn::Result<ImplementationMeta> {
+fn implementation_value(input: ParseStream<'_>) -> syn::Result<ImplementationValue> {
     if !is_a_list(input) {
-        return entry_value(input).map(ImplementationMeta::One);
+        return entry_value(input).map(ImplementationValue::One);
     }
     let inner;
     syn::bracketed!(inner in input);
     let entries = inner.parse_terminated(entry_value, syn::Token![,])?;
-    Ok(ImplementationMeta::List(entries.into_iter().collect()))
+    Ok(ImplementationValue::List(entries.into_iter().collect()))
 }
 
 fn is_a_list(input: ParseStream<'_>) -> bool {

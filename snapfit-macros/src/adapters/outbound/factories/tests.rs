@@ -140,7 +140,7 @@ fn only_the_build_method_of_a_dispatched_field_allows_a_more_private_implementat
     let plan = plan_for(parse_quote! {
         #[static_dispatch_for(Database as Db)]
         pub struct Shop {
-            #[singleton(build = factory, implementation = [MySql])]
+            #[singleton(build = factory, implementations = [MySql])]
             shared: Arc<Db>,
             #[singleton(build = factory)]
             owned: Db,
