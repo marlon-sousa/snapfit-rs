@@ -1,59 +1,60 @@
 //! Error: why a field's build, or the container's leaf_build, cannot build it.
 
 use derive_more::Display;
+use thiserror::Error;
 
 use crate::domain::names::DependencyName;
 
-#[derive(Debug, Clone, PartialEq, Eq, Display)]
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub(crate) enum BuildProblem {
-    #[display(
+    #[error(
         "build = {written} on field '{dependency}' is not a way to build a field; write build = default, build = factory, build = builder, or build = constructor({written}) to call a function of that name"
     )]
     Unknown {
         dependency: DependencyName,
         written: String,
     },
-    #[display(
+    #[error(
         "build \"{written}\" on field '{dependency}' must be written without quotes: build = {written}"
     )]
     Quoted {
         dependency: DependencyName,
         written: String,
     },
-    #[display(
+    #[error(
         "build = {written} on field '{dependency}' is not a way to build a field; write build = default, build = factory, build = builder, or build = constructor(connect)"
     )]
     NotABuild {
         dependency: DependencyName,
         written: String,
     },
-    #[display(
+    #[error(
         "build = constructor on field '{dependency}' needs the function's name, such as build = constructor(connect)"
     )]
     ConstructorWithoutName { dependency: DependencyName },
-    #[display(
+    #[error(
         "constructor \"{written}\" on field '{dependency}' must be written without quotes: build = constructor({written})"
     )]
     QuotedFunctionName {
         dependency: DependencyName,
         written: String,
     },
-    #[display(
+    #[error(
         "constructor '{written}' on field '{dependency}' must be a function name, such as build = constructor(connect)"
     )]
     NotAFunctionName {
         dependency: DependencyName,
         written: String,
     },
-    #[display(
+    #[error(
         "leaf_build = {written} cannot build the container's fields that have no deps; write leaf_build = default, or leaf_build = constructor with the function's name in brackets, such as leaf_build = constructor(open)"
     )]
     InvalidLeafBuild { written: String },
-    #[display(
+    #[error(
         "field '{dependency}' is built with build = default, which takes no dependencies; remove its deps, or build it another way"
     )]
     DefaultWithDependencies { dependency: DependencyName },
-    #[display("field '{dependency}' is built with {build}")]
+    #[error("field '{dependency}' is built with {build}")]
     CannotFail {
         dependency: DependencyName,
         build: InfallibleBuild,

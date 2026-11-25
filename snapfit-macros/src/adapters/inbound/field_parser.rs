@@ -105,10 +105,9 @@ fn lifecycle_attr(
 ) -> Result<Option<(Lifecycle, DependencyAttrMeta)>, DomainErrors> {
     let matched: Vec<_> = attrs.iter().filter_map(lifecycle_attribute).collect();
     if matched.len() > 1 {
-        let repeated = AttributeProblem::MultipleLifecycles {
+        Err(AttributeProblem::MultipleLifecycles {
             dependency: name.clone(),
-        };
-        return Err(DomainError::from(repeated).into());
+        })?;
     }
     matched
         .into_iter()

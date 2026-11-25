@@ -1,25 +1,25 @@
 //! Error: why a container's or a field's snapfit attributes cannot be read,
 //! or are missing or repeated.
 
-use derive_more::Display;
+use thiserror::Error;
 
 use super::ArgumentProblem;
 use crate::domain::names::DependencyName;
 
-#[derive(Debug, Clone, PartialEq, Eq, Display)]
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub(crate) enum AttributeProblem {
-    #[display("{problem}")]
+    #[error("{problem}")]
     Container { problem: ArgumentProblem },
-    #[display("field '{dependency}': {problem}")]
+    #[error("field '{dependency}': {problem}")]
     Field {
         dependency: DependencyName,
         problem: ArgumentProblem,
     },
-    #[display(
+    #[error(
         "field '{dependency}' has no snapfit attribute; add #[singleton] to have the container build it"
     )]
     Unannotated { dependency: DependencyName },
-    #[display("field '{dependency}' cannot declare multiple lifecycle attributes")]
+    #[error("field '{dependency}' cannot declare multiple lifecycle attributes")]
     MultipleLifecycles { dependency: DependencyName },
 }
 

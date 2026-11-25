@@ -1,19 +1,19 @@
 //! Error: why the dependencies the fields name cannot be wired into a graph.
 
-use derive_more::Display;
+use thiserror::Error;
 
 use super::sentences::{cycle_sentence, dependencies_noun, join_names};
 use crate::domain::names::DependencyName;
 
-#[derive(Debug, Clone, PartialEq, Eq, Display)]
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub(crate) enum GraphProblem {
-    #[display("dependency cycle: {}", cycle_sentence(start, through))]
+    #[error("dependency cycle: {}", cycle_sentence(start, through))]
     Cycle {
         start: DependencyName,
         /// The dependencies between `start` and its return to `start`.
         through: Vec<DependencyName>,
     },
-    #[display(
+    #[error(
         "unknown {} '{}' on field '{dependency}'. You must choose between the dependencies the container can wire: [{}]",
         dependencies_noun(missing),
         join_names(missing),
@@ -24,7 +24,7 @@ pub(crate) enum GraphProblem {
         missing: Vec<DependencyName>,
         available: Vec<DependencyName>,
     },
-    #[display(
+    #[error(
         "field '{dependency}' lists '{prerequisite}' in deps more than once; list each dependency once"
     )]
     RepeatedPrerequisite {

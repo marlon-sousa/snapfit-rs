@@ -11,8 +11,8 @@ use super::super::type_inspector::compact_type_tokens;
 use super::super::type_inspector::is_buildable;
 use super::tokens::{Head, bracketed};
 use crate::domain::{
-    AttributePosition, DispatchAttributeKind, DomainError, DomainErrors, StaticDispatchProblem,
-    TypeName, Unreadability, Variant,
+    AttributePosition, DispatchAttributeKind, DomainErrors, StaticDispatchProblem, TypeName,
+    Unreadability, Variant,
 };
 
 #[derive(new, Debug, Clone, Copy)]
@@ -118,6 +118,6 @@ impl Site {
     }
 
     fn error(self, problem: StaticDispatchProblem) -> DomainErrors {
-        DomainError::from(problem).into()
+        problem.into()
     }
 }

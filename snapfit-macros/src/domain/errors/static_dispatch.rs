@@ -3,6 +3,7 @@
 //! hold that type.
 
 use derive_more::Display;
+use thiserror::Error;
 
 use super::sentences::join_names;
 use crate::domain::dispatched_type::AttributePosition;
@@ -21,9 +22,9 @@ pub(crate) enum DispatchAttributeKind {
     Extension,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Display)]
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub(crate) enum StaticDispatchProblem {
-    #[display(
+    #[error(
         "{kind} cannot be read: {problem}; write it as {}",
         example(*kind)
     )]
@@ -32,12 +33,12 @@ pub(crate) enum StaticDispatchProblem {
         kind: DispatchAttributeKind,
         problem: Unreadability,
     },
-    #[display(
+    #[error(
         "static_dispatch_for needs the name the fields write, after the trait and the word as, such as static_dispatch_for(Database as Db)"
     )]
     WithoutName { position: AttributePosition },
     /// The name as written, such as `shop::Db`.
-    #[display(
+    #[error(
         "{kind} names the dispatched type through the path {written}; write a single name, such as {}",
         example(*kind)
     )]
@@ -47,19 +48,19 @@ pub(crate) enum StaticDispatchProblem {
         written: String,
     },
     /// The setting as written, up to its value.
-    #[display(
+    #[error(
         "static_dispatch_for takes extra and nothing else after the trait and its name, not {written}; write extra = [Sqlite] to add implementations, or remove {written}"
     )]
     UnknownSetting {
         position: AttributePosition,
         written: String,
     },
-    #[display(
+    #[error(
         "static_dispatch_for gives extra more than once; list every extra implementation in one extra = [...]"
     )]
     RepeatedExtra { position: AttributePosition },
     /// The value as written.
-    #[display(
+    #[error(
         "{kind} takes its implementations in square brackets, not {written}; write them as {}",
         example(*kind)
     )]
@@ -69,7 +70,7 @@ pub(crate) enum StaticDispatchProblem {
         written: String,
     },
     /// The entry as written, such as `impl Store` or `_`.
-    #[display(
+    #[error(
         "{written} in {kind} is not a type the container can name; write each implementation in full, such as {}",
         example(*kind)
     )]
@@ -78,34 +79,34 @@ pub(crate) enum StaticDispatchProblem {
         kind: DispatchAttributeKind,
         written: String,
     },
-    #[display(
+    #[error(
         "extend_static_dispatch({name}) needs the implementations it adds, in square brackets after the name, such as extend_static_dispatch({name}, [Mock])"
     )]
     WithoutList {
         position: AttributePosition,
         name: TypeName,
     },
-    #[display(
+    #[error(
         "the dispatched type '{name}' is declared more than once; give each static_dispatch_for a name of its own"
     )]
     RepeatedName {
         position: AttributePosition,
         name: TypeName,
     },
-    #[display("{}", undeclared(name, declared))]
+    #[error("{}", undeclared(name, declared))]
     Undeclared {
         position: AttributePosition,
         name: TypeName,
         declared: Vec<TypeName>,
     },
-    #[display(
+    #[error(
         "the dispatched type '{name}' holds no implementation in this build; name one with implementation on a field of type Arc<{name}>, or list it in extra = [...]"
     )]
     WithoutImplementations {
         position: AttributePosition,
         name: TypeName,
     },
-    #[display(
+    #[error(
         "field '{dependency}' holds the dispatched type {name}, whose implementations the container cannot choose between; name the one it builds, such as implementation = MySql, or add build = factory to the field and build it in the build_{} method of the container's factories trait",
         dependency.without_raw_prefix()
     )]
@@ -114,7 +115,7 @@ pub(crate) enum StaticDispatchProblem {
         name: TypeName,
     },
     /// The path as written, such as `crate::shop::Db`.
-    #[display(
+    #[error(
         "field '{dependency}' names the dispatched type {name} through the path {written}; write {name} as static_dispatch_for declares it"
     )]
     ThroughPath {
@@ -122,7 +123,7 @@ pub(crate) enum StaticDispatchProblem {
         name: TypeName,
         written: String,
     },
-    #[display(
+    #[error(
         "field '{dependency}' is marked #[dispatch(...)], which snapfit does not support; declare the dispatched type under #[container] with static_dispatch_for, such as #[static_dispatch_for(Store as Stores)], and give the field that type with its implementation, such as Arc<Stores>"
     )]
     OldAttribute { dependency: DependencyName },
