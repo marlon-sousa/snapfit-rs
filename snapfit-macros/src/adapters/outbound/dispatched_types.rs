@@ -4,6 +4,7 @@
 
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, quote_spanned};
+use syn::ext::IdentExt;
 use syn::spanned::Spanned;
 
 use crate::adapters::syntax::{DispatchSyntax, DispatchedTypeFallbackSyntax, DispatchedTypeSyntax};
@@ -70,10 +71,11 @@ fn alias_doc(DispatchSyntax { trait_path, name }: &DispatchSyntax) -> String {
     let trait_name = trait_path
         .segments
         .last()
-        .map(|segment| &segment.ident)
-        .map_or_else(String::new, ToString::to_string);
+        .map(|segment| segment.ident.unraw())
+        .map_or_else(String::new, |ident| ident.to_string());
     format!(
-        "One of the implementations of `{trait_name}` that the container dispatches statically; `{name}::of(value)` wraps one."
+        "One of the implementations of `{trait_name}` that the container dispatches statically; `{}::of(value)` wraps one.",
+        name.unraw()
     )
 }
 

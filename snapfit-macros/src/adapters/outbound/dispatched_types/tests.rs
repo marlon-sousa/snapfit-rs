@@ -101,3 +101,23 @@ fn each_other_spelling_of_an_implementation_is_checked_to_be_the_type_held() {
     })));
     assert!(!code.contains("__snapfit_implements::<self::MySql>"));
 }
+
+#[test]
+fn an_alias_s_doc_names_a_raw_trait_and_alias_without_r_hash() {
+    let plan = plan_for(parse_quote! {
+        #[static_dispatch_for(r#Database as r#Db)]
+        struct Shop {
+            #[singleton(implementation = MySql)]
+            orders_db: Arc<r#Db>,
+        }
+    });
+
+    let code = compact(emit_dispatched_types(
+        &plan.dispatched_types,
+        &plan.syntax.vis,
+    ));
+
+    assert!(code.contains(&compact(quote! {
+        #[doc = "One of the implementations of `Database` that the container dispatches statically; `Db::of(value)` wraps one."]
+    })));
+}
