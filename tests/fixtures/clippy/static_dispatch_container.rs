@@ -1,8 +1,9 @@
 //! A public container whose dispatched type holds an implementation more
 //! private than the container, and one that is not `Send` and not `Sync`,
-//! for which neither rustc nor clippy may warn about the alias, the getters
-//! and the factory inputs snapfit writes. Code outside the module could not
-//! use a value of the alias, which holds a type private to the module.
+//! held in an `Arc` and as a value, for which neither rustc nor clippy may
+//! warn about the alias, the getters and the factory inputs snapfit writes.
+//! Code outside the module could not use a value of the alias, which holds
+//! a type private to the module.
 
 use std::rc::Rc;
 use std::sync::Arc;
@@ -16,7 +17,7 @@ pub mod shop {
         fn source(&self) -> String;
     }
 
-    #[derive(Default)]
+    #[derive(Default, Clone)]
     pub struct RcReader {
         source: Rc<str>,
     }
@@ -27,7 +28,7 @@ pub mod shop {
         }
     }
 
-    #[derive(Default)]
+    #[derive(Default, Clone)]
     struct Mock;
 
     impl Reader for Mock {
@@ -45,6 +46,9 @@ pub mod shop {
         #[singleton(implementation = RcReader, build = default)]
         reader: Arc<Readers>,
 
+        #[singleton(implementation = Mock, build = default)]
+        copy: Readers,
+
         #[singleton(deps = [reader], build = factory)]
         summary: Arc<Summary>,
     }
@@ -56,8 +60,9 @@ pub mod shop {
         }
     }
 
-    /// What the container's reader and a mock no field injects read.
-    pub fn read() -> (String, String) {
-        (Desk::new().get_reader().source(), Readers::of(Mock).source())
+    /// What the container's reader, its copy and a mock built by hand read.
+    pub fn read() -> (String, String, String) {
+        let desk = Desk::new();
+        (desk.get_reader().source(), desk.get_copy().source(), Readers::of(Mock).source())
     }
 }

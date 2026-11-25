@@ -5,11 +5,8 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote, quote_spanned};
 use syn::spanned::Spanned;
 
-use crate::adapters::syntax::{DispatchSyntax, DispatchedTypeSyntax};
-use crate::domain::Variant;
-
-#[cfg(test)]
-mod tests;
+use crate::adapters::syntax::{DispatchSyntax, DispatchedTypeFallbackSyntax, DispatchedTypeSyntax};
+use crate::domain::{DispatchedTypeFallback, Variant};
 
 /// Each alias with its checks.
 pub(super) fn emit_dispatched_types(
@@ -23,12 +20,29 @@ pub(super) fn emit_dispatched_types(
 }
 
 /// Each alias alone, for a container that cannot be planned, so that its
-/// struct, kept as written, still names the types.
-pub(crate) fn emit_aliases(types: &[DispatchedTypeSyntax], vis: &syn::Visibility) -> TokenStream {
+/// struct, kept as written, still names the types: `()` stands for a type
+/// that holds no implementation, which is refused on its own.
+pub(crate) fn emit_fallback_aliases(
+    types: &[DispatchedTypeFallbackSyntax],
+    vis: &syn::Visibility,
+) -> TokenStream {
     types
         .iter()
-        .map(|planned| emit_alias(planned, vis))
+        .map(|fallback| emit_fallback_alias(fallback, vis))
         .collect()
+}
+
+fn emit_fallback_alias(
+    fallback: &DispatchedTypeFallbackSyntax,
+    vis: &syn::Visibility,
+) -> TokenStream {
+    match fallback {
+        DispatchedTypeFallback::Planned(planned) => emit_alias(planned, vis),
+        DispatchedTypeFallback::Unplanned(DispatchSyntax { name, .. }) => quote! {
+            #[allow(private_interfaces)]
+            #vis type #name = ();
+        },
+    }
 }
 
 fn emit_checked(planned: &DispatchedTypeSyntax, vis: &syn::Visibility) -> TokenStream {
@@ -69,7 +83,7 @@ fn emit_checks(planned: &DispatchedTypeSyntax) -> TokenStream {
     let implementations = std::iter::once(&planned.first)
         .chain(&planned.rest)
         .map(|variant| &variant.syntax)
-        .map(|ty| quote_spanned!(ty.span()=> let _ = __snapfit_implements::<#ty>;));
+        .map(implements);
     quote! {
         const _: () = {
             fn __snapfit_implements<__SnapfitDispatched: ?::core::marker::Sized + #trait_path>() {}
@@ -78,3 +92,11 @@ fn emit_checks(planned: &DispatchedTypeSyntax) -> TokenStream {
         };
     }
 }
+
+/// The check of one implementation, spanned at the type that names it.
+fn implements(ty: &syn::Type) -> TokenStream {
+    quote_spanned!(ty.span()=> let _ = __snapfit_implements::<#ty>;)
+}
+
+#[cfg(test)]
+mod tests;

@@ -2,6 +2,7 @@
 
 use proc_macro2::{TokenStream, TokenTree};
 use quote::quote;
+use syn::ext::IdentExt;
 
 use crate::domain::{TypeName, TypeShape, WrittenType};
 
@@ -99,7 +100,7 @@ fn written_path(type_path: &syn::TypePath) -> WrittenType {
     if type_path.qself.is_some() || !last.arguments.is_none() {
         return WrittenType::Other;
     }
-    let Ok(name) = TypeName::new(last.ident.to_string()) else {
+    let Ok(name) = TypeName::new(last.ident.unraw().to_string()) else {
         return WrittenType::Other;
     };
     if path.segments.len() == 1 && path.leading_colon.is_none() {

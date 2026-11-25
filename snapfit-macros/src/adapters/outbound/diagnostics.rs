@@ -23,7 +23,9 @@ pub(crate) struct Origins {
     container: Span,
     fields: Vec<FieldOrigin>,
     /// Every `static_dispatch_for` and `extend_static_dispatch`, in order, so
-    /// that an attribute's position finds it.
+    /// that an attribute's position finds it. The inbound adapter counts
+    /// positions over the same `is_dispatch_attribute`, so every position it
+    /// gives is found here.
     dispatch_attributes: Vec<TokenStream>,
 }
 

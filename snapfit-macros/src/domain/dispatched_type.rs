@@ -62,6 +62,22 @@ pub(crate) enum WrittenType {
     Other,
 }
 
+impl WrittenType {
+    /// Whether the type is the single name given.
+    pub(crate) fn is_written_as(&self, name: &TypeName) -> bool {
+        matches!(self, Self::Name(written) if written == name)
+    }
+}
+
+/// The alias a refused container still writes for a type it declares, so
+/// that its struct, kept as written, still names it: with the
+/// implementations it holds, or, when it holds none, as a placeholder.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum DispatchedTypeFallback<S, T> {
+    Planned(DispatchedTypePlan<S, T>),
+    Unplanned(S),
+}
+
 /// Whether a field holds a type its container dispatches statically.
 #[derive(EnumIs, Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub(crate) enum Dispatch {

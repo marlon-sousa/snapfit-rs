@@ -2,7 +2,8 @@
 //! declaration and the outbound adapter writes back out.
 
 use crate::domain::{
-    ConstructionPlan, ContainerDeclaration, DependencyDeclaration, DispatchAttribute, DispatchPlan,
+    ConstructionPlan, ContainerDeclaration, DependencyDeclaration, DispatchAttribute,
+    DispatchExtension, DispatchPlan, DispatchedTypeDeclaration, DispatchedTypeFallback,
     DispatchedTypePlan,
 };
 
@@ -71,6 +72,10 @@ pub(crate) type TraitPlan = DispatchPlan<TraitSyntax, syn::TraitItemFn, syn::Tra
 pub(crate) type FieldDeclaration = DependencyDeclaration<FieldSyntax, syn::Type>;
 pub(crate) type Plan = ConstructionPlan<ContainerSyntax, FieldSyntax, DispatchSyntax, syn::Type>;
 pub(crate) type DispatchedTypeSyntax = DispatchedTypePlan<DispatchSyntax, syn::Type>;
+pub(crate) type DispatchedTypeFallbackSyntax = DispatchedTypeFallback<DispatchSyntax, syn::Type>;
+pub(crate) type DispatchedTypeDeclarationSyntax =
+    DispatchedTypeDeclaration<DispatchSyntax, syn::Type>;
+pub(crate) type DispatchExtensionSyntax = DispatchExtension<syn::Type>;
 
 /// The field attributes snapfit reads, and removes from the struct it writes.
 pub(crate) fn is_snapfit_attribute(attr: &syn::Attribute) -> bool {

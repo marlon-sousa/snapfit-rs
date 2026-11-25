@@ -17,14 +17,15 @@ use proc_macro2::TokenStream;
 pub(crate) use dispatched_trait::read_dispatch_attribute;
 
 use crate::adapters::syntax::{
-    ContainerSyntax, Declaration, FieldDeclaration, is_container_attribute, is_user_attribute,
+    ContainerSyntax, Declaration, DispatchExtensionSyntax, DispatchedTypeDeclarationSyntax,
+    FieldDeclaration, is_container_attribute, is_user_attribute,
 };
 use crate::domain::{
     AttributeProblem, Constructor, ContainerDeclaration, ContainerName, DomainError, DomainErrors,
     Execution, Introspection, TypeName, TypeParameters,
 };
 use darling_models::{ContainerAttrMeta, UnreadableAttribute};
-use dispatch_declarations::read_dispatch_declarations;
+use dispatch_declarations::{read_dispatch_declarations, read_readable_dispatch_declarations};
 
 /// `#[container(args)]` on `item`.
 pub(crate) fn parse_attribute(
@@ -40,6 +41,17 @@ pub(crate) fn parse_attribute(
     container.dispatched_types = dispatched_types;
     container.extensions = extensions;
     Ok(container)
+}
+
+/// Each `static_dispatch_for` and `extend_static_dispatch` on `item` that
+/// can be read, for the aliases a refused container still writes.
+pub(crate) fn read_readable_dispatch(
+    item: &syn::ItemStruct,
+) -> (
+    Vec<DispatchedTypeDeclarationSyntax>,
+    Vec<DispatchExtensionSyntax>,
+) {
+    read_readable_dispatch_declarations(&item.attrs)
 }
 
 /// The container's name and settings, or every setting that cannot be read.

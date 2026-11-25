@@ -5,9 +5,12 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 
-use crate::adapters::{Origins, emit_aliases, emit_container, fallback_struct, parse_attribute};
-use crate::domain::FeatureGate;
-use crate::use_cases::{declared_dispatched_types, plan_container};
+use crate::adapters::{
+    Origins, emit_container, emit_fallback_aliases, fallback_struct, parse_attribute,
+    read_readable_dispatch,
+};
+use crate::domain::{DependencyDeclaration, DomainErrors, FeatureGate};
+use crate::use_cases::{fallback_dispatched_types, plan_container};
 
 mod static_dispatch;
 
@@ -31,18 +34,32 @@ fn expand_attribute(args: TokenStream, input: TokenStream, gate: FeatureGate) ->
         Ok(item) => item,
         Err(error) => return error.to_compile_error(),
     };
-    let declaration = parse_attribute(args, &item);
-    let declared = declaration
-        .as_ref()
-        .map(declared_dispatched_types)
-        .unwrap_or_default();
-    match declaration.and_then(|declaration| plan_container(declaration, gate)) {
-        Ok(plan) => emit_container(&plan),
-        Err(errors) => {
-            let errors = Origins::new(&item).compile_errors(&errors);
-            let fallback = fallback_struct(&item);
-            let aliases = emit_aliases(&declared, &item.vis);
-            quote!(#errors #fallback #aliases)
+    match parse_attribute(args, &item) {
+        Ok(declaration) => {
+            let aliases = fallback_aliases(&item, &declaration.dependencies);
+            plan_container(declaration, gate).map_or_else(
+                |errors| refused(&item, &errors, aliases),
+                |plan| emit_container(&plan),
+            )
         }
+        Err(errors) => refused(&item, &errors, fallback_aliases::<()>(&item, &[])),
     }
+}
+
+/// The aliases of the types the struct's readable dispatch attributes
+/// declare, holding what the fields that could be read name.
+fn fallback_aliases<F>(
+    item: &syn::ItemStruct,
+    dependencies: &[DependencyDeclaration<F, syn::Type>],
+) -> TokenStream {
+    let (declarations, extensions) = read_readable_dispatch(item);
+    let types = fallback_dispatched_types(&declarations, &extensions, dependencies);
+    emit_fallback_aliases(&types, &item.vis)
+}
+
+/// Every error, the struct as written, and the aliases its fields name.
+fn refused(item: &syn::ItemStruct, errors: &DomainErrors, aliases: TokenStream) -> TokenStream {
+    let errors = Origins::new(item).compile_errors(errors);
+    let fallback = fallback_struct(item);
+    quote!(#errors #fallback #aliases)
 }

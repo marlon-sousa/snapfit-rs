@@ -1,8 +1,6 @@
 //! Service: plans a container, reporting every problem its declaration has at once.
 
-use crate::domain::{
-    ConstructionPlan, ContainerDeclaration, DispatchedTypePlan, DomainErrors, FeatureGate,
-};
+use crate::domain::{ConstructionPlan, ContainerDeclaration, DomainErrors, FeatureGate};
 use crate::use_cases::declaration_rules::rule_violations;
 use crate::use_cases::execution::container_execution;
 use crate::use_cases::fallibility::container_fallibility;
@@ -27,13 +25,4 @@ pub(crate) fn plan_container<C, F, S: Clone, T: Clone>(
     let ((_, execution), steps) =
         DomainErrors::both(DomainErrors::both(checked, execution), steps)?;
     Ok(steps.into_plan(execution, fallibility, types))
-}
-
-/// The types a container that cannot be planned still declares, each with
-/// the implementations it holds, so that its struct, kept as written, names
-/// them.
-pub(crate) fn declared_dispatched_types<C, F, S: Clone, T: Clone>(
-    container: &ContainerDeclaration<C, F, S, T>,
-) -> Vec<DispatchedTypePlan<S, T>> {
-    dispatched_types(container)
 }

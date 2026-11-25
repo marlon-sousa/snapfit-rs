@@ -43,3 +43,30 @@ fn a_refused_container_keeps_its_alias_so_that_its_fields_still_name_a_type() {
     ));
     assert!(code.contains("pubstructAccounts{main:Arc<Ledgers>,}"));
 }
+
+#[test]
+fn a_container_whose_fields_cannot_be_read_still_writes_each_readable_alias() {
+    let input = quote! {
+        #[static_dispatch_for(Ledger as Ledgers, extra = [Fake])]
+        #[static_dispatch_for(Clock as Clocks)]
+        #[static_dispatch_for(Store as Stores, extra = Memory)]
+        pub struct Accounts {
+            #[singleton(bogus)]
+            main: Arc<Ledgers>,
+            clock: Arc<Clocks>,
+        }
+    };
+
+    let tokens = expand_attribute(quote!(), input, FeatureGate::Stable);
+    let code = compact(tokens.clone());
+
+    assert_eq!(
+        compile_errors(&tokens).len(),
+        3,
+        "{:?}",
+        compile_errors(&tokens)
+    );
+    assert!(code.contains("pubtypeLedgers=::snapfit::__private::Only<Fake>;"));
+    assert!(code.contains("pubtypeClocks=();"));
+    assert!(!code.contains("typeStores"));
+}

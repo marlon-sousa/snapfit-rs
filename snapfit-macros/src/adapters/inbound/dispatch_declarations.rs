@@ -3,51 +3,79 @@
 //! it dispatches statically.
 
 mod site;
-#[cfg(test)]
-mod tests;
 mod tokens;
 
 use proc_macro2::TokenStream;
 use syn::ext::IdentExt;
 
-use crate::adapters::syntax::{DispatchSyntax, is_dispatch_attribute};
+use super::type_inspector::compact_type_tokens;
+use crate::adapters::syntax::{
+    DispatchExtensionSyntax, DispatchSyntax, DispatchedTypeDeclarationSyntax, is_dispatch_attribute,
+};
 use crate::domain::{
-    AttributePosition, DispatchAttributeKind, DispatchExtension, DispatchedTypeDeclaration,
-    DomainErrors, TypeName, Variant,
+    AttributePosition, DispatchAttributeKind, DomainErrors, TypeName, Unreadability, Variant,
 };
 use site::Site;
-use tokens::{Head, chunks, compact, setting_name};
+use tokens::{Head, chunks, setting_name};
 
-type Declaration = DispatchedTypeDeclaration<DispatchSyntax, syn::Type>;
-type Extension = DispatchExtension<syn::Type>;
+type Declaration = DispatchedTypeDeclarationSyntax;
+type Extension = DispatchExtensionSyntax;
 
 /// Each `static_dispatch_for` and each `extend_static_dispatch`, in the
 /// order written, or every problem any of them has.
 pub(super) fn read_dispatch_declarations(
     attrs: &[syn::Attribute],
 ) -> Result<(Vec<Declaration>, Vec<Extension>), DomainErrors> {
-    let (declarations, extensions): (Vec<_>, Vec<_>) = attrs
-        .iter()
-        .filter(|attr| is_dispatch_attribute(attr))
-        .enumerate()
-        .partition(is_declaration);
+    let (declarations, extensions) = by_kind(attrs);
     DomainErrors::both(
         DomainErrors::collect(declarations.into_iter().map(read_declaration)),
         DomainErrors::collect(extensions.into_iter().map(read_extension)),
     )
 }
 
-fn is_declaration((_, attr): &(usize, &syn::Attribute)) -> bool {
+/// Each `static_dispatch_for` and each `extend_static_dispatch` that can be
+/// read, leaving out those that cannot.
+pub(super) fn read_readable_dispatch_declarations(
+    attrs: &[syn::Attribute],
+) -> (Vec<Declaration>, Vec<Extension>) {
+    let (declarations, extensions) = by_kind(attrs);
+    (
+        declarations
+            .into_iter()
+            .map(read_declaration)
+            .filter_map(Result::ok)
+            .collect(),
+        extensions
+            .into_iter()
+            .map(read_extension)
+            .filter_map(Result::ok)
+            .collect(),
+    )
+}
+
+type Placed<'a> = (usize, &'a syn::Attribute);
+
+/// The declarations and the extensions, each with its position among the
+/// attributes of either kind, which the diagnostics count the same way.
+fn by_kind(attrs: &[syn::Attribute]) -> (Vec<Placed<'_>>, Vec<Placed<'_>>) {
+    attrs
+        .iter()
+        .filter(|attr| is_dispatch_attribute(attr))
+        .enumerate()
+        .partition(is_declaration)
+}
+
+fn is_declaration((_, attr): &Placed<'_>) -> bool {
     attr.path().is_ident("static_dispatch_for")
 }
 
-fn read_declaration((index, attr): (usize, &syn::Attribute)) -> Result<Declaration, DomainErrors> {
+fn read_declaration((index, attr): Placed<'_>) -> Result<Declaration, DomainErrors> {
     let site = Site::new(AttributePosition(index), DispatchAttributeKind::Declaration);
     let (first, rest) = split(site, attr)?;
     declaration(site, first, &rest)
 }
 
-fn read_extension((index, attr): (usize, &syn::Attribute)) -> Result<Extension, DomainErrors> {
+fn read_extension((index, attr): Placed<'_>) -> Result<Extension, DomainErrors> {
     let site = Site::new(AttributePosition(index), DispatchAttributeKind::Extension);
     let (first, rest) = split(site, attr)?;
     extension(site, first, &rest)
@@ -67,10 +95,8 @@ fn split(
 fn arguments(site: Site, attr: &syn::Attribute) -> Result<TokenStream, DomainErrors> {
     match &attr.meta {
         syn::Meta::List(list) => Ok(list.tokens.clone()),
-        syn::Meta::Path(_) => Err(site.unreadable("it needs its settings in parentheses")),
-        syn::Meta::NameValue(_) => {
-            Err(site.unreadable("it takes its settings in parentheses, not after '='"))
-        }
+        syn::Meta::Path(_) => Err(site.unreadable(Unreadability::WithoutParentheses)),
+        syn::Meta::NameValue(_) => Err(site.unreadable(Unreadability::AfterEquals)),
     }
 }
 
@@ -81,7 +107,7 @@ fn declaration(
     rest: &[TokenStream],
 ) -> Result<Declaration, DomainErrors> {
     let head = syn::parse2::<Head>(first)
-        .map_err(|error| site.unreadable(error))
+        .map_err(|error| site.syn_error(&error))
         .and_then(|head| site.named(head));
     let extra = extra(site, rest);
     let ((trait_path, name), extra) = DomainErrors::both(head, extra)?;
@@ -116,7 +142,7 @@ fn extra_list(site: Site, setting: &TokenStream) -> Result<Vec<Variant<syn::Type
     match setting_name(setting) {
         Some((name, value)) if name == "extra" => site.type_list(value),
         Some((name, _)) => Err(site.unknown_setting(name.to_string())),
-        None => Err(site.unknown_setting(compact(setting.clone()))),
+        None => Err(site.unknown_setting(compact_type_tokens(setting.clone()))),
     }
 }
 
@@ -127,16 +153,22 @@ fn extension(
     rest: &[TokenStream],
 ) -> Result<Extension, DomainErrors> {
     let name = syn::parse2::<syn::Path>(first)
-        .map_err(|error| site.unreadable(error))
+        .map_err(|error| site.syn_error(&error))
         .and_then(|path| site.single_name(&path));
-    let type_name = TypeName::new(name?.unraw().to_string())?;
-    let variants = match rest {
-        [] => Err(site.without_list(&type_name)),
-        [list] => site.type_list(list.clone()),
-        [_, extra, ..] => Err(site.unreadable(format!(
-            "it takes one list after the name, and found {} after it",
-            compact(extra.clone())
-        ))),
-    }?;
+    let type_name = name.and_then(|ident| Ok(TypeName::new(ident.unraw().to_string())?));
+    let list = match rest {
+        [] => Ok(None),
+        [list] => site.type_list(list.clone()).map(Some),
+        [_, extra, ..] => Err(
+            site.unreadable(Unreadability::SecondList(compact_type_tokens(
+                extra.clone(),
+            ))),
+        ),
+    };
+    let (type_name, list) = DomainErrors::both(type_name, list)?;
+    let variants = list.ok_or_else(|| site.without_list(&type_name))?;
     Ok(Extension::new(type_name, site.position, variants))
 }
+
+#[cfg(test)]
+mod tests;

@@ -16,6 +16,16 @@ Feature: Dispatching a container's fields statically
       | cache  | memory                   |
 
   @v0_3_0
+  Scenario Outline: A trait with several type arguments is dispatched to a field held in an Arc or as a value
+    Given a container whose converters a trait with two type arguments dispatches
+    Then its <field> converter should turn 4 into <result>
+
+    Examples:
+      | field  | result |
+      | shared | 8      |
+      | owned  | 12     |
+
+  @v0_3_0
   Scenario: A dependent receives the dispatched type and calls the trait on it
     Given a container whose fields hold a statically dispatched ledger
     Then its books should read from "disk"

@@ -19,10 +19,20 @@ fn shop() -> syn::ItemStruct {
 }
 
 #[test]
-fn each_alias_nests_its_implementations_once_with_the_container_s_visibility() {
+fn each_alias_nests_its_implementations_once_with_the_container_s_visibility_or_stands_for_unit() {
     let plan = plan_for(shop());
+    let mut types = plan
+        .dispatched_types
+        .into_iter()
+        .map(DispatchedTypeFallback::Planned);
+    let mut fallbacks: Vec<_> = types.by_ref().collect();
+    let unplanned: DispatchSyntax = DispatchSyntax {
+        trait_path: parse_quote!(Clock),
+        name: parse_quote!(Clocks),
+    };
+    fallbacks.push(DispatchedTypeFallback::Unplanned(unplanned));
 
-    let aliases = compact(emit_aliases(&plan.dispatched_types, &plan.syntax.vis));
+    let aliases = compact(emit_fallback_aliases(&fallbacks, &plan.syntax.vis));
 
     assert_eq!(
         aliases,
@@ -34,6 +44,8 @@ fn each_alias_nests_its_implementations_once_with_the_container_s_visibility() {
             >;
             #[allow(private_interfaces)]
             pub(crate) type Orders = ::snapfit::__private::Only<Cache<Order> >;
+            #[allow(private_interfaces)]
+            pub(crate) type Clocks = ();
         })
     );
 }

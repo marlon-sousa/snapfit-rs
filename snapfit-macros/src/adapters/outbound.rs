@@ -22,7 +22,7 @@ use crate::adapters::syntax::Plan;
 
 pub(crate) use diagnostics::{Origins, TraitOrigins, fallback_struct};
 pub(crate) use dispatch_impls::emit_dispatch_impls;
-pub(crate) use dispatched_types::emit_aliases;
+pub(crate) use dispatched_types::emit_fallback_aliases;
 
 /// `#[container]` rewrites the struct, declares the types it dispatches
 /// statically, and adds its impls.

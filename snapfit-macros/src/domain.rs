@@ -22,13 +22,13 @@ pub(crate) use dispatched_trait::{
     TraitDeclaration, TraitItem, TraitItemDeclaration,
 };
 pub(crate) use dispatched_type::{
-    AttributePosition, Dispatch, DispatchExtension, DispatchedTypeDeclaration, DispatchedTypePlan,
-    Variant, WrittenType,
+    AttributePosition, Dispatch, DispatchExtension, DispatchedTypeDeclaration,
+    DispatchedTypeFallback, DispatchedTypePlan, Variant, WrittenType,
 };
 pub(crate) use errors::{
     AsyncProblem, AttributeProblem, DispatchAttributeKind, DispatchProblem, DispatchSubject,
     DomainError, DomainErrors, Feature, InfallibleBuild, ItemProblem, StaticDispatchProblem,
-    TraitObjectProblem,
+    TraitObjectProblem, Unreadability,
 };
 pub(crate) use names::{
     ConstantName, ContainerName, DependencyName, FunctionName, MacroName, MethodName, SetterName,

@@ -90,8 +90,9 @@ fn a_dispatch_field_is_refused_naming_static_dispatch_for() {
 #[test]
 fn a_field_s_value_type_is_read_as_a_name_a_path_or_neither() {
     let name = |text: &str| TypeName::new(text).unwrap();
-    let cases: [(syn::Type, WrittenType); 6] = [
+    let cases: [(syn::Type, WrittenType); 7] = [
         (parse_quote!(Arc<Db>), WrittenType::Name(name("Db"))),
+        (parse_quote!(Arc<r#Db>), WrittenType::Name(name("Db"))),
         (parse_quote!(Db), WrittenType::Name(name("Db"))),
         (
             parse_quote!(::std::sync::Arc<Db>),

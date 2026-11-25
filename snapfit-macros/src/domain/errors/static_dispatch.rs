@@ -8,6 +8,10 @@ use super::sentences::join_names;
 use crate::domain::dispatched_type::AttributePosition;
 use crate::domain::names::{DependencyName, TypeName};
 
+mod unreadability;
+
+pub(crate) use unreadability::Unreadability;
+
 /// Which of the container's dispatch attributes an error is about.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
 pub(crate) enum DispatchAttributeKind {
@@ -19,7 +23,6 @@ pub(crate) enum DispatchAttributeKind {
 
 #[derive(Debug, Clone, PartialEq, Eq, Display)]
 pub(crate) enum StaticDispatchProblem {
-    /// The words of syn, which read the attribute.
     #[display(
         "{kind} cannot be read: {problem}; write it as {}",
         example(*kind)
@@ -27,7 +30,7 @@ pub(crate) enum StaticDispatchProblem {
     Unreadable {
         position: AttributePosition,
         kind: DispatchAttributeKind,
-        problem: String,
+        problem: Unreadability,
     },
     #[display(
         "static_dispatch_for needs the name the fields write, after the trait and the word as, such as static_dispatch_for(Database as Db)"
@@ -120,7 +123,7 @@ pub(crate) enum StaticDispatchProblem {
         written: String,
     },
     #[display(
-        "field '{dependency}' is marked #[dispatch(...)], which snapfit does not read; declare the dispatched type under #[container] with static_dispatch_for, such as #[static_dispatch_for(Store as Stores)], and give the field that type with its implementation, such as Arc<Stores>"
+        "field '{dependency}' is marked #[dispatch(...)], which snapfit does not support; declare the dispatched type under #[container] with static_dispatch_for, such as #[static_dispatch_for(Store as Stores)], and give the field that type with its implementation, such as Arc<Stores>"
     )]
     OldAttribute { dependency: DependencyName },
 }

@@ -32,7 +32,7 @@ fn an_unreadable_attribute_names_its_kind_and_shows_how_that_kind_is_written() {
     let unreadable = |kind| StaticDispatchProblem::Unreadable {
         position: AttributePosition(0),
         kind,
-        problem: "expected `as`".to_owned(),
+        problem: Unreadability::Syn("expected `as`".to_owned()),
     };
 
     assert_eq!(

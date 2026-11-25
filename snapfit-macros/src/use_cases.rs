@@ -14,5 +14,6 @@ mod repeats;
 mod resolver;
 mod static_dispatch;
 
-pub(crate) use derive_container::{declared_dispatched_types, plan_container};
+pub(crate) use derive_container::plan_container;
 pub(crate) use dispatch_trait::plan_dispatch;
+pub(crate) use static_dispatch::fallback_dispatched_types;

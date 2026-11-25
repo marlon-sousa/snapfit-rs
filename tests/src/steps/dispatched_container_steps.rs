@@ -2,6 +2,7 @@ use cucumber::{given, then};
 
 use crate::dispatched_containers::accounts::{Accounts, Ledgers, Spare};
 use crate::dispatched_containers::checked::CheckedAccounts;
+use crate::dispatched_containers::conversions::{Conversions, Convert};
 use crate::dispatched_containers::ledgers::{Fake, Ledger};
 use crate::dispatched_containers::written_by_a_macro::{Passed, PassedAccounts};
 use crate::world::ContainerWorld;
@@ -56,4 +57,20 @@ fn then_checked_fails(_world: &mut ContainerWorld, expected: String) {
 fn then_passed_answers(_world: &mut ContainerWorld, main: String, extra: String) {
     assert_eq!(PassedAccounts::new().get_main().source(), main);
     assert_eq!(Passed::of(Fake).source(), extra);
+}
+
+#[given("a container whose converters a trait with two type arguments dispatches")]
+fn given_conversions(world: &mut ContainerWorld) {
+    world.built.dispatch.conversions = Some(Conversions::new());
+}
+
+#[then(expr = "its {word} converter should turn {int} into {int}")]
+fn then_converter_turns(world: &mut ContainerWorld, field: String, value: u8, expected: u16) {
+    let conversions = world.built.dispatch.conversions();
+    let converted = match field.as_str() {
+        "shared" => conversions.get_shared().convert(value),
+        "owned" => conversions.get_owned().convert(value),
+        other => panic!("the Conversions container has no converter field '{other}'"),
+    };
+    assert_eq!(converted, expected);
 }

@@ -1,17 +1,19 @@
-//! Policy: which fields hold a type the container dispatches statically, the
-//! implementations each such type holds, and what its declarations may not do.
+//! Policy: which fields hold a type the container dispatches statically, and
+//! the implementations each such type holds.
 
 use std::collections::HashSet;
-use std::iter;
+
+use derive_new::new;
 
 use crate::domain::{
     ContainerDeclaration, DependencyDeclaration, Dispatch, DispatchExtension,
-    DispatchedTypeDeclaration, DispatchedTypePlan, DomainError, Implementation,
-    StaticDispatchProblem, TypeName, Variant, WrittenType,
+    DispatchedTypeDeclaration, DispatchedTypeFallback, DispatchedTypePlan, Implementation,
+    TypeName, Variant, WrittenType,
 };
 
-#[cfg(test)]
-mod tests;
+mod violations;
+
+pub(crate) use violations::dispatch_violations;
 
 /// The names the container's `static_dispatch_for` declare, read from them.
 #[derive(Debug, Default)]
@@ -19,12 +21,7 @@ pub(crate) struct DispatchedNames(Vec<TypeName>);
 
 impl<S, T> FromIterator<DispatchedTypeDeclaration<S, T>> for DispatchedNames {
     fn from_iter<I: IntoIterator<Item = DispatchedTypeDeclaration<S, T>>>(declarations: I) -> Self {
-        Self(
-            declarations
-                .into_iter()
-                .map(|declaration| declaration.name)
-                .collect(),
-        )
+        Self(declarations.into_iter().map(name_of).collect())
     }
 }
 
@@ -43,6 +40,10 @@ impl DispatchedNames {
     }
 }
 
+fn name_of<S, T>(declaration: DispatchedTypeDeclaration<S, T>) -> TypeName {
+    declaration.name
+}
+
 pub(crate) fn dispatch_of(dispatched: Option<&TypeName>) -> Dispatch {
     dispatched.map_or(Dispatch::None, |_| Dispatch::Static)
 }
@@ -54,101 +55,107 @@ pub(crate) fn dispatch_of(dispatched: Option<&TypeName>) -> Dispatch {
 pub(crate) fn dispatched_types<C, F, S: Clone, T: Clone>(
     container: &ContainerDeclaration<C, F, S, T>,
 ) -> Vec<DispatchedTypePlan<S, T>> {
-    first_declarations(container)
-        .filter_map(|declaration| planned(container, declaration))
-        .collect()
-}
-
-/// Every problem of the container's dispatch declarations, and of a field
-/// that names a declared type through a path.
-pub(crate) fn dispatch_violations<C, F, S, T: Clone>(
-    container: &ContainerDeclaration<C, F, S, T>,
-) -> Vec<DomainError> {
-    let declared: Vec<_> = first_declarations(container).collect();
-    let names: Vec<_> = declared
-        .iter()
-        .map(|declaration| declaration.name.clone())
-        .collect();
-    let repeated = container
-        .dispatched_types
-        .iter()
-        .zip(repeats_from(container))
-        .filter_map(repeated_name);
-    let undeclared = container
-        .extensions
-        .iter()
-        .filter(|extension| !names.contains(&extension.name))
-        .map(|extension| undeclared(extension, &names));
-    let empty = declared
+    let held = Held::new(&container.dependencies, &container.extensions);
+    sorted(&container.dispatched_types)
+        .first
         .into_iter()
-        .filter(|declaration| variants(container, declaration).is_empty())
-        .map(without_implementations);
-    let paths = iter::repeat(&names)
-        .zip(&container.dependencies)
-        .filter_map(through_path);
-    repeated
-        .chain(undeclared)
-        .chain(empty)
-        .chain(paths)
-        .map(DomainError::StaticDispatch)
+        .filter_map(|declaration| held.planned(declaration))
         .collect()
 }
 
-fn first_declarations<C, F, S, T>(
-    container: &ContainerDeclaration<C, F, S, T>,
-) -> impl Iterator<Item = &DispatchedTypeDeclaration<S, T>> {
-    container
-        .dispatched_types
-        .iter()
-        .zip(repeats_from(container))
-        .filter(|(_, seen)| !*seen)
-        .map(|(declaration, _)| declaration)
-}
-
-/// For each declaration, whether a declaration before it has its name.
-fn repeats_from<C, F, S, T>(container: &ContainerDeclaration<C, F, S, T>) -> Vec<bool> {
-    let mut seen = HashSet::new();
-    container
-        .dispatched_types
-        .iter()
-        .map(|declaration| !seen.insert(&declaration.name))
+/// For a container that is refused, each type its readable declarations
+/// name, with the implementations the readable parts give it, or with none.
+pub(crate) fn fallback_dispatched_types<F, S: Clone, T: Clone>(
+    declarations: &[DispatchedTypeDeclaration<S, T>],
+    extensions: &[DispatchExtension<T>],
+    dependencies: &[DependencyDeclaration<F, T>],
+) -> Vec<DispatchedTypeFallback<S, T>> {
+    let held = Held::new(dependencies, extensions);
+    sorted(declarations)
+        .first
+        .into_iter()
+        .map(|declaration| held.fallback(declaration))
         .collect()
 }
 
-fn planned<C, F, S: Clone, T: Clone>(
-    container: &ContainerDeclaration<C, F, S, T>,
-    declaration: &DispatchedTypeDeclaration<S, T>,
-) -> Option<DispatchedTypePlan<S, T>> {
-    let mut variants = variants(container, declaration).into_iter();
-    let first = variants.next()?;
-    Some(DispatchedTypePlan::new(
-        declaration.syntax.clone(),
-        first,
-        variants.collect(),
-    ))
+/// The declarations, the first of each name apart from those that repeat it.
+#[derive(new)]
+struct Sorted<'a, S, T> {
+    #[new(default)]
+    seen: HashSet<&'a TypeName>,
+    #[new(default)]
+    first: Vec<&'a DispatchedTypeDeclaration<S, T>>,
+    #[new(default)]
+    repeated: Vec<&'a DispatchedTypeDeclaration<S, T>>,
 }
 
-/// The implementations a declared type holds, in order, each once by how it is written.
-fn variants<C, F, S, T: Clone>(
-    container: &ContainerDeclaration<C, F, S, T>,
-    declaration: &DispatchedTypeDeclaration<S, T>,
-) -> Vec<Variant<T>> {
-    let name = &declaration.name;
-    let fields = container
-        .dependencies
-        .iter()
-        .filter(|dependency| dependency.written_type == WrittenType::Name(name.clone()))
-        .filter_map(named_implementation);
-    let extensions = container
-        .extensions
-        .iter()
-        .filter(|extension| &extension.name == name)
-        .flat_map(|extension| &extension.variants);
-    let all = fields.chain(&declaration.extra).chain(extensions);
-    let mut seen = HashSet::new();
-    all.filter(|variant| seen.insert(&variant.name))
-        .cloned()
-        .collect()
+fn sorted<S, T>(declarations: &[DispatchedTypeDeclaration<S, T>]) -> Sorted<'_, S, T> {
+    declarations.iter().fold(Sorted::new(), Sorted::with)
+}
+
+impl<'a, S, T> Sorted<'a, S, T> {
+    fn with(mut self, declaration: &'a DispatchedTypeDeclaration<S, T>) -> Self {
+        if self.seen.insert(&declaration.name) {
+            self.first.push(declaration);
+        } else {
+            self.repeated.push(declaration);
+        }
+        self
+    }
+}
+
+/// What gives a declared type its implementations, besides its own `extra`.
+#[derive(new)]
+struct Held<'a, F, T> {
+    dependencies: &'a [DependencyDeclaration<F, T>],
+    extensions: &'a [DispatchExtension<T>],
+}
+
+impl<F, T: Clone> Held<'_, F, T> {
+    fn planned<S: Clone>(
+        &self,
+        declaration: &DispatchedTypeDeclaration<S, T>,
+    ) -> Option<DispatchedTypePlan<S, T>> {
+        let mut variants = self.variants(declaration).into_iter();
+        let first = variants.next()?;
+        Some(DispatchedTypePlan::new(
+            declaration.syntax.clone(),
+            first,
+            variants.collect(),
+        ))
+    }
+
+    fn fallback<S: Clone>(
+        &self,
+        declaration: &DispatchedTypeDeclaration<S, T>,
+    ) -> DispatchedTypeFallback<S, T> {
+        self.planned(declaration).map_or_else(
+            || DispatchedTypeFallback::Unplanned(declaration.syntax.clone()),
+            DispatchedTypeFallback::Planned,
+        )
+    }
+
+    /// The implementations a declared type holds, in order, each once by how it is written.
+    fn variants<S>(&self, declaration: &DispatchedTypeDeclaration<S, T>) -> Vec<Variant<T>> {
+        let name = &declaration.name;
+        let fields = self
+            .dependencies
+            .iter()
+            .filter(|dependency| dependency.written_type.is_written_as(name))
+            .filter_map(named_implementation);
+        let extensions = self
+            .extensions
+            .iter()
+            .filter(|extension| &extension.name == name)
+            .flat_map(|extension| &extension.variants);
+        let mut seen = HashSet::new();
+        fields
+            .chain(&declaration.extra)
+            .chain(extensions)
+            .filter(|variant| seen.insert(&variant.name))
+            .cloned()
+            .collect()
+    }
 }
 
 fn named_implementation<F, T>(dependency: &DependencyDeclaration<F, T>) -> Option<&Variant<T>> {
@@ -158,43 +165,5 @@ fn named_implementation<F, T>(dependency: &DependencyDeclaration<F, T>) -> Optio
     }
 }
 
-fn repeated_name<S, T>(
-    (declaration, seen): (&DispatchedTypeDeclaration<S, T>, bool),
-) -> Option<StaticDispatchProblem> {
-    seen.then(|| StaticDispatchProblem::RepeatedName {
-        position: declaration.position,
-        name: declaration.name.clone(),
-    })
-}
-
-fn undeclared<T>(extension: &DispatchExtension<T>, declared: &[TypeName]) -> StaticDispatchProblem {
-    StaticDispatchProblem::Undeclared {
-        position: extension.position,
-        name: extension.name.clone(),
-        declared: declared.to_vec(),
-    }
-}
-
-fn without_implementations<S, T>(
-    declaration: &DispatchedTypeDeclaration<S, T>,
-) -> StaticDispatchProblem {
-    StaticDispatchProblem::WithoutImplementations {
-        position: declaration.position,
-        name: declaration.name.clone(),
-    }
-}
-
-fn through_path<F, T>(
-    (declared, dependency): (&Vec<TypeName>, &DependencyDeclaration<F, T>),
-) -> Option<StaticDispatchProblem> {
-    let WrittenType::Path { last, written } = &dependency.written_type else {
-        return None;
-    };
-    declared
-        .contains(last)
-        .then(|| StaticDispatchProblem::ThroughPath {
-            dependency: dependency.name.clone(),
-            name: last.clone(),
-            written: written.clone(),
-        })
-}
+#[cfg(test)]
+mod tests;

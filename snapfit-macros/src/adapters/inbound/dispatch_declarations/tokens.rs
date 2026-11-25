@@ -4,12 +4,14 @@
 use proc_macro2::{Delimiter, TokenStream, TokenTree};
 use syn::parse::{Parse, ParseStream};
 
-use super::super::type_inspector::compact_type_tokens;
+use derive_new::new;
 
-/// `<Trait>`, then `as <Name>` when it is written.
+/// `<Trait>`, then `as <Name>` when it is written, then whatever follows
+/// before the first comma, which should be nothing.
 pub(super) struct Head {
     pub(super) trait_path: syn::Path,
     pub(super) name: Option<syn::Path>,
+    pub(super) rest: TokenStream,
 }
 
 impl Parse for Head {
@@ -19,28 +21,57 @@ impl Parse for Head {
             Some(_) => Some(input.parse()?),
             None => None,
         };
-        if !input.is_empty() {
-            return Err(input.error("expected the word as and the name after the trait"));
-        }
-        Ok(Self { trait_path, name })
+        let rest = input.parse()?;
+        Ok(Self {
+            trait_path,
+            name,
+            rest,
+        })
     }
 }
 
 /// The parts between the attribute's commas, leaving out empty ones, such
-/// as the one a trailing comma leaves.
+/// as the one a trailing comma leaves. A comma between angle brackets, as in
+/// `Store<A, B>`, is part of its type.
 pub(super) fn chunks(tokens: TokenStream) -> Vec<TokenStream> {
-    let mut chunks = vec![TokenStream::new()];
-    for tree in tokens {
-        match (&tree, chunks.last_mut()) {
-            (TokenTree::Punct(punct), _) if punct.as_char() == ',' => {
-                chunks.push(TokenStream::new());
-            }
-            (_, Some(chunk)) => chunk.extend([tree]),
-            (_, None) => {}
-        }
-    }
+    let mut chunks = tokens.into_iter().fold(Cut::new(), Cut::with).chunks;
     chunks.retain(|chunk| !chunk.is_empty());
     chunks
+}
+
+/// The chunks cut so far, how deep in angle brackets the next token is, and
+/// whether the token before it was a `-`, whose `>` closes no bracket.
+#[derive(new)]
+struct Cut {
+    #[new(value = "vec![TokenStream::new()]")]
+    chunks: Vec<TokenStream>,
+    #[new(default)]
+    depth: usize,
+    #[new(default)]
+    after_dash: bool,
+}
+
+impl Cut {
+    fn with(mut self, tree: TokenTree) -> Self {
+        let punct = match &tree {
+            TokenTree::Punct(punct) => Some(punct.as_char()),
+            _ => None,
+        };
+        match punct {
+            Some(',') if self.depth == 0 => self.chunks.push(TokenStream::new()),
+            Some('<') => self.depth += 1,
+            Some('>') if !self.after_dash => self.depth = self.depth.saturating_sub(1),
+            _ => {}
+        }
+        if let (false, Some(chunk)) = (
+            punct == Some(',') && self.depth == 0,
+            self.chunks.last_mut(),
+        ) {
+            chunk.extend([tree]);
+        }
+        self.after_dash = punct == Some('-');
+        self
+    }
 }
 
 /// `<name> = <value>`, as the setting's word and the tokens after `=`.
@@ -66,8 +97,4 @@ pub(super) fn bracketed(value: TokenStream) -> Option<TokenStream> {
         Delimiter::None => bracketed(group.stream()),
         Delimiter::Parenthesis | Delimiter::Brace => None,
     }
-}
-
-pub(super) fn compact(tokens: TokenStream) -> String {
-    compact_type_tokens(tokens)
 }
