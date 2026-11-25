@@ -48,8 +48,10 @@ fn a_dispatch_field_without_a_trait_object_is_refused() {
 
 #[test]
 fn a_type_holding_dyn_is_a_trait_object_and_an_arc_of_one_is_told_apart() {
+    let arc_of_trait_through_a_macro = through_a_macro(quote!(Arc<dyn Store>));
+    let arc_through_a_macro = through_a_macro(quote!(Arc<Store>));
     let through_a_macro = through_a_macro(quote!(dyn Store));
-    let shapes: [(syn::Type, TypeShape); 8] = [
+    let shapes: [(syn::Type, TypeShape); 10] = [
         (parse_quote!(Arc<dyn Store>), TypeShape::ArcTraitObject),
         (
             parse_quote!(std::sync::Arc<dyn Store + Send + Sync>),
@@ -64,7 +66,12 @@ fn a_type_holding_dyn_is_a_trait_object_and_an_arc_of_one_is_told_apart() {
             TypeShape::TraitObject,
         ),
         (parse_quote!(Box<dyn Store + Send>), TypeShape::TraitObject),
+        (
+            parse_quote!(#arc_of_trait_through_a_macro),
+            TypeShape::ArcTraitObject,
+        ),
         (parse_quote!(Arc<Store>), TypeShape::Arc),
+        (parse_quote!(#arc_through_a_macro), TypeShape::Arc),
         (parse_quote!(std::rc::Rc<Store>), TypeShape::Value),
         (parse_quote!(Store), TypeShape::Value),
     ];
@@ -75,8 +82,10 @@ fn a_type_holding_dyn_is_a_trait_object_and_an_arc_of_one_is_told_apart() {
 
 #[test]
 fn only_std_arc_paths_have_an_inner_type() {
-    let arcs: [syn::Type; 4] = [
+    let through_a_macro = through_a_macro(quote!(std::sync::Arc<Config>));
+    let arcs: [syn::Type; 5] = [
         parse_quote!(Arc<Config>),
+        parse_quote!(#through_a_macro),
         parse_quote!(std::sync::Arc<Config>),
         parse_quote!(::std::sync::Arc<Config>),
         parse_quote!(alloc::sync::Arc<Config>),

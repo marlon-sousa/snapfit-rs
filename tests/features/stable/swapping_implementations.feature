@@ -42,6 +42,11 @@ Feature: Swapping a field for another implementation of its trait
       | an identifier  |
       | a whole struct |
 
+  @v0_2_0 @regression
+  Scenario: A field whose Arc of the trait object a macro_rules! passes as a type is built from its implementation
+    When the desk whose field type a macro_rules! passes as a type is opened
+    Then its reader, built from its implementation, should read from disk
+
   @v0_2_0
   Scenario Outline: An implementation is built the way the field's build, or the container's leaf_build, says
     When the desks whose readers are built from their implementation in every way are opened

@@ -119,3 +119,17 @@ fn then_office_read_as_written_by_hand(world: &mut ContainerWorld) {
     assert_eq!(mailer.opened_by, "connect");
     assert!(Arc::ptr_eq(&mailer.settings, &office.get_settings()));
 }
+
+#[when("the front desk whose mailer's Arc type a macro_rules! passes as a type is instantiated")]
+fn when_front_desk_instantiated(world: &mut ContainerWorld) {
+    world.built.instantiate_front_desk();
+}
+
+#[then("its mailer should be connected inside its Arc to the container's settings")]
+fn then_front_desk_mailer_connected(world: &mut ContainerWorld) {
+    let front_desk = world.built.front_desk();
+    let mailer = front_desk.get_mailer();
+
+    assert_eq!(mailer.opened_by, "connect");
+    assert!(Arc::ptr_eq(&mailer.settings, &front_desk.get_settings()));
+}

@@ -77,6 +77,7 @@ pub struct SwapRuns {
     built: Option<BuiltReads>,
     local: Option<Source>,
     passed: Option<Vec<(&'static str, Source)>>,
+    typed: Option<Source>,
     #[cfg(feature = "unstable")]
     transient: Option<TransientReads>,
 }
