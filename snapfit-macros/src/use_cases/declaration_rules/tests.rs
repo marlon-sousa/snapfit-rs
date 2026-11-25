@@ -1,5 +1,5 @@
 use super::*;
-use crate::domain::{DependencyName, Execution, Lifecycle, SetterName};
+use crate::domain::{AsyncProblem, DependencyName, Execution, Lifecycle, SetterName};
 use crate::test_support::{builder, container, dependency, labelled};
 
 mod fallible;
@@ -32,9 +32,9 @@ fn an_async_transient_is_refused() {
 
     assert_eq!(
         errors,
-        [DomainError::AsyncTransient {
-            dependency: DependencyName::new("request").unwrap()
-        }]
+        [DomainError::Async(AsyncProblem::Transient(
+            DependencyName::new("request").unwrap()
+        ))]
     );
 }
 
@@ -63,9 +63,9 @@ fn default_on_an_async_dependency_is_refused() {
 
     assert_eq!(
         rule_violations(&container(vec![rates])),
-        [DomainError::AsyncDefault {
-            dependency: DependencyName::new("rates").unwrap()
-        }]
+        [DomainError::Async(AsyncProblem::BuiltByDefault(
+            DependencyName::new("rates").unwrap()
+        ))]
     );
 }
 

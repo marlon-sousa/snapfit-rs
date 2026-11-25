@@ -2,6 +2,7 @@
 //! the compiler shows, which must read well spoken by a screen reader.
 
 mod accumulated;
+mod asynchrony;
 mod parts;
 mod sentences;
 mod subject;
@@ -12,6 +13,7 @@ use thiserror::Error;
 use crate::domain::names::{DependencyName, SetterName};
 
 pub(crate) use accumulated::DomainErrors;
+pub(crate) use asynchrony::AsyncProblem;
 pub(crate) use parts::{AttributeProblem, Feature, InfallibleBuild};
 use sentences::{cycle_sentence, dependencies_noun, join_names};
 pub(crate) use trait_objects::TraitObjectProblem;
@@ -138,18 +140,8 @@ pub(crate) enum DomainError {
         written: String,
     },
 
-    #[error(
-        "container with mode = \"sync\" cannot contain async dependencies: dependency '{dependency}' is async"
-    )]
-    AsyncDependencyInSyncContainer { dependency: DependencyName },
-
-    #[error("transient dependency '{dependency}' cannot be async because getters are synchronous")]
-    AsyncTransient { dependency: DependencyName },
-
-    #[error(
-        "async dependency '{dependency}' cannot be built with build = default, because Default::default() cannot be awaited; remove async, or build it with build = constructor and the name of an async function in brackets"
-    )]
-    AsyncDefault { dependency: DependencyName },
+    #[error("{0}")]
+    Async(AsyncProblem),
 
     #[error("field '{dependency}' {}", problem.worded(dependency))]
     TraitObject {

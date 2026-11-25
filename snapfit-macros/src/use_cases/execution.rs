@@ -1,7 +1,7 @@
 //! Policy: whether the container is built at once by `new()` or awaited through `init()`.
 
 use crate::domain::{
-    ContainerDeclaration, DependencyDeclaration, DomainError, DomainErrors, Execution,
+    AsyncProblem, ContainerDeclaration, DependencyDeclaration, DomainError, DomainErrors, Execution,
 };
 
 #[cfg(test)]
@@ -29,7 +29,5 @@ fn is_async<F>(dependency: &&DependencyDeclaration<F>) -> bool {
 }
 
 fn async_in_sync_container<F>(dependency: &DependencyDeclaration<F>) -> DomainError {
-    DomainError::AsyncDependencyInSyncContainer {
-        dependency: dependency.name.clone(),
-    }
+    DomainError::Async(AsyncProblem::InSyncContainer(dependency.name.clone()))
 }

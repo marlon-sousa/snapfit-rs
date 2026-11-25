@@ -23,14 +23,12 @@ impl DomainError {
             | Self::BuildCannotFail { dependency, .. }
             | Self::QuotedFunctionName { dependency, .. }
             | Self::NotAFunctionName { dependency, .. }
-            | Self::AsyncDependencyInSyncContainer { dependency }
-            | Self::AsyncTransient { dependency }
-            | Self::AsyncDefault { dependency }
             | Self::TraitObject { dependency, .. }
             | Self::InvalidBuilderSetting { dependency, .. }
             | Self::LabelWithoutBuilder { dependency, .. }
             | Self::RepeatedPrerequisite { dependency, .. }
             | Self::DuplicateSetter { dependency, .. } => Some(dependency),
+            Self::Async(problem) => Some(problem.dependency()),
             Self::RequiresUnstable { feature } | Self::NotYetImplemented { feature } => {
                 feature.dependency()
             }

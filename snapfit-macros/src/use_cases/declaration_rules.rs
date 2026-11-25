@@ -3,8 +3,8 @@
 use std::iter;
 
 use crate::domain::{
-    Construction, Constructor, ContainerDeclaration, DependencyDeclaration, DependencyName,
-    DomainError, InfallibleBuild, Prerequisite, SetterName,
+    AsyncProblem, Construction, Constructor, ContainerDeclaration, DependencyDeclaration,
+    DependencyName, DomainError, InfallibleBuild, Prerequisite, SetterName,
 };
 
 #[cfg(test)]
@@ -65,9 +65,7 @@ fn violations_of<F>(dependency: &DependencyDeclaration<F>) -> Vec<DomainError> {
 }
 
 fn async_transient(dependency: &DependencyName) -> DomainError {
-    DomainError::AsyncTransient {
-        dependency: dependency.clone(),
-    }
+    DomainError::Async(AsyncProblem::Transient(dependency.clone()))
 }
 
 fn default_with_dependencies(dependency: &DependencyName) -> DomainError {
@@ -77,9 +75,7 @@ fn default_with_dependencies(dependency: &DependencyName) -> DomainError {
 }
 
 fn async_default(dependency: &DependencyName) -> DomainError {
-    DomainError::AsyncDefault {
-        dependency: dependency.clone(),
-    }
+    DomainError::Async(AsyncProblem::BuiltByDefault(dependency.clone()))
 }
 
 fn cannot_fail(dependency: &DependencyName, build: InfallibleBuild) -> DomainError {

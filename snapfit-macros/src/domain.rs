@@ -13,7 +13,8 @@ pub(crate) use declaration::{
     TypeParameters, TypeShape,
 };
 pub(crate) use errors::{
-    AttributeProblem, DomainError, DomainErrors, Feature, InfallibleBuild, TraitObjectProblem,
+    AsyncProblem, AttributeProblem, DomainError, DomainErrors, Feature, InfallibleBuild,
+    TraitObjectProblem,
 };
 pub(crate) use names::{ContainerName, DependencyName, FunctionName, SetterName, TypeName};
 pub(crate) use plan::{Call, ConstructionPlan, Step, Wrapping};

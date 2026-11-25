@@ -1,5 +1,5 @@
 use super::*;
-use crate::domain::{DomainError, Execution, Lifecycle, TypeShape};
+use crate::domain::{AsyncProblem, DomainError, Execution, Lifecycle, TypeShape};
 use crate::test_support::{container, dependency};
 
 #[test]
@@ -51,7 +51,7 @@ fn refusals_mode_errors_and_graph_errors_are_reported_together() {
     assert!(matches!(errors[1], DomainError::RequiresUnstable { .. }));
     assert!(matches!(
         errors[2],
-        DomainError::AsyncDependencyInSyncContainer { .. }
+        DomainError::Async(AsyncProblem::InSyncContainer(_))
     ));
     assert!(matches!(
         errors[3],
