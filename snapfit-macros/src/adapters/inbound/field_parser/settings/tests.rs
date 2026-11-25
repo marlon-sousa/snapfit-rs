@@ -108,7 +108,7 @@ fn every_bad_implementation_is_reported_after_the_other_bad_settings() {
             UNKNOWN_BOGUS.to_string(),
             unknown_build("frobnicate"),
             "field 'cache': 'impl Reader' is not a type the container can build; write the type in full, such as implementation = StripeGateway".to_string(),
-            "field 'cache': implementation is given more than once; give the field one type to build".to_string(),
+            "field 'cache': implementation is given more than once; give implementation once".to_string(),
         ]
     );
 }

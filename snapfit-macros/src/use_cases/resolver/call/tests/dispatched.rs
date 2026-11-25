@@ -59,19 +59,27 @@ fn a_dispatched_factory_field_may_name_the_variants_it_returns_one_or_a_list() {
 #[test]
 fn a_dispatched_field_listing_implementations_without_a_factory_is_refused() {
     let db = TypeName::new("Db").unwrap();
+    let constructions = [
+        None,
+        Some(Construction::Constructor(Constructor::Default)),
+        Some(Construction::Builder(builder_methods())),
+    ];
     for shape in [TypeShape::Arc, TypeShape::Value] {
-        let mut listing = dependency(shape, None);
-        listing.implementation = Implementation::Listed(vec![variant("MySql")]);
-        let call = call_for(&listing, &Constructor::New, Some(&db));
-        assert_eq!(
-            call,
-            Err(DomainError::StaticDispatch(
-                StaticDispatchProblem::ListWithoutFactory {
-                    dependency: store(),
-                    name: db.clone(),
-                }
-            )),
-            "{shape:?}"
-        );
+        for construction in constructions.clone() {
+            let mut listing = dependency(shape, construction);
+            listing.implementation = Implementation::Listed(vec![variant("MySql")]);
+            let call = call_for(&listing, &Constructor::New, Some(&db));
+            assert_eq!(
+                call,
+                Err(DomainError::StaticDispatch(
+                    StaticDispatchProblem::ListWithoutFactory {
+                        dependency: store(),
+                        name: db.clone(),
+                    }
+                )),
+                "{shape:?} {:?}",
+                listing.construction
+            );
+        }
     }
 }

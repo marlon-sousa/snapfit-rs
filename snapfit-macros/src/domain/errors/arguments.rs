@@ -63,10 +63,10 @@ pub(crate) enum ArgumentProblem {
     )]
     NotAnImplementationType(String),
     #[display(
-        "implementation = [] lists no type; list the implementations the field's factory may return, such as implementation = [Postgres, Sqlite], or remove implementation"
+        "implementation lists no type in its square brackets; write the type the container builds, such as implementation = StripeGateway, or, beside build = factory on a field of a dispatched type, the types its factory may return, such as implementation = [Postgres, Sqlite]"
     )]
     EmptyImplementationList,
-    #[display("implementation is given more than once; give the field one type to build")]
+    #[display("implementation is given more than once; give implementation once")]
     RepeatedImplementation,
     #[display("invalid container mode '{_0}': write mode = \"sync\", or leave mode out")]
     InvalidMode(String),

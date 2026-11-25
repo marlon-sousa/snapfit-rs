@@ -11,6 +11,8 @@ A field that may hold any of several types breaks that. `ListPrice` holds nothin
 1. **Keep the value somewhere else, and hold a pointer to it.** A pointer is always the same size, whatever it points at, so the field's size is settled. That's what `dyn` means: the value lives behind the pointer, and the compiler no longer knows which type it is. So beside the pointer, Rust keeps a second one, to a small table of the methods of the type behind it. A call follows that table to the right method. This is dynamic dispatch, and because the compiler never needs the list of types, it can hold any implementation, even one another crate writes years later.
 2. **Keep room for the largest, and a tag saying which one is there.** This is an enum: it is as big as its biggest variant, plus a small tag. A call checks the tag in a `match`, and each arm calls its own implementation directly. That check happens while the program runs too, but it goes through no pointer and no table, and the compiler sees every arm, so it can fold a short method, such as our price arithmetic, right into the code that calls it. This is static dispatch, and what it costs is the list: the enum can hold only the types it was written with.
 
+Our `Prices` fields are `Arc<Prices>`, which is a pointer too. That `Arc` is only there so that every basket can share one rule. What makes the dispatch static is the tag and the `match` inside `Prices`: there is no table of methods behind it.
+
 ## One container, both kinds
 
 Here are three parts of the shop. Payments we know well:
@@ -91,7 +93,7 @@ region: test
 | What does the trait need? | Nothing, but it must be one a trait object can hold: no generic methods, for example | `#[snapfit::static_dispatch]`, so it must be a trait of your own crate |
 | Generic methods? | No | Yes |
 | A supertrait of another crate, such as `Display`? | Yes | No |
-| What is stored? | A pointer to the value, at its own size, and one to its table of methods | Room for the largest implementation and a tag saying which one it holds, behind the `Arc` or held by value |
+| What is stored? | The value at its own size behind the `Arc`, a pointer to it, and a pointer to its table of methods | Room for the largest implementation and a tag saying which one it holds, behind the `Arc` or held by value |
 | What do dependents name? | The trait | The container's type, or a type parameter the container fills in |
 | How does a test hand in a stand-in? | Any type that implements the trait | A type on the list, through an extension, or directly to a generic dependent |
 

@@ -33,8 +33,8 @@ pub(super) fn read_dispatch_declarations(
     )
 }
 
-/// Each `static_dispatch_for` whose trait and name can be read, and each `extend_static_dispatch` that can
-/// be read, leaving out the others.
+/// Each `static_dispatch_for` whose trait and name can be read, and each
+/// `extend_static_dispatch` that can be read, leaving out the others.
 pub(super) fn read_readable_dispatch_declarations(
     attrs: &[syn::Attribute],
 ) -> (Vec<Declaration>, Vec<Extension>) {

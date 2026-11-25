@@ -19,7 +19,7 @@ Feature: Refusing a static dispatch declaration that cannot be followed
       | static_dispatch_for_unknown_setting      | 14   | static_dispatch_for takes the trait and its name and nothing else, not extra; remove extra, and add implementations with implementation on a field or with extend_static_dispatch, such as extend_static_dispatch(Db, [Sqlite]) |
       | static_dispatch_for_without_parentheses  | 14   | static_dispatch_for cannot be read: it needs its settings in parentheses; write it as static_dispatch_for(Database as Db)                          |
       | static_dispatch_for_after_equals         | 14   | static_dispatch_for cannot be read: it takes its settings in parentheses, not after '='; write it as static_dispatch_for(Database as Db)        |
-      | static_dispatch_for_after_the_name       | 14   | static_dispatch_for cannot be read: it found Extra after the name, where nothing may follow; write it as static_dispatch_for(Database as Db) |
+      | static_dispatch_for_after_the_name       | 14   | static_dispatch_for cannot be read: it found Extra after the name, where only a closing comma may follow; write it as static_dispatch_for(Database as Db) |
       | extend_static_dispatch_without_list      | 15   | extend_static_dispatch(Db) needs the implementations it adds, in square brackets after the name, such as extend_static_dispatch(Db, [Mock])                          |
       | extend_static_dispatch_name_as_path      | 15   | extend_static_dispatch names the dispatched type through the path shop::Db; write a single name, such as extend_static_dispatch(Db, [Mock])                         |
       | extend_static_dispatch_not_a_list        | 15   | extend_static_dispatch takes its implementations in square brackets, not MySql; write them as extend_static_dispatch(Db, [Mock])                                    |
@@ -55,7 +55,7 @@ Feature: Refusing a static dispatch declaration that cannot be followed
       | dispatched_field_without_implementation | 19   | field 'replica' holds the dispatched type Db, whose implementations the container cannot choose between; name the one it builds, such as implementation = MySql, or add build = factory to the field and build it in the build_replica method of the container's factories trait |
       | dispatched_list_without_factory         | 22   | field 'replica' lists implementations of the dispatched type Db in square brackets, which only a factory can choose between; add build = factory to the field and return one of them from the build_replica method of the container's factories trait, or name the one it builds, such as implementation = MySql |
       | implementation_list_on_a_trait_object   | 19   | field 'replica' lists implementations in square brackets, which only a field of a dispatched type built by build = factory takes; name one type for the container to build, such as implementation = StripeGateway, or remove implementation |
-      | implementation_empty_list               | 19   | field 'replica': implementation = [] lists no type; list the implementations the field's factory may return, such as implementation = [Postgres, Sqlite], or remove implementation |
+      | implementation_empty_list               | 19   | field 'replica': implementation lists no type in its square brackets; write the type the container builds, such as implementation = StripeGateway, or, beside build = factory on a field of a dispatched type, the types its factory may return, such as implementation = [Postgres, Sqlite] |
       | implementation_list_entry_not_a_type    | 19   | field 'replica': 'impl Database' is not a type the container can build; write the type in full, such as implementation = StripeGateway |
       | dispatched_field_through_path           | 19   | field 'replica' names the dispatched type Db through the path crate::Db; write Db as static_dispatch_for declares it                                                                                                                                |
       | static_dispatch_for_written_by_a_macro  | 22   | field 'replica' holds the dispatched type Db, whose implementations the container cannot choose between                                                                                                                                              |
@@ -104,12 +104,17 @@ Feature: Refusing a static dispatch declaration that cannot be followed
     And the compiler should report 1 errors
 
   @v0_3_0
-  Scenario: An implementation of another trait is rustc's own error where its list names it
-    Given an invalid container fixture "static_dispatch_implementation_without_the_trait"
+  Scenario Outline: An implementation of another trait is rustc's own error where its list names it
+    Given an invalid container fixture "<fixture>"
     When the fixture is compiled
     Then compilation should fail with "the trait bound `Csv: Database` is not satisfied"
-    And the error should point at line 18 of the fixture
-    And the compiler should report 2 errors
+    And the error should point at line <line> of the fixture
+    And the compiler should report <count> errors
+
+    Examples:
+      | fixture                                                | line | count |
+      | static_dispatch_implementation_without_the_trait       | 18   | 2     |
+      | static_dispatch_listed_implementation_without_the_trait | 19  | 2     |
 
   @v0_3_0
   Scenario: A dispatch attribute written above #[container] is an attribute rustc cannot find, which snapfit reads as well

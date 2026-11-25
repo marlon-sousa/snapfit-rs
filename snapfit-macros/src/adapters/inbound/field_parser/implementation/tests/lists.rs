@@ -23,11 +23,7 @@ fn listed(settings: TokenStream) -> Vec<String> {
 }
 
 fn messages(settings: TokenStream) -> Vec<String> {
-    parse_field(&field(settings))
-        .unwrap_err()
-        .into_iter()
-        .map(|error| error.to_string())
-        .collect()
+    super::messages_of(&field(settings))
 }
 
 #[test]
@@ -65,7 +61,7 @@ fn a_list_in_square_brackets_is_read_as_each_type_it_holds() {
 
 #[test]
 fn an_empty_list_and_each_entry_that_is_no_type_are_refused_together() {
-    let empty = "field 'db': implementation = [] lists no type; list the implementations the field's factory may return, such as implementation = [Postgres, Sqlite], or remove implementation";
+    let empty = "field 'db': implementation lists no type in its square brackets; write the type the container builds, such as implementation = StripeGateway, or, beside build = factory on a field of a dispatched type, the types its factory may return, such as implementation = [Postgres, Sqlite]";
     assert_eq!(messages(quote!(implementation = [])), [empty]);
 
     assert_eq!(

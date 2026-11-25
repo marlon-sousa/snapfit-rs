@@ -11,7 +11,6 @@ mod tests;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum WrittenImplementation {
     One(syn::Type),
-    /// Never empty.
     List(Vec<syn::Type>),
 }
 

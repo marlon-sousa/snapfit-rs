@@ -105,30 +105,13 @@ fn implementation_value(input: ParseStream<'_>) -> syn::Result<ImplementationMet
     }
     let inner;
     syn::bracketed!(inner in input);
-    let entries = Punctuated::<Entry, syn::Token![,]>::parse_terminated(&inner)?;
-    Ok(ImplementationMeta::List(
-        entries.into_iter().map(Entry::into_inner).collect(),
-    ))
+    let entries = inner.parse_terminated(entry_value, syn::Token![,])?;
+    Ok(ImplementationMeta::List(entries.into_iter().collect()))
 }
 
 fn is_a_list(input: ParseStream<'_>) -> bool {
     let fork = input.fork();
     input.peek(syn::token::Bracket) && fork.parse::<TokenTree>().is_ok() && ends_setting(&fork)
-}
-
-/// One type of a list, up to the next comma.
-struct Entry(ImplementationEntry);
-
-impl Entry {
-    fn into_inner(self) -> ImplementationEntry {
-        self.0
-    }
-}
-
-impl Parse for Entry {
-    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
-        entry_value(input).map(Self)
-    }
 }
 
 /// One type, up to the next comma.

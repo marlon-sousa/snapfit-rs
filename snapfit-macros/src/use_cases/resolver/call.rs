@@ -10,8 +10,8 @@ use crate::use_cases::leaf::is_leaf;
 /// when the field holds `Arc<T>`, whose value is then wrapped, or to the
 /// implementation the field names for its `Arc<dyn Trait>` or for the type
 /// `dispatched` it holds, whose variant then holds the value. Any other value
-/// that is a trait object needs a factory, which a dispatched field may name
-/// the variants of.
+/// that is a trait object needs a factory. A dispatched field built by a
+/// factory names the variants it may return.
 pub(super) fn call_for<F, T>(
     dependency: &DependencyDeclaration<F, T>,
     leaf: &Constructor,

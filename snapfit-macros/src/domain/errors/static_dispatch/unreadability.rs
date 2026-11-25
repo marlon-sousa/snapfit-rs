@@ -12,7 +12,7 @@ pub(crate) enum Unreadability {
     #[display("it takes its settings in parentheses, not after '='")]
     AfterEquals,
     /// What follows the name, as written.
-    #[display("it found {_0} after the name, where nothing may follow")]
+    #[display("it found {_0} after the name, where only a closing comma may follow")]
     AfterName(String),
     /// The first token stream after the list, as written.
     #[display("it takes one list after the name, and found {_0} after it")]

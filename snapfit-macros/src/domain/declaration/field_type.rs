@@ -35,7 +35,7 @@ pub(crate) enum Implementation<T> {
     /// object, or its dispatched type, holds.
     Named(Variant<T>),
     /// The types of `implementation = [...]`, which a factory may return as
-    /// the field's dispatched type; never empty.
+    /// the field's dispatched type.
     Listed(Vec<Variant<T>>),
 }
 

@@ -23,7 +23,7 @@ fn each_attribute_that_cannot_be_read_is_refused_with_what_it_lacks() {
         ),
         (
             parse_quote!(#[static_dispatch_for(Database as Db Extra)]),
-            "static_dispatch_for cannot be read: it found Extra after the name, where nothing may follow",
+            "static_dispatch_for cannot be read: it found Extra after the name, where only a closing comma may follow",
         ),
         (
             parse_quote!(#[static_dispatch_for(Database as shop::Db)]),

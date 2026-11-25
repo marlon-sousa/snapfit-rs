@@ -14,7 +14,12 @@ fn field(settings: TokenStream) -> syn::Field {
 }
 
 fn messages(settings: TokenStream) -> Vec<String> {
-    parse_field(&field(settings))
+    messages_of(&field(settings))
+}
+
+/// Every problem the field reports, as the user reads it.
+fn messages_of(field: &syn::Field) -> Vec<String> {
+    parse_field(field)
         .unwrap_err()
         .into_iter()
         .map(|error| error.to_string())
@@ -131,7 +136,7 @@ fn every_problem_of_implementation_is_reported_with_the_field_s_other_problems()
         [
             "field 'reader': fallible takes true or false, not \"yes\"; write fallible = true, or fallible = false",
             "field 'reader': implementation takes a type, not a string; write it unquoted: implementation = DiskReader",
-            "field 'reader': implementation is given more than once; give the field one type to build",
+            "field 'reader': implementation is given more than once; give implementation once",
         ]
     );
 }
