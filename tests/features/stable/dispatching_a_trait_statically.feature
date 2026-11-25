@@ -59,6 +59,11 @@ Feature: Dispatching a trait statically
     Then the rack should read from "oak"
     And its copy should still hold oak
 
+  @v0_3_0 @regression
+  Scenario: A method that a cfg_attr removes from the trait is removed from the impls snapfit writes, and one it keeps is forwarded
+    When a lamp whose trait a cfg_attr removes a method from is dispatched statically, holding a bulb
+    Then the lamp should shine "bulb"
+
   @v0_3_0
   Scenario: Clippy does not lint the impls snapfit writes for a dispatched trait
     Given a dispatched trait fixture "static_dispatch_trait" for clippy

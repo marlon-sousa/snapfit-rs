@@ -59,6 +59,8 @@ pub struct DispatchRuns {
     pub accounts: Option<Accounts>,
     pub conversions: Option<Conversions>,
     pub chosen: Option<ChosenAccounts>,
+    /// What a dispatched lamp answered when it shone.
+    pub shone: Option<&'static str>,
 }
 
 impl DispatchRuns {

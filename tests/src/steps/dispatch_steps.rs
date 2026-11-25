@@ -2,6 +2,7 @@ use cucumber::{given, then, when};
 use snapfit::__private::{Either, Only};
 
 use crate::dispatch_world::{DatabaseKind, StoreKind};
+use crate::dispatched_traits::conditional::{Bulb, Lamp, Lamps};
 use crate::dispatched_traits::databases::{Database, Mock, Named};
 use crate::dispatched_traits::stores::Store;
 use crate::dispatched_traits::written_by_a_macro::{Oak, Rack, Racks};
@@ -118,4 +119,16 @@ fn then_rack_copy_holds_oak(world: &mut ContainerWorld) {
 
 fn name_of(database: DatabaseKind) -> &'static str {
     database.into()
+}
+
+#[when(
+    "a lamp whose trait a cfg_attr removes a method from is dispatched statically, holding a bulb"
+)]
+fn when_a_conditional_lamp_shines(world: &mut ContainerWorld) {
+    world.built.dispatch.shone = Some(Lamps::of(Bulb).shine());
+}
+
+#[then(expr = "the lamp should shine {string}")]
+fn then_the_lamp_shines(world: &mut ContainerWorld, expected: String) {
+    assert_eq!(world.built.dispatch.shone, Some(expected.as_str()));
 }

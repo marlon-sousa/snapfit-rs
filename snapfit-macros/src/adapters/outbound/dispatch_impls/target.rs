@@ -6,7 +6,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::quote;
 
 use super::trait_path::TraitPath;
-use crate::adapters::syntax::is_cfg;
+use crate::adapters::syntax::is_conditional;
 
 /// Which of snapfit's dispatch types an impl is for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -91,7 +91,7 @@ impl Target {
         let ident = &syntax.ident;
         let leading = self.leading();
         let plain = path.plain();
-        let cfgs = syntax.attrs.iter().filter(is_cfg);
+        let cfgs = syntax.attrs.iter().filter(|attr| is_conditional(attr));
         quote! {
             #(#cfgs)*
             type #ident = <#leading as #plain>::#ident;
