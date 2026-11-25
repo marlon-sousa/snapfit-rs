@@ -158,7 +158,7 @@ fn container_meta(
     attrs: &[syn::Attribute],
 ) -> Result<ContainerAttrMeta, DomainErrors> {
     if attrs.iter().any(is_container_attribute) {
-        return Err(DomainError::from(DeclarationProblem::MultipleContainerAttributes).into());
+        Err(DeclarationProblem::MultipleContainerAttributes)?;
     }
     ContainerAttrMeta::from_tokens(args).map_err(unreadable_container_attribute)
 }
@@ -182,6 +182,6 @@ fn parse_fields(fields: &syn::Fields) -> Result<Vec<FieldDeclaration>, DomainErr
             DomainErrors::collect(named.named.iter().map(field_parser::parse_field))
         }
         syn::Fields::Unit => Ok(Vec::new()),
-        syn::Fields::Unnamed(_) => Err(DomainError::from(DeclarationProblem::TupleStruct).into()),
+        syn::Fields::Unnamed(_) => Err(DeclarationProblem::TupleStruct)?,
     }
 }

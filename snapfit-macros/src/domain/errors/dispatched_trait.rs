@@ -2,29 +2,30 @@
 //! dispatched statically, or why the attribute cannot be read.
 
 use derive_more::Display;
+use thiserror::Error;
 
 use super::DispatchSubject;
 use crate::domain::dispatched_trait::{ItemPosition, TraitItem};
 use crate::domain::names::TraitName;
 
-#[derive(Debug, Clone, PartialEq, Eq, Display)]
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub(crate) enum DispatchProblem {
-    #[display("{item} in trait '{trait_name}' {problem}")]
+    #[error("{item} in trait '{trait_name}' {problem}")]
     Item {
         trait_name: TraitName,
         item: TraitItem,
         position: ItemPosition,
         problem: ItemProblem,
     },
-    #[display(
-        "trait '{_0}' is unsafe, and snapfit cannot promise that its contract holds for the type that dispatches it; remove unsafe from the trait, or dispatch it dynamically"
+    #[error(
+        "trait '{0}' is unsafe, and snapfit cannot promise that its contract holds for the type that dispatches it; remove unsafe from the trait, or dispatch it dynamically"
     )]
     UnsafeTrait(TraitName),
-    #[display(
+    #[error(
         "#[snapfit::static_dispatch] goes on a trait, and this item is not one; put it on the trait the container dispatches"
     )]
     NotATrait,
-    #[display(
+    #[error(
         "#[snapfit::static_dispatch] takes no arguments; write it alone, as #[snapfit::static_dispatch]"
     )]
     Arguments,

@@ -17,7 +17,6 @@ mod static_dispatch;
 mod subject;
 mod trait_objects;
 
-use derive_more::From;
 use thiserror::Error;
 
 use crate::domain::names::DependencyName;
@@ -39,30 +38,29 @@ pub(crate) use trait_objects::TraitObjectProblem;
 #[cfg(test)]
 mod tests;
 
-#[derive(Error, Debug, Clone, PartialEq, Eq, From)]
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub(crate) enum DomainError {
-    #[error("{0}")]
-    Declaration(DeclarationProblem),
-    #[error("{0}")]
-    Attribute(AttributeProblem),
-    #[error("{0}")]
-    Graph(GraphProblem),
-    #[error("{0}")]
-    Build(BuildProblem),
-    #[error("{0}")]
-    Builder(BuilderProblem),
-    #[error("{0}")]
-    Async(AsyncProblem),
+    #[error(transparent)]
+    Declaration(#[from] DeclarationProblem),
+    #[error(transparent)]
+    Attribute(#[from] AttributeProblem),
+    #[error(transparent)]
+    Graph(#[from] GraphProblem),
+    #[error(transparent)]
+    Build(#[from] BuildProblem),
+    #[error(transparent)]
+    Builder(#[from] BuilderProblem),
+    #[error(transparent)]
+    Async(#[from] AsyncProblem),
     #[error("field '{dependency}' {}", problem.worded(dependency))]
-    #[from(skip)]
     TraitObject {
         dependency: DependencyName,
         problem: TraitObjectProblem,
     },
-    #[error("{0}")]
-    DispatchedTrait(DispatchProblem),
-    #[error("{0}")]
-    StaticDispatch(StaticDispatchProblem),
-    #[error("{0}")]
-    Feature(FeatureProblem),
+    #[error(transparent)]
+    DispatchedTrait(#[from] DispatchProblem),
+    #[error(transparent)]
+    StaticDispatch(#[from] StaticDispatchProblem),
+    #[error(transparent)]
+    Feature(#[from] FeatureProblem),
 }

@@ -11,8 +11,8 @@ use super::super::type_inspector::compact_type_tokens;
 use super::super::type_inspector::is_buildable;
 use super::tokens::{Head, bracketed};
 use crate::domain::{
-    AttributePosition, DispatchAttributeKind, DomainError, DomainErrors, StaticDispatchProblem,
-    TypeName, Unreadability, Variant,
+    AttributePosition, DispatchAttributeKind, DomainErrors, StaticDispatchProblem, TypeName,
+    Unreadability, Variant,
 };
 
 #[derive(new, Debug, Clone, Copy)]
@@ -30,7 +30,7 @@ impl Site {
             rest,
         } = head;
         let name = name.ok_or_else(|| {
-            self.error(StaticDispatchProblem::WithoutName {
+            DomainErrors::from(StaticDispatchProblem::WithoutName {
                 position: self.position,
             })
         })?;
@@ -47,7 +47,7 @@ impl Site {
     /// The name of a dispatched type, which is a single identifier.
     pub(super) fn single_name(self, path: &syn::Path) -> Result<syn::Ident, DomainErrors> {
         path.get_ident().cloned().ok_or_else(|| {
-            self.error(StaticDispatchProblem::NameAsPath {
+            DomainErrors::from(StaticDispatchProblem::NameAsPath {
                 position: self.position,
                 kind: self.kind,
                 written: compact_type_tokens(quote!(#path)),
@@ -61,7 +61,7 @@ impl Site {
         value: TokenStream,
     ) -> Result<Vec<Variant<syn::Type>>, DomainErrors> {
         let inner = bracketed(value.clone()).ok_or_else(|| {
-            self.error(StaticDispatchProblem::NotAList {
+            DomainErrors::from(StaticDispatchProblem::NotAList {
                 position: self.position,
                 kind: self.kind,
                 written: compact_type_tokens(value),
@@ -76,17 +76,18 @@ impl Site {
     fn variant(self, ty: syn::Type) -> Result<Variant<syn::Type>, DomainErrors> {
         let written = compact_type_tokens(quote!(#ty));
         if !is_buildable(&ty) {
-            return Err(self.error(StaticDispatchProblem::NotAType {
+            return Err(StaticDispatchProblem::NotAType {
                 position: self.position,
                 kind: self.kind,
                 written,
-            }));
+            }
+            .into());
         }
         Ok(Variant::new(TypeName::new(written)?, ty))
     }
 
     pub(super) fn unreadable(self, problem: Unreadability) -> DomainErrors {
-        self.error(StaticDispatchProblem::Unreadable {
+        DomainErrors::from(StaticDispatchProblem::Unreadable {
             position: self.position,
             kind: self.kind,
             problem,
@@ -98,20 +99,16 @@ impl Site {
     }
 
     pub(super) fn unknown_setting(self, written: String) -> DomainErrors {
-        self.error(StaticDispatchProblem::UnknownSetting {
+        DomainErrors::from(StaticDispatchProblem::UnknownSetting {
             position: self.position,
             written,
         })
     }
 
     pub(super) fn without_list(self, name: &TypeName) -> DomainErrors {
-        self.error(StaticDispatchProblem::WithoutList {
+        DomainErrors::from(StaticDispatchProblem::WithoutList {
             position: self.position,
             name: name.clone(),
         })
-    }
-
-    fn error(self, problem: StaticDispatchProblem) -> DomainErrors {
-        DomainError::from(problem).into()
     }
 }

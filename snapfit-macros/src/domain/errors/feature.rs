@@ -2,16 +2,17 @@
 //! not implemented yet.
 
 use derive_more::Display;
+use thiserror::Error;
 
 use crate::domain::names::{ContainerName, DependencyName};
 
-#[derive(Debug, Clone, PartialEq, Eq, Display)]
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub(crate) enum FeatureProblem {
-    #[display(
-        "{_0} is unstable in this version of snapfit; enable the `unstable` feature of the `snapfit` crate to use it"
+    #[error(
+        "{0} is unstable in this version of snapfit; enable the `unstable` feature of the `snapfit` crate to use it"
     )]
     RequiresUnstable(Feature),
-    #[display("{_0} is planned for a future version of snapfit and is not implemented yet")]
+    #[error("{0} is planned for a future version of snapfit and is not implemented yet")]
     NotYetImplemented(Feature),
 }
 
