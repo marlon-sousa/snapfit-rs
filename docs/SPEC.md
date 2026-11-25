@@ -214,7 +214,7 @@ The `#[container]` attribute macro actively shapes the memory layout of the gene
 | :--- | :--- | :--- | :--- |
 | **Singleton** | `#[singleton]` or `#[singleton(deps = [...])]` | **Stored in struct.** | Constructed once during `init()`, `new()` or `try_new()`. Returned by `.clone()`. |
 | **Transient** | `#[transient]` or `#[transient(deps = [...])]` | **Stripped from struct memory.** | **Zero struct bytes allocated.** Reconstructed on every `get_<name>()` call. |
-| **Static Dispatch** | `#[static_dispatch_for(Trait as Name)]` on the container, fields typed `Arc<Name>` | **Stored in struct as declared.** | Calls go through a `match` over the implementations, with no vtable (§7). |
+| **Static Dispatch** | `#[static_dispatch_for(Trait as Name)]` on the container, fields typed `Name` or `Arc<Name>` | **Stored in struct as declared.** | Calls go through a `match` over the implementations, with no vtable (§7). |
 | **Scoped** | `#[container(parent = ...)]` | Inherited / Scope-local. | Clones/borrows parent singletons and instantiates request-local instances. |
 
 ---
@@ -513,7 +513,7 @@ pub struct Shop { /* ... */ }
 ```
 
 * **`static_dispatch_for(<Trait> as <Name>)`** declares the dispatched type: the trait, as a path with any type arguments (`Store<Order> as Orders`), and the name the fields and the dependents write, a bare identifier. It is required: the container never deduces a dispatched type, so that a misspelt type or one that already exists is not taken for one. A container may declare several, each with a name of its own.
-* **What the type holds:** the implementations named by `implementation =` on the fields typed `Arc<Name>`, in the order of the fields, then those of `extra = [...]`, then those of every `extend_static_dispatch(Name, [...])` present in the build. Each is a type written in full, as `implementation` takes it (§5.E). A type named more than once counts once. A list of one implementation is allowed, such as a production build whose only other implementation is a mock added under `cfg(test)`.
+* **What the type holds:** the implementations named by `implementation =` on the fields typed `Name` or `Arc<Name>`, in the order of the fields, then those of `extra = [...]`, then those of every `extend_static_dispatch(Name, [...])` present in the build. Each is a type written in full, as `implementation` takes it (§5.E). A type named more than once counts once. A list of one implementation is allowed, such as a production build whose only other implementation is a mock added under `cfg(test)`.
 * **`extra = [...]`** adds implementations that every build holds but no field names, such as one only a factory returns.
 * **`extend_static_dispatch(<Name>, [...])`** adds implementations to a type the same container declares, typically under a condition: `#[cfg_attr(test, extend_static_dispatch(Db, [Mock]))]`. Rust removes the attribute where its condition is false before the container sees it, so the mocks, which can themselves be `#[cfg(test)]` types, exist only in test builds. Several may extend one type, and they only add. Tests under `tests/` build the library without `cfg(test)`, so they extend under a feature instead, such as `cfg_attr(feature = "mocks", ...)`.
 * **Where they go:** under `#[container]`, which reads and removes them, as it does `#[singleton]`. Above `#[container]`, the attribute is refused, asking for it to be written below.
@@ -528,13 +528,13 @@ A field's type decides how it is dispatched, so one container can hold both kind
 | Field's type | Dispatched | `implementation = X` |
 | :--- | :--- | :--- |
 | `Arc<dyn Database>` | Dynamically, through the trait object (§5.E) | Builds X and hands it out as the trait object |
-| `Arc<Db>`, where `Db` is a name this container's `static_dispatch_for` declares | Statically | Builds X and wraps it in X's variant |
+| `Db` or `Arc<Db>`, where `Db` is a name this container's `static_dispatch_for` declares | Statically | Builds X and wraps it in X's variant, then in `Arc::new` when the field is an `Arc` |
 | Any other type | Not dispatched | Refused, as §5.E says |
 
-* **With `implementation = X`:** X is built as §5.E says, by its `new` taking `deps` in order, `build = default`, `build = constructor(<fn>)` or `build = builder`, with `leaf_build` and `fallible = true` as for any field, then wrapped in its variant and in `Arc::new`. Each field states its own implementation's needs, so the variants never have to agree on their `deps`.
-* **With `build = factory`:** the factory returns `Arc<Name>` and chooses the variant while the program starts, such as `Arc::new(Db::of(Postgres::connect(&inputs.config)))`. Its `deps` are every input of every variant it may build, and the container builds all of them, also those the chosen variant does not use. A dependency that is costly to build, such as one that opens a connection, is better built by the factory itself, from a setting.
-* **Refused at the field:** a field typed `Arc<Name>` with neither `implementation` nor `build = factory`, asking for one of them; `implementation` beside `build = factory`, as §5.E refuses it; and a field typed with a path that ends in a declared name, such as `Arc<crate::shop::Db>`, asking for the name as declared.
-* **What does not change:** the getter returns `Arc<Name>`, and every dependent, factory inputs included, receives a clone of that `Arc`. `#[transient]` (unstable) builds a new value for every get, as §4 says.
+* **With `implementation = X`:** X is built as §5.E says, by its `new` taking `deps` in order, `build = default`, `build = constructor(<fn>)` or `build = builder`, with `leaf_build` and `fallible = true` as for any field, then wrapped in its variant, and in `Arc::new` when the field is an `Arc`, as for any field (§3): snapfit adds no `Arc` the field does not declare. A field typed `Db` holds the value itself, and every dependent receives a clone of it, so every implementation on the list must then be `Clone`, or rustc says which is not. Each field states its own implementation's needs, so the variants never have to agree on their `deps`.
+* **With `build = factory`:** the factory returns the field's type, `Name` or `Arc<Name>`, and chooses the variant while the program starts, such as `Arc::new(Db::of(Postgres::connect(&inputs.config)))`. Its `deps` are every input of every variant it may build, and the container builds all of them, also those the chosen variant does not use. A dependency that is costly to build, such as one that opens a connection, is better built by the factory itself, from a setting.
+* **Refused at the field:** a field typed `Name` or `Arc<Name>` with neither `implementation` nor `build = factory`, asking for one of them; `implementation` beside `build = factory`, as §5.E refuses it; and a field typed with a path that ends in a declared name, such as `Arc<crate::shop::Db>`, asking for the name as declared.
+* **What does not change:** the getter returns the field's type as declared, and every dependent, factory inputs included, receives a clone of it. `#[transient]` (unstable) builds a new value for every get, as §4 says.
 
 ### What it costs, and when to choose dynamic dispatch
 
