@@ -40,7 +40,7 @@ pub(crate) fn dispatch_violations<C, F, S, T: Clone>(
         .chain(undeclared)
         .chain(empty)
         .chain(paths)
-        .map(DomainError::StaticDispatch)
+        .map(DomainError::from)
         .collect()
 }
 
