@@ -1,5 +1,5 @@
 //! Error: why a container's struct, its names or its fields cannot be read
-//! as a container, before any of its attributes is.
+//! as a container.
 
 use derive_more::Display;
 

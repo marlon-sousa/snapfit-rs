@@ -87,7 +87,7 @@ Layering goes one way. snapfit-macros' facade calls the handler; the handler cal
 ## Errors
 
 - **One enum, `DomainError`, composed of parts**, in `domain/errors.rs`, derived with `thiserror`. Each kind of problem is a part: a variant that holds an enum of its own, in a file of its own beside it under `domain/errors/`, with that kind's words and the `subject()` the diagnostic points at. A new kind of problem adds a part, never a flat variant of `DomainError`. The parts are:
-  - `DeclarationProblem`: the struct, its names and its fields, before their attributes are read;
+  - `DeclarationProblem`: the struct, its names and its fields;
   - `AttributeProblem`: a container's or a field's attribute that does not read, or a lifecycle missing or repeated;
   - `GraphProblem`: cycles, and the `deps` that name an unknown dependency or one twice;
   - `BuildProblem`: a field's `build` and the container's `leaf_build`;
