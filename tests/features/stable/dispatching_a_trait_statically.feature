@@ -90,8 +90,14 @@ Feature: Dispatching a trait statically
       | static_dispatch_not_on_a_list_of_one | 20   |
 
   @v0_3_0
-  Scenario: A supertrait without the attribute is rustc's own error at the attribute
-    Given an invalid dispatched trait fixture "static_dispatch_unmarked_supertrait"
+  Scenario Outline: A supertrait the dispatch types cannot implement is refused in words at the supertrait
+    Given an invalid dispatched trait fixture "<fixture>"
     When the fixture is compiled
-    Then compilation should fail with "Either<__SnapfitFirst, __SnapfitRest>: Named` is not satisfied"
-    And the error should point at line 5 of the fixture
+    Then compilation should fail with "snapfit cannot dispatch the supertrait `<supertrait>` of `<trait>` statically, because it is not marked #[snapfit::static_dispatch] or it is a trait of another crate"
+    And the error should point at line <line> of the fixture
+    And the compiler should report 1 errors
+
+    Examples:
+      | fixture                             | supertrait | trait    | line |
+      | static_dispatch_unmarked_supertrait | Named      | Database | 6    |
+      | static_dispatch_foreign_supertrait  | Display    | Shown    | 4    |

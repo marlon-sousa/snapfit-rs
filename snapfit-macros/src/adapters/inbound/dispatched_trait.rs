@@ -62,6 +62,7 @@ fn trait_declaration(
     let syntax = TraitSyntax {
         ident: item.ident.clone(),
         generics: item.generics.clone(),
+        supertraits: item.supertraits.iter().filter_map(supertrait).collect(),
     };
     let safety = item.unsafety.map_or(Safety::Safe, |_| Safety::Unsafe);
     Ok(TraitDeclaration::new(
@@ -71,6 +72,20 @@ fn trait_declaration(
         bounds(item),
         items,
     ))
+}
+
+/// A supertrait the dispatch types must implement: not `?Sized`, which
+/// relaxes a bound, nor a lifetime, which they outlive whenever their
+/// implementations do.
+fn supertrait(bound: &syn::TypeParamBound) -> Option<syn::TraitBound> {
+    match bound {
+        syn::TypeParamBound::Trait(bound)
+            if matches!(bound.modifier, syn::TraitBoundModifier::None) =>
+        {
+            Some(bound.clone())
+        }
+        _ => None,
+    }
 }
 
 /// Where the trait's supertraits, parameters and `where` clause name `Self`.

@@ -69,6 +69,8 @@ pub(crate) struct DispatchSyntax {
 pub(crate) struct TraitSyntax {
     pub(crate) ident: syn::Ident,
     pub(crate) generics: syn::Generics,
+    /// The traits its supertraits name, without `?Sized` or lifetimes.
+    pub(crate) supertraits: Vec<syn::TraitBound>,
 }
 
 pub(crate) type Declaration =

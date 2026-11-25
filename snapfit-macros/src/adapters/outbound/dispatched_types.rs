@@ -65,14 +65,18 @@ fn emit_alias(planned: &DispatchedTypeSyntax, vis: &syn::Visibility) -> TokenStr
     }
 }
 
-/// Names the trait by its last segment, as a reader of the container's
-/// module knows it.
-fn alias_doc(DispatchSyntax { trait_path, name }: &DispatchSyntax) -> String {
-    let trait_name = trait_path
+/// The trait by its last segment, as a reader of the container's module
+/// knows it.
+fn trait_name(trait_path: &syn::Path) -> String {
+    trait_path
         .segments
         .last()
         .map(|segment| segment.ident.unraw())
-        .map_or_else(String::new, |ident| ident.to_string());
+        .map_or_else(String::new, |ident| ident.to_string())
+}
+
+fn alias_doc(DispatchSyntax { trait_path, name }: &DispatchSyntax) -> String {
+    let trait_name = trait_name(trait_path);
     format!(
         "One of the implementations of `{trait_name}` that the container dispatches statically; `{}::of(value)` wraps one.",
         name.unraw()
@@ -91,9 +95,9 @@ fn nested(first: &Variant<syn::Type>, rest: &[Variant<syn::Type>]) -> TokenStrea
     }
 }
 
-/// The dispatched type implements the trait, which rustc reports at the
-/// trait in `static_dispatch_for`, and so does each implementation, which it
-/// reports at the type where a field or a list names it. Each other spelling
+/// The dispatched type implements the trait, which snapfit's words report
+/// at the trait in `static_dispatch_for`, and so does each implementation,
+/// which rustc reports at the type where a field or a list names it. Each other spelling
 /// of an implementation must be the type it holds; when it is not, snapfit's
 /// own message reports it there.
 fn emit_checks(planned: &DispatchedTypeSyntax) -> TokenStream {
@@ -104,13 +108,42 @@ fn emit_checks(planned: &DispatchedTypeSyntax) -> TokenStream {
         .map(|variant| &variant.syntax)
         .map(implements);
     let respellings = planned.respelled.iter().map(same_type);
+    let dispatches = dispatches(&planned.syntax, &dispatched);
     quote! {
         const _: () = {
+            #dispatches
             fn __snapfit_implements<__SnapfitDispatched: ?::core::marker::Sized + #trait_path>() {}
-            let _ = __snapfit_implements::<#dispatched>;
             #(#implementations)*
             #(#respellings)*
         };
+    }
+}
+
+/// The check that the dispatched type implements the trait, in words, since
+/// rustc's own error names snapfit's dispatch types: a trait without
+/// `#[snapfit::static_dispatch]` gives the dispatched type no impl, and one
+/// whose implementations disagree on an associated type gives it an impl it
+/// cannot meet. `do_not_recommend` keeps rustc from reporting the bound of
+/// the impl instead of this message.
+fn dispatches(syntax: &DispatchSyntax, dispatched: &syn::Ident) -> TokenStream {
+    let DispatchSyntax { trait_path, name } = syntax;
+    let trait_name = trait_name(trait_path);
+    let name = name.unraw();
+    let message = format!(
+        "`{name}` cannot dispatch the trait `{trait_name}` that static_dispatch_for names, because the trait, or one of its supertraits, is not marked #[snapfit::static_dispatch], an implementation on its list does not implement it, or the implementations disagree on an associated type"
+    );
+    let label = format!("`{name}` does not implement `{trait_name}`");
+    let note = format!(
+        "mark `{trait_name}` with #[snapfit::static_dispatch] where it is defined; an implementation that does not implement it is reported where its field or list names it; and give each associated type of `{trait_name}` the same type in every implementation on the list"
+    );
+    quote! {
+        #[diagnostic::on_unimplemented(message = #message, label = #label, note = #note)]
+        trait __SnapfitDispatches {}
+        #[diagnostic::do_not_recommend]
+        impl<__SnapfitDispatched: ?::core::marker::Sized + #trait_path> __SnapfitDispatches
+            for __SnapfitDispatched {}
+        fn __snapfit_dispatches<__SnapfitDispatched: ?::core::marker::Sized + __SnapfitDispatches>() {}
+        let _ = __snapfit_dispatches::<#dispatched>;
     }
 }
 

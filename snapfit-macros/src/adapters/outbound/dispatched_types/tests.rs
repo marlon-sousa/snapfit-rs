@@ -64,17 +64,19 @@ fn the_dispatched_type_and_each_implementation_are_checked_against_the_trait() {
     ));
 
     assert!(code.contains(&compact(quote! {
-        const _: () = {
+            #[diagnostic::do_not_recommend]
+            impl<__SnapfitDispatched: ?::core::marker::Sized + Database> __SnapfitDispatches
+                for __SnapfitDispatched {}
+            fn __snapfit_dispatches<__SnapfitDispatched: ?::core::marker::Sized + __SnapfitDispatches>() {}
+            let _ = __snapfit_dispatches::<Db>;
             fn __snapfit_implements<__SnapfitDispatched: ?::core::marker::Sized + Database>() {}
-            let _ = __snapfit_implements::<Db>;
             let _ = __snapfit_implements::<MySql>;
             let _ = __snapfit_implements::<Sqlite>;
             let _ = __snapfit_implements::<Mock>;
-        };
     })));
     assert!(code.contains(&compact(quote! {
+        let _ = __snapfit_dispatches::<Orders>;
         fn __snapfit_implements<__SnapfitDispatched: ?::core::marker::Sized + Store<Order> >() {}
-        let _ = __snapfit_implements::<Orders>;
         let _ = __snapfit_implements::<Cache<Order> >;
     })));
 }
@@ -120,4 +122,19 @@ fn an_alias_s_doc_names_a_raw_trait_and_alias_without_r_hash() {
     assert!(code.contains(&compact(quote! {
         #[doc = "One of the implementations of `Database` that the container dispatches statically; `Db::of(value)` wraps one."]
     })));
+}
+
+#[test]
+fn the_dispatched_type_s_check_says_in_words_why_it_cannot_dispatch_the_trait() {
+    let plan = plan_for(shop());
+
+    let code = emit_dispatched_types(&plan.dispatched_types, &plan.syntax.vis).to_string();
+
+    assert!(code.contains(
+        "message = \"`Db` cannot dispatch the trait `Database` that static_dispatch_for names, because the trait, or one of its supertraits, is not marked #[snapfit::static_dispatch], an implementation on its list does not implement it, or the implementations disagree on an associated type\""
+    ));
+    assert!(code.contains("label = \"`Db` does not implement `Database`\""));
+    assert!(code.contains(
+        "note = \"mark `Database` with #[snapfit::static_dispatch] where it is defined; an implementation that does not implement it is reported where its field or list names it; and give each associated type of `Database` the same type in every implementation on the list\""
+    ));
 }

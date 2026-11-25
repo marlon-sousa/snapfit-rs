@@ -27,10 +27,10 @@ fn a_dispatched_type_becomes_an_alias_with_the_container_s_visibility_and_its_ch
     assert!(code.contains(
         "#[allow(private_interfaces)]pubtypeLedgers=::snapfit::__private::Either<Disk,::snapfit::__private::Either<Fake,::snapfit::__private::Only<Spare>>>;"
     ));
-    assert!(code.contains("__snapfit_implements::<Ledgers>"));
+    assert!(code.contains("__snapfit_dispatches::<Ledgers>"));
     assert!(code.contains("__snapfit_implements::<Spare>"));
     assert!(code.contains("::std::sync::Arc::new(<Ledgers>::of(<Disk>::new()))"));
-    assert!(!code.contains("static_dispatch_for"));
+    assert!(!code.contains("#[static_dispatch_for("));
 }
 
 #[test]
