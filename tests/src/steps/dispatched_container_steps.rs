@@ -5,6 +5,7 @@ use crate::dispatched_containers::checked::CheckedAccounts;
 use crate::dispatched_containers::chosen::{self, Backend};
 use crate::dispatched_containers::conversions::{Conversions, Convert};
 use crate::dispatched_containers::ledgers::{Fake, Ledger};
+use crate::dispatched_containers::respelled;
 use crate::dispatched_containers::written_by_a_macro::PassedAccounts;
 use crate::world::ContainerWorld;
 
@@ -94,4 +95,17 @@ fn then_chosen_answer_from(world: &mut ContainerWorld, expected: String) {
 #[then(expr = "the ledger it builds itself should answer from {string}")]
 fn then_fixed_answers_from(world: &mut ContainerWorld, expected: String) {
     assert_eq!(world.built.dispatch.chosen().get_fixed().source(), expected);
+}
+
+#[then(
+    expr = "a container that writes its implementation with and without self:: {word} should answer from {string}, as should a value built with of"
+)]
+fn then_respelled_answers(_world: &mut ContainerWorld, place: String, expected: String) {
+    let (field, built) = match place.as_str() {
+        "through_a_macro" => respelled::shelved_sources(),
+        "in_a_function" => respelled::sources_in_a_function(),
+        other => panic!("no container {other}"),
+    };
+    assert_eq!(field, expected);
+    assert_eq!(built, expected);
 }

@@ -1,6 +1,7 @@
 use std::iter;
 
 use super::*;
+use crate::domain::Respelling;
 use crate::test_support::{
     declared, dispatched_field, dispatching_container, extended, listing_field, type_name, variant,
     written_name,
@@ -35,6 +36,64 @@ fn a_dispatched_type_holds_its_fields_lists_included_then_its_extensions_each_on
     assert_eq!(plans.len(), 1);
     assert_eq!(plans[0].syntax, "Db");
     assert_eq!(plan_names(&plans[0]), ["MySql", "Sqlite", "Fake", "Mock"]);
+}
+
+#[test]
+fn a_type_written_with_self_is_held_once_beside_the_same_type_written_without_it() {
+    let container = dispatching_container(
+        vec![
+            dispatched_field("main", written_name("Db"), Some("Mock")),
+            listing_field(
+                "chosen",
+                written_name("Db"),
+                &["self::Mock", "crate::db::Mock"],
+            ),
+        ],
+        vec![declared("Db", 0)],
+        vec![extended("Db", 1, &["Cache<self::Order>", "Cache<Order>"])],
+    );
+
+    let plans = dispatched_types(&container);
+
+    assert_eq!(
+        plan_names(&plans[0]),
+        ["Mock", "crate::db::Mock", "Cache<self::Order>"]
+    );
+    assert_eq!(
+        plans[0].respelled,
+        [
+            Respelling::new("Mock", "self::Mock"),
+            Respelling::new("Cache<self::Order>", "Cache<Order>"),
+        ]
+    );
+}
+
+#[test]
+fn a_type_named_again_as_held_is_no_other_spelling_but_each_other_spelling_is_checked_where_written()
+ {
+    let container = dispatching_container(
+        vec![
+            dispatched_field("main", written_name("Db"), Some("Mock")),
+            listing_field(
+                "chosen",
+                written_name("Db"),
+                &["Mock", "self::Mock", "self::Mock"],
+            ),
+        ],
+        vec![declared("Db", 0)],
+        vec![],
+    );
+
+    let plans = dispatched_types(&container);
+
+    assert_eq!(plan_names(&plans[0]), ["Mock"]);
+    assert_eq!(
+        plans[0].respelled,
+        [
+            Respelling::new("Mock", "self::Mock"),
+            Respelling::new("Mock", "self::Mock"),
+        ]
+    );
 }
 
 #[test]

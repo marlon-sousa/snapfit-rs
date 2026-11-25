@@ -8,6 +8,10 @@
 
 use std::marker::PhantomData;
 
+mod same_type;
+
+pub use same_type::{SameType, same_type};
+
 #[cfg(test)]
 mod tests;
 

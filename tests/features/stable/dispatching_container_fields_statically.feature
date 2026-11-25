@@ -63,6 +63,21 @@ Feature: Dispatching a container's fields statically
     And its shared and its owned ledger should both answer from "mirror of ledger.example"
 
   @v0_3_0
+  Scenario: An implementation written with self:: in one list and without it elsewhere is held once
+    Given a container whose factories choose its ledgers from the setting archive
+    Then its shared and its owned ledger should both answer from "archive in ledgers"
+    And the ledger it builds itself should answer from "archive in ledgers"
+
+  @v0_3_0
+  Scenario Outline: An implementation written with self:: inside its type arguments is held once, also through a macro_rules! and inside a function
+    Then a container that writes its implementation with and without self:: <place> should answer from "shelf of paper", as should a value built with of
+
+    Examples:
+      | place           |
+      | through_a_macro |
+      | in_a_function   |
+
+  @v0_3_0
   Scenario: A fallible dispatched field returns its error from try_new
     Then building the checked accounts should fail with "snapfit could not build the field `remote` of `CheckedAccounts`"
 

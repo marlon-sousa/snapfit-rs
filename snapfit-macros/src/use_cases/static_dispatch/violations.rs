@@ -31,7 +31,7 @@ pub(crate) fn dispatch_violations<C, F, S, T: Clone>(
         .first
         .iter()
         .copied()
-        .filter(|declaration| held.variants(declaration).is_empty())
+        .filter(|declaration| held.variants(declaration).variants.is_empty())
         .map(without_implementations);
     let paths = iter::repeat(&names)
         .zip(&container.dependencies)

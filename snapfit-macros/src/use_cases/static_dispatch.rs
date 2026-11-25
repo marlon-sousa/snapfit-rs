@@ -11,7 +11,10 @@ use crate::domain::{
     WrittenType,
 };
 
+mod held_once;
 mod violations;
+
+use held_once::{HeldOnce, held_once};
 
 pub(crate) use violations::dispatch_violations;
 
@@ -115,13 +118,18 @@ impl<F, T: Clone> Held<'_, F, T> {
         &self,
         declaration: &DispatchedTypeDeclaration<S>,
     ) -> Option<DispatchedTypePlan<S, T>> {
-        let mut variants = self.variants(declaration).into_iter();
+        let HeldOnce {
+            variants,
+            respelled,
+        } = self.variants(declaration);
+        let mut variants = variants.into_iter();
         let first = variants.next()?;
-        Some(DispatchedTypePlan::new(
-            declaration.syntax.clone(),
+        Some(DispatchedTypePlan {
+            syntax: declaration.syntax.clone(),
             first,
-            variants.collect(),
-        ))
+            rest: variants.collect(),
+            respelled,
+        })
     }
 
     fn fallback<S: Clone>(
@@ -134,8 +142,8 @@ impl<F, T: Clone> Held<'_, F, T> {
         }
     }
 
-    /// The implementations a declared type holds, in order, each once by how it is written.
-    fn variants<S>(&self, declaration: &DispatchedTypeDeclaration<S>) -> Vec<Variant<T>> {
+    /// The implementations a declared type holds: its fields', then its extensions'.
+    fn variants<S>(&self, declaration: &DispatchedTypeDeclaration<S>) -> HeldOnce<T> {
         let name = &declaration.name;
         let fields = self
             .dependencies
@@ -147,12 +155,7 @@ impl<F, T: Clone> Held<'_, F, T> {
             .iter()
             .filter(|extension| &extension.name == name)
             .flat_map(|extension| &extension.variants);
-        let mut seen = HashSet::new();
-        fields
-            .chain(extensions)
-            .filter(|variant| seen.insert(&variant.name))
-            .cloned()
-            .collect()
+        held_once(fields.chain(extensions))
     }
 }
 

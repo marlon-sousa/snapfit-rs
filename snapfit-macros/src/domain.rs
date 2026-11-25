@@ -23,7 +23,7 @@ pub(crate) use dispatched_trait::{
 };
 pub(crate) use dispatched_type::{
     AttributePosition, Dispatch, DispatchExtension, DispatchedTypeDeclaration,
-    DispatchedTypeFallback, DispatchedTypePlan, Variant, WrittenType,
+    DispatchedTypeFallback, DispatchedTypePlan, Respelling, Variant, WrittenType,
 };
 pub(crate) use errors::{
     ArgumentProblem, AsyncProblem, AttributeProblem, BuildProblem, BuilderProblem,

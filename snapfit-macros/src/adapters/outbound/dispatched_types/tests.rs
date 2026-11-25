@@ -75,3 +75,26 @@ fn the_dispatched_type_and_each_implementation_are_checked_against_the_trait() {
         let _ = __snapfit_implements::<Cache<Order> >;
     })));
 }
+
+#[test]
+fn each_other_spelling_of_an_implementation_is_checked_to_be_the_type_held() {
+    let plan = plan_for(parse_quote! {
+        #[static_dispatch_for(Database as Db)]
+        #[extend_static_dispatch(Db, [self::MySql, Mock])]
+        struct Shop {
+            #[singleton(implementation = MySql)]
+            orders_db: Arc<Db>,
+        }
+    });
+
+    let code = compact(emit_dispatched_types(
+        &plan.dispatched_types,
+        &plan.syntax.vis,
+    ));
+
+    assert!(code.contains(&compact(quote! {
+        let _ = __snapfit_implements::<Mock>;
+        let _ = ::snapfit::__private::same_type::<self::MySql, MySql>;
+    })));
+    assert!(!code.contains("__snapfit_implements::<self::MySql>"));
+}

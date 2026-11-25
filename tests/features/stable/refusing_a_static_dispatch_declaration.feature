@@ -122,6 +122,19 @@ Feature: Refusing a static dispatch declaration that cannot be followed
       | static_dispatch_listed_implementation_without_the_trait | 19  | 2     |
 
   @v0_3_0
+  Scenario Outline: An implementation written once with self:: and once without, which are two types inside a function, is refused at its second spelling
+    Given an invalid container fixture "<fixture>"
+    When the fixture is compiled
+    Then compilation should fail with "<message>"
+    And the error should point at line 20 of the fixture
+    And the compiler should report 1 errors
+
+    Examples:
+      | fixture                                                | message                                                                                                                                                   |
+      | static_dispatch_respelled_as_another_type              | `main::Archive` and `Archive` are written as one implementation of a dispatched type, since they differ only by `self::`, but they are two different types here |
+      | static_dispatch_respelled_without_self_as_another_type | `Archive` and `main::Archive` are written as one implementation of a dispatched type, since they differ only by `self::`, but they are two different types here |
+
+  @v0_3_0
   Scenario: A dispatch attribute written above #[container] is an attribute rustc cannot find, which snapfit reads as well
     Given an invalid container fixture "static_dispatch_for_above_container"
     When the fixture is compiled

@@ -6,6 +6,10 @@ use derive_more::Display;
 
 use crate::domain::errors::{DeclarationProblem, DomainError};
 
+mod spelling;
+
+use spelling::{Place, rejoin};
+
 #[cfg(test)]
 mod tests;
 
@@ -108,6 +112,19 @@ impl DependencyName {
             text: self.text.clone(),
             kind: PhantomData,
         }
+    }
+}
+
+impl TypeName {
+    /// The type as written, without the `self::` that starts any of its
+    /// paths: both spellings name one type, except inside a function that
+    /// declares a type of the same name, which the generated code checks.
+    pub(crate) fn without_self_paths(&self) -> String {
+        let (text, _) = self
+            .text
+            .split("self::")
+            .fold((String::new(), Place::TextStart), rejoin);
+        text
     }
 }
 

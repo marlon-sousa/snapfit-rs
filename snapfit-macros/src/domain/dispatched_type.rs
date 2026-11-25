@@ -15,8 +15,7 @@ use crate::domain::names::TypeName;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct AttributePosition(pub(crate) usize);
 
-/// One implementation a dispatched type may hold, named by how it is written,
-/// so that `Mock` and `self::Mock` are two.
+/// One implementation a dispatched type may hold, named by how it is written.
 #[derive(new, Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Variant<T> {
     pub(crate) name: TypeName,
@@ -39,12 +38,24 @@ pub(crate) struct DispatchExtension<T> {
     pub(crate) variants: Vec<Variant<T>>,
 }
 
-/// A dispatched type and every implementation it holds, in order, each once.
+/// An implementation written two ways that a dispatched type holds once,
+/// such as `Mock` and `self::Mock`: the spelling it holds, and the other,
+/// which the generated code checks is the same type.
+#[derive(new, Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Respelling<T> {
+    pub(crate) kept: T,
+    pub(crate) written: T,
+}
+
+/// A dispatched type and every implementation it holds, in order, each once,
+/// with every other spelling of one of them.
 #[derive(new, Debug, Clone, PartialEq, Eq)]
 pub(crate) struct DispatchedTypePlan<S, T> {
     pub(crate) syntax: S,
     pub(crate) first: Variant<T>,
     pub(crate) rest: Vec<Variant<T>>,
+    #[new(default)]
+    pub(crate) respelled: Vec<Respelling<T>>,
 }
 
 /// How the type a field's value has, once the field's own `Arc` is set

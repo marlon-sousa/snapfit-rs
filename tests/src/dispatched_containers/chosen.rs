@@ -2,7 +2,8 @@
 //! fields hold, one in an `Arc` and one as a value, from a setting read while
 //! the program starts. Each variant needs inputs of its own, and the factory
 //! receives the inputs of every variant. `Archive` is also named by a field
-//! that the container builds itself, and by both factories' lists.
+//! that the container builds itself, and by both factories' lists, one of
+//! which writes it `self::Archive`.
 
 use std::cell::Cell;
 use std::sync::Arc;
@@ -104,7 +105,7 @@ pub struct ChosenAccounts {
     #[singleton]
     config: Arc<Config>,
 
-    #[singleton(deps = [setting, folder, config], build = factory, implementations = [Archive, Mirror])]
+    #[singleton(deps = [setting, folder, config], build = factory, implementations = [self::Archive, Mirror])]
     shared: Arc<Chosen>,
 
     #[singleton(deps = [setting, folder, config], build = factory, implementations = [Scratch, Archive])]
