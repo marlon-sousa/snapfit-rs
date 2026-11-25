@@ -36,7 +36,7 @@ Enable the unstable APIs with:
 
 ```toml
 [dependencies]
-snapfit = { version = "0.2", features = ["unstable"] }
+snapfit = { version = "0.3", features = ["unstable"] }
 ```
 
 ### Removed from the 0.1.0 runtime crate (to restore later)
