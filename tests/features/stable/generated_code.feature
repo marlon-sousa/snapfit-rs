@@ -36,6 +36,12 @@ Feature: Generated code follows the container as written
     When the fixture is compiled
     Then compilation should fail with "struct `HiddenContainer` is private"
 
+  @v0_3_0 @regression
+  Scenario: A library that warns on missing docs gets none for the constructors, getters and dispatched types snapfit writes
+    Given a container fixture "documented_container" for clippy
+    When the fixture is linted with clippy
+    Then clippy should report no warning
+
   @v0_1_0 @regression
   Scenario Outline: Fields snapfit cannot generate code for are refused with a clear error
     Given an invalid container fixture "<fixture>"

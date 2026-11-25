@@ -206,6 +206,7 @@ impl AppContainer {
 * **Zero `dyn Any` Indirection:** Resolution is 100% static and compile-time type-checked, with zero runtime downcasting or string lookup overhead.
 * **No Forced `Arc<T>`:** Singletons require only `T: Clone`. If a type is already internally ref-counted (`sqlx::PgPool`, `reqwest::Client`) or a lightweight config struct, you declare it bare without a wasteful `Arc<Pool>` double indirection.
 * **Fresh Transient Instantiation:** Calling `get_<transient>()` resolves its prerequisites via their getters and invokes the transient's constructor to return a brand-new instance on every call.
+* **Documented:** every getter, and the container's `new()`, `try_new()` or `init()`, carries a one-line doc comment, such as "Returns a clone of `config`, built once with the container.", so that a crate that warns on or denies `missing_docs` accepts what snapfit writes; the factories trait, its inputs structs and a dispatched type's alias carry theirs too (§5.B, §7) ([#156](https://github.com/marlon-sousa/snapfit-rs/issues/156)).
 
 ---
 

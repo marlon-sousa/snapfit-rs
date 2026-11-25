@@ -3,6 +3,7 @@
 
 use proc_macro2::TokenStream;
 use quote::quote;
+use syn::ext::IdentExt;
 
 use super::expr::{Site, ValueSource, construct, local_ident};
 use crate::adapters::syntax::{FieldSyntax, Plan};
@@ -22,9 +23,14 @@ pub(super) fn emit_init_impl(plan: &Plan) -> TokenStream {
 fn emit_sync_new_impl(plan: &Plan) -> TokenStream {
     let container_ident = &plan.syntax.ident;
     let body = emit_construction_body(plan);
+    let doc = format!(
+        "Builds `{}` with each of its singletons, in the order their dependencies need.",
+        container_ident.unraw()
+    );
 
     quote! {
         impl #container_ident {
+            #[doc = #doc]
             pub fn new() -> Self {
                 #body
             }
@@ -49,9 +55,14 @@ fn emit_sync_new_impl(plan: &Plan) -> TokenStream {
 fn emit_sync_try_new_impl(plan: &Plan) -> TokenStream {
     let container_ident = &plan.syntax.ident;
     let body = emit_construction_body(plan);
+    let doc = format!(
+        "Builds `{}` with each of its singletons, or returns the `snapfit::BuildError` of the first field that fails.",
+        container_ident.unraw()
+    );
 
     quote! {
         impl #container_ident {
+            #[doc = #doc]
             pub fn try_new() -> ::std::result::Result<Self, ::snapfit::BuildError> {
                 ::std::result::Result::Ok({ #body })
             }
@@ -68,9 +79,14 @@ fn emit_sync_try_new_impl(plan: &Plan) -> TokenStream {
 fn emit_async_init_impl(plan: &Plan) -> TokenStream {
     let container_ident = &plan.syntax.ident;
     let body = emit_construction_body(plan);
+    let doc = format!(
+        "Builds `{}` with each of its singletons, awaiting those built asynchronously, or returns the first error.",
+        container_ident.unraw()
+    );
 
     quote! {
         impl #container_ident {
+            #[doc = #doc]
             pub async fn init() -> ::std::result::Result<
                 Self,
                 ::std::boxed::Box<dyn ::std::error::Error + ::std::marker::Send + ::std::marker::Sync>,

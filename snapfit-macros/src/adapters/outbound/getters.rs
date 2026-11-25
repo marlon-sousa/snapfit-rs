@@ -32,14 +32,20 @@ pub(super) fn emit_getters_impl(plan: &Plan) -> TokenStream {
 fn emit_getter(step: &Step<FieldSyntax>, site: Site<'_>) -> TokenStream {
     let FieldSyntax { ident, ty, .. } = &step.syntax;
     let getter = format_ident!("get_{}", ident.unraw());
-    let body = if step.lifecycle.is_singleton() {
-        quote!(self.#ident.clone())
+    let (body, doc) = if step.lifecycle.is_singleton() {
+        let doc = format!(
+            "Returns a clone of `{}`, built once with the container.",
+            ident.unraw()
+        );
+        (quote!(self.#ident.clone()), doc)
     } else {
-        construct(step, site)
+        let doc = format!("Builds a new `{}` for this call.", ident.unraw());
+        (construct(step, site), doc)
     };
     let allow = private_interfaces(step);
 
     quote! {
+        #[doc = #doc]
         #allow
         pub fn #getter(&self) -> #ty {
             #body
