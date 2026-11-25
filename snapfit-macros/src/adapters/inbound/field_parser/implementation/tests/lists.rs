@@ -3,6 +3,7 @@ use quote::quote;
 use syn::parse_quote;
 
 use super::super::super::parse_field;
+use super::messages_of;
 use crate::domain::Implementation;
 use crate::test_support::through_a_macro;
 
@@ -23,7 +24,7 @@ fn listed(settings: TokenStream) -> Vec<String> {
 }
 
 fn messages(settings: TokenStream) -> Vec<String> {
-    super::messages_of(&field(settings))
+    messages_of(&field(settings))
 }
 
 #[test]
