@@ -1,6 +1,10 @@
 //! Test support: the names and declarations that the tests of several modules build.
 
-pub(crate) mod dispatched_types;
+mod dispatched_types;
+
+pub(crate) use dispatched_types::{
+    declared, dispatched_field, dispatching_container, extended, type_name, variant, written_name,
+};
 
 use crate::domain::{
     Annotated, BuilderMethods, Construction, ContainerDeclaration, ContainerName,

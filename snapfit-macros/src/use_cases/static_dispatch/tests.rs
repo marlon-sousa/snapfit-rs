@@ -1,7 +1,7 @@
 use std::iter;
 
 use super::*;
-use crate::test_support::dispatched_types::{
+use crate::test_support::{
     declared, dispatched_field, dispatching_container, extended, type_name, variant, written_name,
 };
 

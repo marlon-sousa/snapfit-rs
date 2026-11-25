@@ -1,9 +1,7 @@
 use super::*;
 use crate::domain::WrittenType;
 use crate::domain::{AttributePosition, DependencyName, DomainError, StaticDispatchProblem};
-use crate::test_support::dispatched_types::{
-    declared, dispatched_field, dispatching_container, extended, type_name,
-};
+use crate::test_support::{declared, dispatched_field, dispatching_container, extended, type_name};
 use crate::use_cases::static_dispatch::dispatched_types;
 
 #[test]

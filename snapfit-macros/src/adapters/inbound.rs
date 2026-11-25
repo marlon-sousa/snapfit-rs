@@ -43,8 +43,7 @@ pub(crate) fn parse_attribute(
     Ok(container)
 }
 
-/// What of `item` can be read, each part on its own, for the aliases a
-/// refused container still writes.
+/// The [`ReadableParts`] of `item`.
 pub(crate) fn read_readable_parts(item: &syn::ItemStruct) -> ReadableParts {
     let (declarations, extensions) = read_readable_dispatch_declarations(&item.attrs);
     let fields = item
