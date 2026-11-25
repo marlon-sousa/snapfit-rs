@@ -72,10 +72,10 @@ fn an_empty_list_and_each_entry_that_is_no_type_are_refused_together() {
     assert_eq!(
         messages(quote!(implementations = [Postgres, impl Database, "Sqlite", , _])),
         [
-            "field 'db': 'impl Database' is not a type the container can build; write the type in full, such as implementation = StripeGateway",
-            "field 'db': implementation takes a type, not a string; write it unquoted: implementation = Sqlite",
-            "field 'db': implementation needs a type; write the type the container builds for the field, such as implementation = StripeGateway",
-            "field 'db': '_' is not a type the container can build; write the type in full, such as implementation = StripeGateway",
+            "field 'db': 'impl Database' is not a type the container can build; write each type in full, such as implementations = [Postgres, Sqlite]",
+            "field 'db': implementations takes types, not strings; write each unquoted, such as implementations = [Sqlite]",
+            "field 'db': implementations has an entry with no type between two commas; remove the extra comma, or write the type",
+            "field 'db': '_' is not a type the container can build; write each type in full, such as implementations = [Postgres, Sqlite]",
         ]
     );
 }

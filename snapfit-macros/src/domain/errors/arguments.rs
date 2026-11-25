@@ -63,6 +63,20 @@ pub(crate) enum ArgumentProblem {
     )]
     NotAnImplementationType(String),
     #[display(
+        "implementations has an entry with no type between two commas; remove the extra comma, or write the type"
+    )]
+    BareListedImplementation,
+    /// The string's own text, written as an entry of `implementations`.
+    #[display(
+        "implementations takes types, not strings; write each unquoted, such as implementations = [{_0}]"
+    )]
+    QuotedListedImplementation(String),
+    /// The entry as written, such as `dyn Database` or `_`.
+    #[display(
+        "'{_0}' is not a type the container can build; write each type in full, such as implementations = [Postgres, Sqlite]"
+    )]
+    NotAListedImplementationType(String),
+    #[display(
         "implementations lists no type in its square brackets; list the types the field's factory may return, such as implementations = [Postgres, Sqlite], or remove implementations"
     )]
     EmptyImplementationList,

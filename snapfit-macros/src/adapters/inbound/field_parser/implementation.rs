@@ -77,12 +77,24 @@ fn written_implementation(
 fn listed_types(entries: Vec<ImplementationEntry>) -> Result<Vec<syn::Type>, Vec<ArgumentProblem>> {
     let (types, problems): (Vec<_>, Vec<_>) = entries
         .into_iter()
-        .map(implementation_type)
+        .map(listed_type)
         .partition(Result::is_ok);
     let problems: Vec<_> = problems.into_iter().filter_map(Result::err).collect();
     match problems.is_empty() {
         true => Ok(types.into_iter().filter_map(Result::ok).collect()),
         false => Err(problems),
+    }
+}
+
+/// An entry of `implementations`, whose problem shows the list it belongs in.
+fn listed_type(entry: ImplementationEntry) -> Result<syn::Type, ArgumentProblem> {
+    match entry {
+        ImplementationEntry::Bare => Err(ArgumentProblem::BareListedImplementation),
+        ImplementationEntry::Quoted(text) => Err(ArgumentProblem::QuotedListedImplementation(text)),
+        ImplementationEntry::NotAType(written) => {
+            Err(ArgumentProblem::NotAListedImplementationType(written))
+        }
+        other => implementation_type(other),
     }
 }
 
