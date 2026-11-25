@@ -122,9 +122,9 @@ fn transient(dependency: &DependencyName) -> Feature {
 }
 
 fn not_yet_implemented(feature: Feature) -> DomainError {
-    DomainError::Feature(FeatureProblem::NotYetImplemented(feature))
+    FeatureProblem::NotYetImplemented(feature).into()
 }
 
 fn requires_unstable(feature: Feature) -> DomainError {
-    DomainError::Feature(FeatureProblem::RequiresUnstable(feature))
+    FeatureProblem::RequiresUnstable(feature).into()
 }

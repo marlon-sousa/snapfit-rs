@@ -2,8 +2,7 @@
 //! of the attribute and of the trait at once.
 
 use crate::domain::{
-    Annotated, DispatchAttribute, DispatchPlan, DispatchProblem, DomainError, DomainErrors,
-    TraitDeclaration,
+    Annotated, DispatchAttribute, DispatchPlan, DispatchProblem, DomainErrors, TraitDeclaration,
 };
 use crate::use_cases::dispatch_rules::{arguments_refusal, safety_refusal};
 use crate::use_cases::forwarding::forwarding;
@@ -27,7 +26,7 @@ pub(crate) fn plan_dispatch<T, M, A>(
             Ok(plan)
         }
         Annotated::Other => Err(DomainErrors::new(
-            DomainError::DispatchedTrait(DispatchProblem::NotATrait),
+            DispatchProblem::NotATrait.into(),
             arguments.into_iter().collect(),
         )),
     }

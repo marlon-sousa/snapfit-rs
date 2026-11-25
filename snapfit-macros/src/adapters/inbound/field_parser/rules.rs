@@ -18,15 +18,17 @@ pub(super) fn ensure_unconditional(
 }
 
 fn conditional_field(name: &DependencyName) -> DomainError {
-    DomainError::Declaration(DeclarationProblem::ConditionalField {
+    DeclarationProblem::ConditionalField {
         dependency: name.clone(),
-    })
+    }
+    .into()
 }
 
 /// A problem with one of the field's attributes, saying which field.
 pub(super) fn attribute_error(name: &DependencyName, problem: ArgumentProblem) -> DomainError {
-    DomainError::Attribute(AttributeProblem::Field {
+    AttributeProblem::Field {
         dependency: name.clone(),
         problem,
-    })
+    }
+    .into()
 }

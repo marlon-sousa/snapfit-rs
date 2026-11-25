@@ -118,6 +118,6 @@ impl Site {
     }
 
     fn error(self, problem: StaticDispatchProblem) -> DomainErrors {
-        DomainError::StaticDispatch(problem).into()
+        DomainError::from(problem).into()
     }
 }

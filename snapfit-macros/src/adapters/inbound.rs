@@ -144,9 +144,10 @@ fn execution_of(mode: &str) -> Result<Execution, DomainError> {
     match mode {
         "sync" => Ok(Execution::Sync),
         "async" => Ok(Execution::Async),
-        other => Err(DomainError::Attribute(AttributeProblem::Container {
+        other => Err(AttributeProblem::Container {
             problem: ArgumentProblem::InvalidMode(other.to_string()),
-        })),
+        }
+        .into()),
     }
 }
 
@@ -157,9 +158,7 @@ fn container_meta(
     attrs: &[syn::Attribute],
 ) -> Result<ContainerAttrMeta, DomainErrors> {
     if attrs.iter().any(is_container_attribute) {
-        return Err(
-            DomainError::Declaration(DeclarationProblem::MultipleContainerAttributes).into(),
-        );
+        return Err(DomainError::from(DeclarationProblem::MultipleContainerAttributes).into());
     }
     ContainerAttrMeta::from_tokens(args).map_err(unreadable_container_attribute)
 }
@@ -172,7 +171,7 @@ fn unreadable_container_attribute(
     let found = settings.into_iter().map(container_settings);
     let rest = found.filter_map(Result::err).flatten();
     DomainErrors::new(
-        DomainError::Attribute(AttributeProblem::Container { problem }),
+        AttributeProblem::Container { problem }.into(),
         rest.collect(),
     )
 }
@@ -183,8 +182,6 @@ fn parse_fields(fields: &syn::Fields) -> Result<Vec<FieldDeclaration>, DomainErr
             DomainErrors::collect(named.named.iter().map(field_parser::parse_field))
         }
         syn::Fields::Unit => Ok(Vec::new()),
-        syn::Fields::Unnamed(_) => {
-            Err(DomainError::Declaration(DeclarationProblem::TupleStruct).into())
-        }
+        syn::Fields::Unnamed(_) => Err(DomainError::from(DeclarationProblem::TupleStruct).into()),
     }
 }

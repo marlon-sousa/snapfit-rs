@@ -88,17 +88,15 @@ pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, Domain
 }
 
 fn field_name(field: &syn::Field) -> Result<(DependencyName, syn::Ident), DomainError> {
-    let ident = field
-        .ident
-        .clone()
-        .ok_or(DomainError::Declaration(DeclarationProblem::TupleStruct))?;
+    let ident = field.ident.clone().ok_or(DeclarationProblem::TupleStruct)?;
     Ok((DependencyName::new(ident.unraw().to_string())?, ident))
 }
 
 fn unannotated(name: &DependencyName) -> DomainError {
-    DomainError::Attribute(AttributeProblem::Unannotated {
+    AttributeProblem::Unannotated {
         dependency: name.clone(),
-    })
+    }
+    .into()
 }
 
 fn lifecycle_attr(
@@ -107,12 +105,10 @@ fn lifecycle_attr(
 ) -> Result<Option<(Lifecycle, DependencyAttrMeta)>, DomainErrors> {
     let matched: Vec<_> = attrs.iter().filter_map(lifecycle_attribute).collect();
     if matched.len() > 1 {
-        return Err(
-            DomainError::Attribute(AttributeProblem::MultipleLifecycles {
-                dependency: name.clone(),
-            })
-            .into(),
-        );
+        let repeated = AttributeProblem::MultipleLifecycles {
+            dependency: name.clone(),
+        };
+        return Err(DomainError::from(repeated).into());
     }
     matched
         .into_iter()
@@ -144,11 +140,10 @@ fn refuse_old_dispatch(field: &syn::Field, name: &DependencyName) -> Result<(), 
         .iter()
         .any(|attr| attr.path().is_ident("dispatch"));
     match marked {
-        true => Err(DomainError::StaticDispatch(
-            StaticDispatchProblem::OldAttribute {
-                dependency: name.clone(),
-            },
-        )),
+        true => Err(StaticDispatchProblem::OldAttribute {
+            dependency: name.clone(),
+        }
+        .into()),
         false => Ok(()),
     }
 }

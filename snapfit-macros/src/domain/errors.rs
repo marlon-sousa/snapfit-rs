@@ -17,6 +17,7 @@ mod static_dispatch;
 mod subject;
 mod trait_objects;
 
+use derive_more::From;
 use thiserror::Error;
 
 use crate::domain::names::DependencyName;
@@ -38,7 +39,7 @@ pub(crate) use trait_objects::TraitObjectProblem;
 #[cfg(test)]
 mod tests;
 
-#[derive(Error, Debug, Clone, PartialEq, Eq)]
+#[derive(Error, Debug, Clone, PartialEq, Eq, From)]
 pub(crate) enum DomainError {
     #[error("{0}")]
     Declaration(DeclarationProblem),
@@ -53,6 +54,7 @@ pub(crate) enum DomainError {
     #[error("{0}")]
     Async(AsyncProblem),
     #[error("field '{dependency}' {}", problem.worded(dependency))]
+    #[from(skip)]
     TraitObject {
         dependency: DependencyName,
         problem: TraitObjectProblem,

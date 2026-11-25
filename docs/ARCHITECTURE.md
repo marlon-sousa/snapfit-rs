@@ -78,7 +78,7 @@ Layering goes one way. snapfit-macros' facade calls the handler; the handler cal
 - **Nothing panics while a macro expands.** Every failure is a `DomainError` reported as a compiler error. Clippy denies `unwrap_used`, `expect_used`, `panic`, `indexing_slicing`, `todo` and `unimplemented`, as `[workspace.lints]` sets, and `clippy.toml` allows them in tests.
 - **No `unsafe` code**: `[workspace.lints]` forbids it.
 - **Reuse before writing.** Look first at the standard library, then at the crates already depended on, then at well-known crates. Write it ourselves only when none fits, or when a crate would replace only a couple of lines. A crate is judged by what it replaces across the code, not only by its first use.
-- **Derive what a derive produces.** Errors derive with `thiserror`; `Display` with `derive_more`; a constructor that only assigns fields with `derive-new`; an enum's `is_*` predicates with `strum`'s `EnumIs`. An impl is written by hand only when it needs logic.
+- **Derive what a derive produces.** Errors derive with `thiserror`; `Display` with `derive_more`, and the `From` that turns each part of an error into a `DomainError`; a constructor that only assigns fields with `derive-new`; an enum's `is_*` predicates with `strum`'s `EnumIs`. An impl is written by hand only when it needs logic.
 - **Types hold every constraint they can.** An enum for a closed set of values, never a string or a `bool` standing for one: `Lifecycle`, `Execution`, `Fallibility`, `Implementation`, `Construction`, `TypeShape`, `TypeParameters`, `Introspection`, `FeatureGate`, `Feature`, `WrittenType`, `Dispatch`, `DispatchAttributeKind`, `DispatchedTypeFallback`, `Unreadability`, and for a dispatched trait `DispatchArguments`, `Annotated`, `Safety`, `Receiver`, `SelfUse`, `SelfBound`, `ReturnShape`, `Presence`, `TraitItem` and `Rebuilding`. A newtype for a name with rules of its own: `Name<K>`, never blank, whose kind keeps a dependency's name from being passed as a function's. A doc comment stating a constraint the type could enforce means the type is wrong. A newtype never derives `Deref`, which is for smart pointers.
 - **A chain of iterator adapters reads as a sentence of names**, such as `.filter(is_async).map(async_in_sync_container)`. A closure in a chain is one call, one method call, one field read or one comparison with a value it captures; a closure that negates, matches, computes or builds a value becomes a named function.
 - **Iterating to get a result uses adapters, not a `for` loop.** A `for` loop stays only when its body acts on each item, such as visiting each dependency or asserting in a test.
@@ -86,14 +86,14 @@ Layering goes one way. snapfit-macros' facade calls the handler; the handler cal
 
 ## Errors
 
-- **One enum, `DomainError`, composed of parts**, in `domain/errors.rs`, derived with `thiserror`. Each kind of problem is a part: a variant that holds an enum of its own, in a file of its own beside it under `domain/errors/`, with that kind's words and the `subject()` the diagnostic points at. A new kind of problem adds a part, never a flat variant of `DomainError`. The parts are:
+- **One enum, `DomainError`, composed of parts**, in `domain/errors.rs`, derived with `thiserror`. Each kind of problem is a part: a variant that holds an enum of its own, in a file of its own beside it under `domain/errors/`, with that kind's words and the `subject()` the diagnostic points at. A part converts into `DomainError` with the `From` that `derive_more` derives, so that code builds the problem and writes `.into()`, or `?`, without naming its part again. A new kind of problem adds a part, never a flat variant of `DomainError`. The parts are:
   - `DeclarationProblem`: the struct, its names and its fields;
   - `AttributeProblem`: a container's or a field's attribute that does not read, or a lifecycle missing or repeated;
   - `GraphProblem`: cycles, and the `deps` that name an unknown dependency or one twice;
   - `BuildProblem`: a field's `build` and the container's `leaf_build`;
   - `BuilderProblem`: builder settings, labelled `deps` and setters;
   - `AsyncProblem`: an async dependency where it cannot be built;
-  - `TraitObjectProblem`: a field that holds a trait object or names an implementation. It is the one part whose variant keeps the field beside it, since its words are built from the field's name, and the variant gives its subject;
+  - `TraitObjectProblem`: a field that holds a trait object or names an implementation. It is the one part whose variant keeps the field beside it, since its words are built from the field's name, and the variant gives its subject. It has no `From`, and is built by naming its variant;
   - `StaticDispatchProblem`: a container's dispatched types and the fields that hold them;
   - `DispatchProblem`, with its `ItemProblem`: a dispatched trait. Its `subject()` is a `DispatchSubject`, the part of the trait the diagnostic points at;
   - `FeatureProblem`: the `Feature` a build refuses, as unstable or not implemented yet.

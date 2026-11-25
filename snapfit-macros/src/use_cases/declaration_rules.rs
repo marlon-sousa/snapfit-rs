@@ -68,24 +68,26 @@ fn violations_of<F, T>(dependency: &DependencyDeclaration<F, T>) -> Vec<DomainEr
 }
 
 fn async_transient(dependency: &DependencyName) -> DomainError {
-    DomainError::Async(AsyncProblem::Transient(dependency.clone()))
+    AsyncProblem::Transient(dependency.clone()).into()
 }
 
 fn default_with_dependencies(dependency: &DependencyName) -> DomainError {
-    DomainError::Build(BuildProblem::DefaultWithDependencies {
+    BuildProblem::DefaultWithDependencies {
         dependency: dependency.clone(),
-    })
+    }
+    .into()
 }
 
 fn async_default(dependency: &DependencyName) -> DomainError {
-    DomainError::Async(AsyncProblem::BuiltByDefault(dependency.clone()))
+    AsyncProblem::BuiltByDefault(dependency.clone()).into()
 }
 
 fn cannot_fail(dependency: &DependencyName, build: InfallibleBuild) -> DomainError {
-    DomainError::Build(BuildProblem::CannotFail {
+    BuildProblem::CannotFail {
         dependency: dependency.clone(),
         build,
-    })
+    }
+    .into()
 }
 
 fn repeated_prerequisites<F, T>(dependency: &DependencyDeclaration<F, T>) -> Vec<DomainError> {
@@ -103,10 +105,11 @@ fn uses(prerequisites: &[Prerequisite]) -> Repeats<(&DependencyName, SetterName)
 fn repeated_prerequisite(
     (dependency, (prerequisite, _)): (&DependencyName, (&DependencyName, SetterName)),
 ) -> DomainError {
-    DomainError::Graph(GraphProblem::RepeatedPrerequisite {
+    GraphProblem::RepeatedPrerequisite {
         dependency: dependency.clone(),
         prerequisite: prerequisite.clone(),
-    })
+    }
+    .into()
 }
 
 fn setter_violations<F, T>(dependency: &DependencyDeclaration<F, T>) -> Vec<DomainError> {
@@ -139,19 +142,23 @@ fn setter_of((_, setter): (&DependencyName, SetterName)) -> SetterName {
 }
 
 fn duplicate_setter((dependency, setter): (&DependencyName, SetterName)) -> DomainError {
-    DomainError::Builder(BuilderProblem::DuplicateSetter {
+    BuilderProblem::DuplicateSetter {
         dependency: dependency.clone(),
         setter,
-    })
+    }
+    .into()
 }
 
 fn label_without_builder(
     (dependency, prerequisite): (&DependencyName, &Prerequisite),
 ) -> Option<DomainError> {
     let label = prerequisite.label.clone()?;
-    Some(DomainError::Builder(BuilderProblem::LabelWithoutBuilder {
-        dependency: dependency.clone(),
-        label,
-        field: prerequisite.field.clone(),
-    }))
+    Some(
+        BuilderProblem::LabelWithoutBuilder {
+            dependency: dependency.clone(),
+            label,
+            field: prerequisite.field.clone(),
+        }
+        .into(),
+    )
 }

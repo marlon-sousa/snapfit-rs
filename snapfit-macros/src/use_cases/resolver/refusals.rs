@@ -4,7 +4,7 @@
 use crate::domain::{DeclarationProblem, DependencyName, DomainError, GraphProblem};
 
 pub(super) fn duplicate(dependency: DependencyName) -> DomainError {
-    DomainError::Declaration(DeclarationProblem::DuplicateDependency(dependency))
+    DeclarationProblem::DuplicateDependency(dependency).into()
 }
 
 /// `available` is every other dependency the container declares, offered
@@ -14,9 +14,10 @@ pub(super) fn unknown_prerequisites(
     missing: Vec<DependencyName>,
     available: Vec<DependencyName>,
 ) -> DomainError {
-    DomainError::Graph(GraphProblem::UnknownPrerequisites {
+    GraphProblem::UnknownPrerequisites {
         dependency,
         missing,
         available,
-    })
+    }
+    .into()
 }

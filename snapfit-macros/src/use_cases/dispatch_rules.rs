@@ -13,10 +13,10 @@ mod tests;
 pub(crate) fn arguments_refusal(arguments: DispatchArguments) -> Option<DomainError> {
     match arguments {
         DispatchArguments::None => None,
-        DispatchArguments::Remote => Some(DomainError::Feature(FeatureProblem::NotYetImplemented(
-            Feature::RemoteStaticDispatch,
-        ))),
-        DispatchArguments::Other => Some(DomainError::DispatchedTrait(DispatchProblem::Arguments)),
+        DispatchArguments::Remote => {
+            Some(FeatureProblem::NotYetImplemented(Feature::RemoteStaticDispatch).into())
+        }
+        DispatchArguments::Other => Some(DispatchProblem::Arguments.into()),
     }
 }
 
@@ -26,8 +26,6 @@ pub(crate) fn safety_refusal<T, M, A>(
 ) -> Option<DomainError> {
     match declaration.safety {
         Safety::Safe => None,
-        Safety::Unsafe => Some(DomainError::DispatchedTrait(DispatchProblem::UnsafeTrait(
-            declaration.name.clone(),
-        ))),
+        Safety::Unsafe => Some(DispatchProblem::UnsafeTrait(declaration.name.clone()).into()),
     }
 }

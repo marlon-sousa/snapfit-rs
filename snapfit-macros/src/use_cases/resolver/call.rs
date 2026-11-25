@@ -75,12 +75,11 @@ fn variant_wrapping<F, T>(
     match (dependency.shape, &dependency.implementation) {
         (TypeShape::Arc, Implementation::Named(_)) => Ok(Wrapping::ArcOfVariant),
         (_, Implementation::Named(_)) => Ok(Wrapping::Variant),
-        (_, Implementation::OfField) => Err(DomainError::StaticDispatch(
-            StaticDispatchProblem::WithoutImplementation {
-                dependency: dependency.name.clone(),
-                name: name.clone(),
-            },
-        )),
+        (_, Implementation::OfField) => Err(StaticDispatchProblem::WithoutImplementation {
+            dependency: dependency.name.clone(),
+            name: name.clone(),
+        }
+        .into()),
     }
 }
 

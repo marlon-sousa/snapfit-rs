@@ -115,9 +115,7 @@ impl<K: NameKind> Name<K> {
     pub(crate) fn new(text: impl Into<String>) -> Result<Self, DomainError> {
         let text = text.into();
         if text.trim().is_empty() {
-            return Err(DomainError::Declaration(DeclarationProblem::BlankName {
-                label: K::LABEL,
-            }));
+            return Err(DeclarationProblem::BlankName { label: K::LABEL }.into());
         }
         Ok(Self {
             text,

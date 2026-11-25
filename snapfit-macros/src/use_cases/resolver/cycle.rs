@@ -19,8 +19,11 @@ pub(super) fn cycle_through<'a>(members: impl Iterator<Item = &'a OnPath>) -> Op
         .take(members.len())
         .map(|member| member.name.clone());
     let start = cycle.next()?;
-    Some(DomainError::Graph(GraphProblem::Cycle {
-        start,
-        through: cycle.collect(),
-    }))
+    Some(
+        GraphProblem::Cycle {
+            start,
+            through: cycle.collect(),
+        }
+        .into(),
+    )
 }

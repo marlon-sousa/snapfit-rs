@@ -131,10 +131,11 @@ fn refusal(
     position: ItemPosition,
     problem: ItemProblem,
 ) -> DomainError {
-    DomainError::DispatchedTrait(DispatchProblem::Item {
+    DispatchProblem::Item {
         trait_name: trait_name.clone(),
         item: item.clone(),
         position,
         problem,
-    })
+    }
+    .into()
 }

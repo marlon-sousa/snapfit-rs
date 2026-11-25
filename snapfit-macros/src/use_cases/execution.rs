@@ -29,5 +29,5 @@ fn is_async<F, T>(dependency: &&DependencyDeclaration<F, T>) -> bool {
 }
 
 fn async_in_sync_container<F, T>(dependency: &DependencyDeclaration<F, T>) -> DomainError {
-    DomainError::Async(AsyncProblem::InSyncContainer(dependency.name.clone()))
+    AsyncProblem::InSyncContainer(dependency.name.clone()).into()
 }
