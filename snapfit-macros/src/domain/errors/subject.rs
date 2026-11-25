@@ -1,6 +1,7 @@
-//! Error: which field an error is about, for the diagnostic to point at.
+//! Error: which field or trait item an error is about, for the diagnostic to point at.
 
-use super::DomainError;
+use super::{DispatchProblem, DomainError, Feature};
+use crate::domain::dispatched_trait::TraitItem;
 use crate::domain::names::DependencyName;
 
 impl DomainError {
@@ -36,7 +37,36 @@ impl DomainError {
             | Self::TupleStruct
             | Self::MultipleContainerAttributes
             | Self::InvalidLeafBuild { .. }
-            | Self::ContainerAttribute { .. } => None,
+            | Self::ContainerAttribute { .. }
+            | Self::DispatchedTrait(_) => None,
+        }
+    }
+}
+
+/// What of a dispatched trait an error is about.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum DispatchSubject<'a> {
+    Item(&'a TraitItem),
+    /// The `unsafe` of an `unsafe trait`.
+    Safety,
+    /// What the attribute was given between its parentheses.
+    Arguments,
+    /// The item the attribute is on.
+    Annotated,
+}
+
+impl DomainError {
+    pub(crate) fn dispatch_subject(&self) -> DispatchSubject<'_> {
+        match self {
+            Self::DispatchedTrait(DispatchProblem::Item { item, .. }) => {
+                DispatchSubject::Item(item)
+            }
+            Self::DispatchedTrait(DispatchProblem::UnsafeTrait(_)) => DispatchSubject::Safety,
+            Self::DispatchedTrait(DispatchProblem::Arguments)
+            | Self::NotYetImplemented {
+                feature: Feature::RemoteStaticDispatch,
+            } => DispatchSubject::Arguments,
+            _ => DispatchSubject::Annotated,
         }
     }
 }

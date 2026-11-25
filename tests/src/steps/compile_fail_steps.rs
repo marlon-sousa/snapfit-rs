@@ -8,6 +8,11 @@ fn given_invalid_container_fixture(world: &mut ContainerWorld, fixture_name: Str
     world.select_fixture(fixture_name);
 }
 
+#[given(expr = "an invalid dispatched trait fixture {string}")]
+fn given_invalid_dispatched_trait_fixture(world: &mut ContainerWorld, fixture_name: String) {
+    world.select_fixture(fixture_name);
+}
+
 #[given("a newer snapfit library from another build sits beside the one the suite links to")]
 fn given_stale_snapfit_library(world: &mut ContainerWorld) {
     world.plant_stale_library();

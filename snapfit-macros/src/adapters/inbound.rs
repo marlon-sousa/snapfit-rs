@@ -1,7 +1,10 @@
-//! Adapter: reads the user's struct, through syn and darling, into a container declaration.
+//! Adapter: reads the user's struct, through syn and darling, into a container
+//! declaration, and the item `#[snapfit::static_dispatch]` is on into a
+//! dispatch attribute.
 
 mod build_setting;
 mod darling_models;
+mod dispatched_trait;
 mod field_parser;
 mod type_inspector;
 
@@ -9,6 +12,8 @@ mod type_inspector;
 mod tests;
 
 use proc_macro2::TokenStream;
+
+pub(crate) use dispatched_trait::read_dispatch_attribute;
 
 use crate::adapters::syntax::{
     ContainerSyntax, Declaration, FieldDeclaration, is_container_attribute, is_user_attribute,

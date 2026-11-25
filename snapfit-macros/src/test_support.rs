@@ -1,8 +1,10 @@
 //! Test support: the names and declarations that the tests of several modules build.
 
 use crate::domain::{
-    BuilderMethods, Construction, ContainerDeclaration, ContainerName, DependencyDeclaration,
-    DependencyName, DomainError, FunctionName, Prerequisite, SetterName,
+    Annotated, BuilderMethods, Construction, ContainerDeclaration, ContainerName,
+    DependencyDeclaration, DependencyName, DispatchArguments, DispatchAttribute, DomainError,
+    FunctionName, MethodName, MethodShape, Prerequisite, Receiver, ReturnShape, SelfUse,
+    SetterName, TraitDeclaration, TraitItemDeclaration, TraitName,
 };
 
 pub(crate) fn name(text: &str) -> DependencyName {
@@ -69,6 +71,50 @@ pub(crate) fn container<F>(
     let mut container = ContainerDeclaration::new(ContainerName::new("App").unwrap(), ());
     container.dependencies = dependencies;
     container
+}
+
+/// A method named `name` of the shape given, whose syntax is its name.
+pub(crate) fn method(
+    name: &str,
+    receiver: Receiver,
+    self_use: SelfUse,
+    returns: ReturnShape,
+) -> TraitItemDeclaration<&str, &str> {
+    TraitItemDeclaration::Method {
+        name: MethodName::new(name).unwrap(),
+        syntax: name,
+        shape: MethodShape::new(receiver, self_use, returns),
+    }
+}
+
+/// A method taking `&self` that returns a plain type, which forwards as written.
+pub(crate) fn forwardable_method(name: &str) -> TraitItemDeclaration<&str, &str> {
+    method(
+        name,
+        Receiver::Reference,
+        SelfUse::Forwardable,
+        ReturnShape::Plain,
+    )
+}
+
+/// `#[snapfit::static_dispatch]` with no arguments on a trait named
+/// `Database` holding `items`.
+pub(crate) fn dispatch_attribute<'a>(
+    items: Vec<TraitItemDeclaration<&'a str, &'a str>>,
+) -> DispatchAttribute<(), &'a str, &'a str> {
+    DispatchAttribute::new(
+        DispatchArguments::None,
+        Annotated::Trait(dispatched_trait(items)),
+    )
+}
+
+/// A trait named `Database` holding `items`.
+pub(crate) fn dispatched_trait<'a>(
+    items: Vec<TraitItemDeclaration<&'a str, &'a str>>,
+) -> TraitDeclaration<(), &'a str, &'a str> {
+    let mut declaration = TraitDeclaration::new(TraitName::new("Database").unwrap(), ());
+    declaration.items = items;
+    declaration
 }
 
 /// What a `macro_rules!` passes for `$e:expr`: the expression in an invisible group.

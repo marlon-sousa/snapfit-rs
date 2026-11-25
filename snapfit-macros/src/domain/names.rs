@@ -1,4 +1,4 @@
-//! Entity: the names a container declaration uses, each never blank.
+//! Entity: the names a container or a dispatched trait declares, each never blank.
 
 use std::marker::PhantomData;
 
@@ -30,6 +30,18 @@ pub(crate) struct Type;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct Setter;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct Trait;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct Method;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct Constant;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct Macro;
+
 impl NameKind for Dependency {
     const LABEL: &'static str = "dependency name";
 }
@@ -50,6 +62,22 @@ impl NameKind for Setter {
     const LABEL: &'static str = "setter name";
 }
 
+impl NameKind for Trait {
+    const LABEL: &'static str = "trait name";
+}
+
+impl NameKind for Method {
+    const LABEL: &'static str = "method name";
+}
+
+impl NameKind for Constant {
+    const LABEL: &'static str = "constant name";
+}
+
+impl NameKind for Macro {
+    const LABEL: &'static str = "macro name";
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Display)]
 #[display("{text}")]
 pub(crate) struct Name<K> {
@@ -65,6 +93,12 @@ pub(crate) type FunctionName = Name<Function>;
 pub(crate) type TypeName = Name<Type>;
 /// A method of a builder that takes one dependency.
 pub(crate) type SetterName = Name<Setter>;
+pub(crate) type TraitName = Name<Trait>;
+pub(crate) type MethodName = Name<Method>;
+/// An associated const of a trait.
+pub(crate) type ConstantName = Name<Constant>;
+/// The macro a trait calls among its items, by the last segment of its path.
+pub(crate) type MacroName = Name<Macro>;
 
 impl DependencyName {
     /// The builder setter of the same name, which takes this dependency when

@@ -1,7 +1,9 @@
 //! Adapter: the user's own syntax, which the inbound adapter puts in the
 //! declaration and the outbound adapter writes back out.
 
-use crate::domain::{ConstructionPlan, ContainerDeclaration, DependencyDeclaration};
+use crate::domain::{
+    ConstructionPlan, ContainerDeclaration, DependencyDeclaration, DispatchAttribute, DispatchPlan,
+};
 
 /// The container struct, apart from its fields.
 #[derive(Debug, Clone)]
@@ -46,7 +48,17 @@ pub(crate) struct BuilderSyntax {
     pub(crate) finish: syn::Ident,
 }
 
+/// A dispatched trait, apart from its items.
+#[derive(Debug, Clone)]
+pub(crate) struct TraitSyntax {
+    pub(crate) ident: syn::Ident,
+    pub(crate) generics: syn::Generics,
+}
+
 pub(crate) type Declaration = ContainerDeclaration<ContainerSyntax, FieldSyntax>;
+pub(crate) type DispatchDeclaration =
+    DispatchAttribute<TraitSyntax, syn::TraitItemFn, syn::TraitItemType>;
+pub(crate) type TraitPlan = DispatchPlan<TraitSyntax, syn::TraitItemFn, syn::TraitItemType>;
 pub(crate) type FieldDeclaration = DependencyDeclaration<FieldSyntax>;
 pub(crate) type Plan = ConstructionPlan<ContainerSyntax, FieldSyntax>;
 

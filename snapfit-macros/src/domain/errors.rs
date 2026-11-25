@@ -1,8 +1,10 @@
-//! Error: what makes snapfit refuse a container, each worded as the sentence
-//! the compiler shows, which must read well spoken by a screen reader.
+//! Error: what makes snapfit refuse a container or a dispatched trait, each
+//! worded as the sentence the compiler shows, which must read well spoken by
+//! a screen reader.
 
 mod accumulated;
 mod asynchrony;
+mod dispatched_trait;
 mod parts;
 mod sentences;
 mod subject;
@@ -14,8 +16,10 @@ use crate::domain::names::{DependencyName, SetterName};
 
 pub(crate) use accumulated::DomainErrors;
 pub(crate) use asynchrony::AsyncProblem;
+pub(crate) use dispatched_trait::{DispatchProblem, ItemProblem};
 pub(crate) use parts::{AttributeProblem, Feature, InfallibleBuild};
 use sentences::{cycle_sentence, dependencies_noun, join_names};
+pub(crate) use subject::DispatchSubject;
 pub(crate) use trait_objects::TraitObjectProblem;
 
 #[cfg(test)]
@@ -186,6 +190,9 @@ pub(crate) enum DomainError {
         "{feature} is unstable in this version of snapfit; enable the `unstable` feature of the `snapfit` crate to use it"
     )]
     RequiresUnstable { feature: Feature },
+
+    #[error("{0}")]
+    DispatchedTrait(DispatchProblem),
 
     #[error("{feature} is planned for a future version of snapfit and is not implemented yet")]
     NotYetImplemented { feature: Feature },

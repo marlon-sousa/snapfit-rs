@@ -2,6 +2,8 @@
 
 mod build;
 mod declaration;
+mod dispatch_plan;
+mod dispatched_trait;
 mod errors;
 mod names;
 mod plan;
@@ -12,9 +14,17 @@ pub(crate) use declaration::{
     EnumDispatch, Execution, Fallibility, Implementation, Introspection, Lifecycle, Prerequisite,
     TypeParameters, TypeShape,
 };
-pub(crate) use errors::{
-    AsyncProblem, AttributeProblem, DomainError, DomainErrors, Feature, InfallibleBuild,
-    TraitObjectProblem,
+pub(crate) use dispatch_plan::{DispatchPlan, ForwardedItem, Rebuilding};
+pub(crate) use dispatched_trait::{
+    Annotated, DispatchArguments, DispatchAttribute, MethodShape, Receiver, ReturnShape, Safety,
+    SelfUse, TraitDeclaration, TraitItem, TraitItemDeclaration,
 };
-pub(crate) use names::{ContainerName, DependencyName, FunctionName, SetterName, TypeName};
+pub(crate) use errors::{
+    AsyncProblem, AttributeProblem, DispatchProblem, DispatchSubject, DomainError, DomainErrors,
+    Feature, InfallibleBuild, ItemProblem, TraitObjectProblem,
+};
+pub(crate) use names::{
+    ConstantName, ContainerName, DependencyName, FunctionName, MacroName, MethodName, SetterName,
+    TraitName, TypeName,
+};
 pub(crate) use plan::{Call, ConstructionPlan, Step, Wrapping};

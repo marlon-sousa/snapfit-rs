@@ -8,8 +8,12 @@ use syn::ext::IdentExt;
 use crate::adapters::syntax::{is_snapfit_attribute, is_user_attribute};
 use crate::domain::{DomainError, DomainErrors};
 
+mod trait_origins;
+
 #[cfg(test)]
 mod tests;
+
+pub(crate) use trait_origins::TraitOrigins;
 
 /// The tokens a diagnostic underlines: a field's snapfit attribute, or its
 /// name when it has none, and the container's name for the rest.

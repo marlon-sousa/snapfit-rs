@@ -1,6 +1,8 @@
-//! Adapter: writes a construction plan, or the problems found, as Rust tokens through quote.
+//! Adapter: writes a construction plan or a dispatched trait's plan, or the
+//! problems found, as Rust tokens through quote.
 
 mod diagnostics;
+mod dispatch_impls;
 mod expr;
 mod factories;
 mod getters;
@@ -17,7 +19,8 @@ use quote::quote;
 
 use crate::adapters::syntax::Plan;
 
-pub(crate) use diagnostics::{Origins, fallback_struct};
+pub(crate) use diagnostics::{Origins, TraitOrigins, fallback_struct};
+pub(crate) use dispatch_impls::emit_dispatch_impls;
 
 /// `#[container]` rewrites the struct and adds its impls.
 pub(crate) fn emit_container(plan: &Plan) -> TokenStream {

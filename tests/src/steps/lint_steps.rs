@@ -9,6 +9,11 @@ fn given_clippy_fixture(world: &mut ContainerWorld, fixture_name: String) {
     world.select_fixture(fixture_name);
 }
 
+#[given(expr = "a dispatched trait fixture {string} for clippy")]
+fn given_dispatched_trait_clippy_fixture(world: &mut ContainerWorld, fixture_name: String) {
+    world.select_fixture(fixture_name);
+}
+
 #[when("the fixture is linted with clippy")]
 fn when_fixture_is_linted(world: &mut ContainerWorld) {
     world.lint_selected_fixture();

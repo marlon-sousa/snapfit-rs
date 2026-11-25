@@ -3,6 +3,7 @@ mod builder_steps;
 mod codegen_steps;
 mod compile_fail_steps;
 mod container_steps;
+mod dispatch_steps;
 mod fallible_steps;
 mod lint_steps;
 mod swap_steps;

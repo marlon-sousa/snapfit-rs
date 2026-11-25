@@ -1,5 +1,6 @@
 //! Handler: turns a macro's tokens into the declaration, has it planned, and
-//! turns the plan, or every problem found, back into tokens.
+//! turns the plan, or every problem found, back into tokens: `#[container]`
+//! here, `#[snapfit::static_dispatch]` in its submodule.
 
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -8,8 +9,12 @@ use crate::adapters::{Origins, emit_container, fallback_struct, parse_attribute}
 use crate::domain::FeatureGate;
 use crate::use_cases::plan_container;
 
+mod static_dispatch;
+
 #[cfg(test)]
 mod tests;
+
+pub(crate) use static_dispatch::static_dispatch_attribute;
 
 const BUILD_FEATURE_GATE: FeatureGate = if cfg!(feature = "unstable") {
     FeatureGate::Unstable

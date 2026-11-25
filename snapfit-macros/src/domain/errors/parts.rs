@@ -32,6 +32,8 @@ pub(crate) enum Feature {
     AsyncBuilder { dependency: DependencyName },
     #[display("fallible = true on transient dependency '{dependency}'")]
     FallibleTransient { dependency: DependencyName },
+    #[display("#[snapfit::static_dispatch(remote = ...)]")]
+    RemoteStaticDispatch,
 }
 
 /// What would build a field marked `fallible = true` that cannot fail, with
@@ -61,7 +63,8 @@ impl Feature {
             Self::ParentContainer
             | Self::Introspection
             | Self::GenericContainer { .. }
-            | Self::AsyncMode => None,
+            | Self::AsyncMode
+            | Self::RemoteStaticDispatch => None,
         }
     }
 }

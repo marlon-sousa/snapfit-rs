@@ -1,5 +1,5 @@
-//! Facade: snapfit's procedural macro, which hands its input to the expansion
-//! handler; nothing else of this crate is public.
+//! Facade: snapfit's procedural macros, which hand their input to the
+//! expansion handler; nothing else of this crate is public.
 
 mod adapters;
 mod domain;
@@ -24,4 +24,19 @@ use proc_macro::TokenStream;
 #[proc_macro_attribute]
 pub fn container(args: TokenStream, input: TokenStream) -> TokenStream {
     expansion::container_attribute(args.into(), input.into()).into()
+}
+
+/// Lets a trait be dispatched statically, through a `match` over a closed
+/// list of its implementations instead of a trait object.
+///
+/// Written once, on the trait, where it is defined:
+/// `#[snapfit::static_dispatch] pub trait Database { ... }`. It keeps the
+/// trait as written and implements it for snapfit's dispatch types, each
+/// method forwarding to the implementation the value holds. It takes no
+/// arguments, and it refuses, at the item, what a `match` cannot forward,
+/// such as a method with no receiver or an associated const.
+/// Use it through the `snapfit` crate, as `snapfit::static_dispatch`.
+#[proc_macro_attribute]
+pub fn static_dispatch(args: TokenStream, input: TokenStream) -> TokenStream {
+    expansion::static_dispatch_attribute(args.into(), input.into()).into()
 }
