@@ -11,6 +11,7 @@ mod tests;
 use proc_macro2::{TokenStream, TokenTree};
 use syn::ext::IdentExt;
 
+use super::runtime_path::{crate_path, default_runtime_path, settings};
 use crate::adapters::syntax::{DispatchDeclaration, TraitSyntax};
 use crate::domain::{
     Annotated, ConstantName, DispatchArguments, DispatchAttribute, DomainError, DomainErrors,
@@ -30,31 +31,49 @@ pub(crate) fn read_dispatch_attribute(
     args: &TokenStream,
     item: &syn::Item,
 ) -> Result<DispatchDeclaration, DomainErrors> {
+    let (arguments, runtime) = arguments(args);
     let annotated = match item {
-        syn::Item::Trait(item) => Annotated::Trait(trait_declaration(item)?),
+        syn::Item::Trait(item) => Annotated::Trait(trait_declaration(item, runtime)?),
         _ => Annotated::Other,
     };
-    Ok(DispatchAttribute::new(arguments(args), annotated))
+    Ok(DispatchAttribute::new(arguments, annotated))
 }
 
-/// `remote = ...`, whatever follows the `=`, is the setting snapfit plans;
-/// anything else is one it does not take.
-fn arguments(args: &TokenStream) -> DispatchArguments {
-    let mut tokens = args.clone().into_iter();
-
-    match (tokens.next(), tokens.next(), tokens.next()) {
-        (None, _, _) => DispatchArguments::None,
-        (Some(TokenTree::Ident(name)), Some(TokenTree::Punct(equals)), Some(_))
-            if name == "remote" && equals.as_char() == '=' =>
-        {
-            DispatchArguments::Remote
-        }
+/// `crate = <path>`, given once, is the one setting the attribute takes, and
+/// `remote = ...`, whatever follows the `=`, the setting snapfit plans, which
+/// is refused as planned whatever else is given; anything else, a second
+/// `crate` among it, is one the attribute does not take.
+fn arguments(args: &TokenStream) -> (DispatchArguments, syn::Path) {
+    let settings = settings(args);
+    let paths: Vec<_> = settings.iter().filter_map(crate_path).collect();
+    let remote = settings.iter().any(is_remote);
+    let others = settings.len() - paths.len() - usize::from(remote);
+    let arguments = match (remote, others, paths.len()) {
+        (true, _, _) => DispatchArguments::Remote,
+        (false, 0, 0 | 1) => DispatchArguments::None,
         _ => DispatchArguments::Other,
+    };
+    let runtime = paths
+        .into_iter()
+        .next()
+        .unwrap_or_else(default_runtime_path);
+    (arguments, runtime)
+}
+
+/// `remote = ` and something after it.
+fn is_remote(setting: &TokenStream) -> bool {
+    let mut tokens = setting.clone().into_iter();
+    match (tokens.next(), tokens.next(), tokens.next()) {
+        (Some(TokenTree::Ident(name)), Some(TokenTree::Punct(equals)), Some(_)) => {
+            name == "remote" && equals.as_char() == '='
+        }
+        _ => false,
     }
 }
 
 fn trait_declaration(
     item: &syn::ItemTrait,
+    runtime: syn::Path,
 ) -> Result<TraitDeclaration<TraitSyntax, syn::TraitItemFn, syn::TraitItemType>, DomainErrors> {
     let name = TraitName::new(item.ident.unraw().to_string()).map_err(DomainErrors::from);
     let items = DomainErrors::collect(item.items.iter().enumerate().filter_map(placed_item));
@@ -63,6 +82,7 @@ fn trait_declaration(
         ident: item.ident.clone(),
         generics: item.generics.clone(),
         supertraits: item.supertraits.iter().filter_map(supertrait).collect(),
+        runtime,
     };
     let safety = item.unsafety.map_or(Safety::Safe, |_| Safety::Unsafe);
     Ok(TraitDeclaration::new(

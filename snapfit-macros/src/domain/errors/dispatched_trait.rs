@@ -30,7 +30,7 @@ pub(crate) enum DispatchProblem {
     )]
     NotATrait,
     #[error(
-        "#[snapfit::static_dispatch] takes no arguments; write it alone, as #[snapfit::static_dispatch]"
+        "#[snapfit::static_dispatch] takes no arguments but crate, given once, the path to snapfit when a crate depends on it under another name; write it alone, as #[snapfit::static_dispatch], or as #[snapfit::static_dispatch(crate = di)]"
     )]
     Arguments,
 }

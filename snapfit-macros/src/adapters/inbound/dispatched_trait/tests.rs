@@ -3,6 +3,8 @@ use syn::parse_quote;
 
 use super::*;
 
+mod arguments;
+
 fn read(args: TokenStream, item: syn::Item) -> DispatchDeclaration {
     read_dispatch_attribute(&args, &item).unwrap()
 }
@@ -13,31 +15,6 @@ fn trait_of(
     match attribute.annotated {
         Annotated::Trait(declaration) => declaration,
         Annotated::Other => panic!("the attribute is on a trait"),
-    }
-}
-
-#[test]
-fn the_arguments_are_read_as_none_remote_or_other() {
-    let item: syn::Item = parse_quote!(
-        trait Database {}
-    );
-    let cases = [
-        (quote!(), DispatchArguments::None),
-        (quote!(remote = other::Store), DispatchArguments::Remote),
-        (quote!(remote), DispatchArguments::Other),
-        (quote!(inline), DispatchArguments::Other),
-        (
-            quote!(remote = other::Store<u32>),
-            DispatchArguments::Remote,
-        ),
-        (
-            quote!(remote = other::Store, inline),
-            DispatchArguments::Remote,
-        ),
-    ];
-    for (args, arguments) in cases {
-        let written = args.to_string();
-        assert_eq!(read(args, item.clone()).arguments, arguments, "{written}");
     }
 }
 

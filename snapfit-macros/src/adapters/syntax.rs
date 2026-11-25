@@ -22,6 +22,8 @@ pub(crate) struct ContainerSyntax {
     pub(crate) attrs: Vec<syn::Attribute>,
     /// The function of `leaf_build = constructor(...)` as the user wrote it.
     pub(crate) leaf_constructor: Option<syn::Ident>,
+    /// The path to snapfit's runtime crate, `crate = <path>` or `::snapfit`.
+    pub(crate) runtime: syn::Path,
 }
 
 /// One field, without snapfit's own attributes.
@@ -71,6 +73,8 @@ pub(crate) struct TraitSyntax {
     pub(crate) generics: syn::Generics,
     /// The traits its supertraits name, without `?Sized` or lifetimes.
     pub(crate) supertraits: Vec<syn::TraitBound>,
+    /// The path to snapfit's runtime crate, `crate = <path>` or `::snapfit`.
+    pub(crate) runtime: syn::Path,
 }
 
 pub(crate) type Declaration =

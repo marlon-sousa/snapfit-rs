@@ -8,6 +8,7 @@ use syn::parse_quote;
 use syn::spanned::Spanned;
 
 use super::trait_path::TraitPath;
+use crate::adapters::outbound::spanned::spanned_runtime;
 use crate::adapters::syntax::TraitSyntax;
 
 #[cfg(test)]
@@ -40,7 +41,9 @@ fn check(syntax: &TraitSyntax, bound: &syn::TraitBound) -> TokenStream {
     let note = format!(
         "mark `{supertrait}` with #[snapfit::static_dispatch] where it is defined; a supertrait of another crate, other than Send, Sync, Sized, Clone and Debug, cannot be dispatched statically, so dispatch `{trait_name}` dynamically instead, through Arc<dyn {trait_name}>"
     );
-    let plain = TraitPath::of(syntax).plain();
+    let path = TraitPath::of(syntax);
+    let plain = path.plain();
+    let runtime = spanned_runtime(&path.runtime, bound.span());
     let (trait_generics, arguments, where_clause) = syntax.generics.split_for_impl();
     let mut holder = syntax.generics.clone();
     holder
@@ -51,7 +54,7 @@ fn check(syntax: &TraitSyntax, bound: &syn::TraitBound) -> TokenStream {
     checked.params.push(parse_quote!(__SnapfitLast: #plain));
     let (checked_generics, _, _) = checked.split_for_impl();
     let call = quote_spanned!(bound.span()=>
-        <::snapfit::__private::Only<__SnapfitLast> as __SnapfitSupertrait #arguments>::__snapfit_holds();
+        <#runtime::__private::Only<__SnapfitLast> as __SnapfitSupertrait #arguments>::__snapfit_holds();
     );
     quote! {
         const _: () = {

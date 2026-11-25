@@ -71,7 +71,7 @@ Feature: Refusing a trait that static dispatch cannot follow
     And the compiler should report 1 errors
 
   @v0_3_0
-  Scenario: An argument is refused, and remote is refused as planned
+  Scenario Outline: An argument other than one crate is refused, and remote is refused as planned
     Given an invalid dispatched trait fixture "<fixture>"
     When the fixture is compiled
     Then compilation should fail with "<message>"
@@ -80,14 +80,15 @@ Feature: Refusing a trait that static dispatch cannot follow
 
     Examples:
       | fixture                       | message                                                                                                    |
-      | static_dispatch_with_argument | #[snapfit::static_dispatch] takes no arguments; write it alone, as #[snapfit::static_dispatch]             |
+      | static_dispatch_with_argument | #[snapfit::static_dispatch] takes no arguments but crate, given once, the path to snapfit when a crate depends on it under another name; write it alone, as #[snapfit::static_dispatch], or as #[snapfit::static_dispatch(crate = di)] |
+      | static_dispatch_quoted_crate  | #[snapfit::static_dispatch] takes no arguments but crate, given once                                         |
       | static_dispatch_remote        | #[snapfit::static_dispatch(remote = ...)] is planned for a future version of snapfit and is not implemented yet |
 
   @v0_3_0
   Scenario: Every problem of the attribute and of the trait is reported in one compile
     Given an invalid dispatched trait fixture "static_dispatch_several_problems"
     When the fixture is compiled
-    Then compilation should fail with "#[snapfit::static_dispatch] takes no arguments"
+    Then compilation should fail with "#[snapfit::static_dispatch] takes no arguments but crate"
     And compilation should fail with "associated const 'LIMIT' in trait 'Database' could have a different value in each implementation"
     And compilation should fail with "method 'create' in trait 'Database' has no receiver"
     And compilation should fail with "method 'orders' in trait 'Database' returns impl Trait"

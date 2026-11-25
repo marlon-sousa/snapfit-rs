@@ -46,7 +46,7 @@ fn emit_impl(plan: &TraitPlan, target: Target) -> TokenStream {
         .iter()
         .flat_map(|clause| &clause.predicates);
     let bounds = target.bounds(&path, &associated);
-    let self_type = target.self_type();
+    let self_type = target.self_type(&path.runtime);
     // Each supertrait is assumed, so that one the dispatch type does not
     // implement fails where the container uses it, and in words where
     // `emit_supertrait_checks` checks it, not at this impl.

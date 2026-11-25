@@ -8,6 +8,7 @@ mod expr;
 mod factories;
 mod getters;
 mod init_constructor;
+mod spanned;
 mod struct_def;
 
 #[cfg(test)]
@@ -28,8 +29,11 @@ pub(crate) use dispatched_types::emit_fallback_aliases;
 /// statically, and adds its impls.
 pub(crate) fn emit_container(plan: &Plan) -> TokenStream {
     let struct_def = struct_def::emit_struct_definition(plan);
-    let dispatched_types =
-        dispatched_types::emit_dispatched_types(&plan.dispatched_types, &plan.syntax.vis);
+    let dispatched_types = dispatched_types::emit_dispatched_types(
+        &plan.dispatched_types,
+        &plan.syntax.vis,
+        &plan.syntax.runtime,
+    );
     let impls = emit_impls(plan);
 
     quote! {

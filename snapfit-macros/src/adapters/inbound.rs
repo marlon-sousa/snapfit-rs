@@ -7,6 +7,7 @@ mod darling_models;
 mod dispatch_declarations;
 mod dispatched_trait;
 mod field_parser;
+mod runtime_path;
 mod type_inspector;
 
 #[cfg(test)]
@@ -15,6 +16,7 @@ mod tests;
 use proc_macro2::TokenStream;
 
 pub(crate) use dispatched_trait::read_dispatch_attribute;
+pub(crate) use runtime_path::readable_runtime_path;
 
 use crate::adapters::syntax::{
     ContainerSyntax, Declaration, FieldDeclaration, ReadableParts, is_container_attribute,
@@ -64,8 +66,10 @@ fn container_header(
     let name = ContainerName::new(item.ident.to_string()).map_err(DomainErrors::from);
     let introspection = meta.introspection;
     let (name, settings) = DomainErrors::both(name, container_settings(meta))?;
-    let mut container =
-        ContainerDeclaration::new(name, container_syntax(item, settings.leaf_ident));
+    let mut container = ContainerDeclaration::new(
+        name,
+        container_syntax(item, settings.leaf_ident, settings.runtime),
+    );
     container.type_parameters = type_parameters(&item.generics);
     container.mode = settings.mode;
     container.parent = settings.parent;
@@ -85,6 +89,7 @@ struct ContainerSettings {
     leaf_constructor: Constructor,
     /// The function of `leaf_build = constructor(...)` as the user wrote it.
     leaf_ident: Option<syn::Ident>,
+    runtime: syn::Path,
 }
 
 /// The container's `mode`, `parent` and `leaf_build`, or every problem they have.
@@ -103,23 +108,31 @@ fn container_settings(meta: ContainerAttrMeta) -> Result<ContainerSettings, Doma
         .transpose()
         .map_err(DomainErrors::from);
     let leaf = build_setting::leaf_constructor(meta.leaf_build).map_err(DomainErrors::from);
-    let (mode, (parent, (leaf_constructor, leaf_ident))) =
-        DomainErrors::both(mode, DomainErrors::both(parent, leaf))?;
+    let runtime = runtime_path::runtime_path(meta.runtime).map_err(|problem| {
+        DomainErrors::from(DomainError::from(AttributeProblem::Container { problem }))
+    });
+    let (mode, (parent, ((leaf_constructor, leaf_ident), runtime))) = DomainErrors::both(
+        mode,
+        DomainErrors::both(parent, DomainErrors::both(leaf, runtime)),
+    )?;
     Ok(ContainerSettings {
         mode,
         parent,
         leaf_constructor,
         leaf_ident,
+        runtime,
     })
 }
 
 fn container_syntax(
     item: &syn::ItemStruct,
     leaf_constructor: Option<syn::Ident>,
+    runtime: syn::Path,
 ) -> ContainerSyntax {
     ContainerSyntax {
         ident: item.ident.clone(),
         leaf_constructor,
+        runtime,
         vis: item.vis.clone(),
         attrs: item
             .attrs

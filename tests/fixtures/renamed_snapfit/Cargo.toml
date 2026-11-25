@@ -1,0 +1,14 @@
+# snapfit under the name di, for the fixtures of tests/fixtures/renamed: the
+# crate a user's Cargo.toml writes as di = { package = "snapfit", ... },
+# which compile-outcomes cannot write.
+[package]
+name = "di"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+snapfit = { path = "../../../snapfit" }

@@ -43,6 +43,16 @@ pub(crate) enum ArgumentProblem {
     /// The value as written, such as `"yes"`.
     #[display("fallible takes true or false, not {_0}; write fallible = true, or fallible = false")]
     NotAFallibleValue(String),
+    /// The string's own text, such as `di`.
+    #[display(
+        "crate takes the path snapfit is reached through, not a string; write it unquoted: crate = {_0}"
+    )]
+    QuotedRuntimePath(String),
+    /// The value as written, such as `3`.
+    #[display(
+        "crate takes the path snapfit is reached through, and '{_0}' is not a path; write the name the crate depends on snapfit under, such as crate = di"
+    )]
+    NotARuntimePath(String),
     #[display(
         "implementation needs a type; write the type the container builds for the field, such as implementation = StripeGateway"
     )]

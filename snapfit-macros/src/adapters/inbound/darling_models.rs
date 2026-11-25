@@ -14,6 +14,7 @@ mod expressions;
 mod fallible_meta;
 mod implementation_meta;
 mod prerequisites;
+mod runtime_meta;
 #[cfg(test)]
 mod tests;
 
@@ -26,6 +27,7 @@ pub(super) use implementation_meta::{
     ImplementationEntry, ImplementationKey, ImplementationMeta, ImplementationValue,
 };
 pub(super) use prerequisites::{PrerequisiteEntry, PrerequisiteList, PrerequisiteMeta};
+pub(super) use runtime_meta::RuntimeMeta;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, FromMeta)]
 pub(super) struct ContainerAttrMeta {
@@ -39,6 +41,8 @@ pub(super) struct ContainerAttrMeta {
     pub(super) introspection: bool,
     #[darling(default)]
     pub(super) leaf_build: Option<BuildMeta>,
+    #[darling(default, rename = "crate")]
+    pub(super) runtime: Option<RuntimeMeta>,
 }
 
 impl ContainerAttrMeta {
