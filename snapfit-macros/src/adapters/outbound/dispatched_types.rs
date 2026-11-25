@@ -2,6 +2,10 @@
 //! the checks that it and each of its implementations implement its trait,
 //! and that each other spelling of an implementation names the same type.
 
+mod dispatches;
+#[cfg(test)]
+mod tests;
+
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, quote_spanned};
 use syn::ext::IdentExt;
@@ -10,6 +14,7 @@ use syn::spanned::Spanned;
 use super::spanned::spanned_runtime;
 use crate::adapters::syntax::{DispatchSyntax, DispatchedTypeFallbackSyntax, DispatchedTypeSyntax};
 use crate::domain::{DispatchedTypeFallback, Respelling, Variant};
+use dispatches::dispatches;
 
 /// Each alias with its checks.
 pub(super) fn emit_dispatched_types(
@@ -79,7 +84,7 @@ fn emit_alias(
 
 /// The trait by its last segment, as a reader of the container's module
 /// knows it.
-fn trait_name(trait_path: &syn::Path) -> String {
+pub(super) fn trait_name(trait_path: &syn::Path) -> String {
     trait_path
         .segments
         .last()
@@ -138,34 +143,6 @@ fn emit_checks(planned: &DispatchedTypeSyntax, runtime: &syn::Path) -> TokenStre
     }
 }
 
-/// The check that the dispatched type implements the trait, in words, since
-/// rustc's own error names snapfit's dispatch types: a trait without
-/// `#[snapfit::static_dispatch]` gives the dispatched type no impl, and one
-/// whose implementations disagree on an associated type gives it an impl it
-/// cannot meet. `do_not_recommend` keeps rustc from reporting the bound of
-/// the impl instead of this message.
-fn dispatches(syntax: &DispatchSyntax, dispatched: &syn::Ident) -> TokenStream {
-    let DispatchSyntax { trait_path, name } = syntax;
-    let trait_name = trait_name(trait_path);
-    let name = name.unraw();
-    let message = format!(
-        "`{name}` cannot dispatch the trait `{trait_name}` that static_dispatch_for names, because the trait, or one of its supertraits, is not marked #[snapfit::static_dispatch], an implementation on its list does not implement it, or the implementations disagree on an associated type"
-    );
-    let label = format!("`{name}` does not implement `{trait_name}`");
-    let note = format!(
-        "mark `{trait_name}` with #[snapfit::static_dispatch] where it is defined; an implementation that does not implement it is reported where its field or list names it; and give each associated type of `{trait_name}` the same type in every implementation on the list"
-    );
-    quote! {
-        #[diagnostic::on_unimplemented(message = #message, label = #label, note = #note)]
-        trait __SnapfitDispatches {}
-        #[diagnostic::do_not_recommend]
-        impl<__SnapfitDispatched: ?::core::marker::Sized + #trait_path> __SnapfitDispatches
-            for __SnapfitDispatched {}
-        fn __snapfit_dispatches<__SnapfitDispatched: ?::core::marker::Sized + __SnapfitDispatches>() {}
-        let _ = __snapfit_dispatches::<#dispatched>;
-    }
-}
-
 /// The check of one implementation, spanned at the type that names it.
 fn implements(ty: &syn::Type) -> TokenStream {
     quote_spanned!(ty.span()=> let _ = __snapfit_implements::<#ty>;)
@@ -177,6 +154,3 @@ fn same_type(respelling: &Respelling<syn::Type>, runtime: &syn::Path) -> TokenSt
     let runtime = spanned_runtime(runtime, written.span());
     quote_spanned!(written.span()=> let _ = #runtime::__private::same_type::<#written, #kept>;)
 }
-
-#[cfg(test)]
-mod tests;
