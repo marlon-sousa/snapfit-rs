@@ -26,11 +26,11 @@ pub(super) fn read_implementation(
     implementations: Vec<ImplementationMeta>,
 ) -> Result<Option<WrittenImplementation>, DomainErrors> {
     let ones = implementations.iter().filter(is_one).count();
-    let lists = implementations.len() - ones;
+    let severals = implementations.len() - ones;
     let repeated = [
         (ones > 1).then_some(ArgumentProblem::RepeatedImplementation),
-        (lists > 1).then_some(ArgumentProblem::RepeatedImplementations),
-        (ones > 0 && lists > 0).then_some(ArgumentProblem::BothImplementationKeys),
+        (severals > 1).then_some(ArgumentProblem::RepeatedImplementations),
+        (ones > 0 && severals > 0).then_some(ArgumentProblem::BothImplementationKeys),
     ];
     let (written, problems): (Vec<_>, Vec<_>) = implementations
         .into_iter()

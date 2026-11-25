@@ -74,7 +74,7 @@ pub(crate) enum ArgumentProblem {
         "implementations takes its types in square brackets, such as implementations = [Postgres, Sqlite]; to name the one type the container builds, write implementation, without an s, such as implementation = Postgres"
     )]
     ImplementationsWithoutList,
-    #[display("implementation is given more than once; give implementation once")]
+    #[display("implementation is given more than once; give the field one type to build")]
     RepeatedImplementation,
     #[display(
         "implementations is given more than once; list every type in one implementations setting"

@@ -48,8 +48,8 @@ pub(in crate::adapters::inbound) enum ImplementationEntry {
 }
 
 /// The settings of a field attribute in the order written, with each
-/// `implementation` and `implementations` taken out of them, whose value, a type such as
-/// `Cache<Order>`, darling cannot read.
+/// `implementation` and `implementations` taken out of them, whose value,
+/// a type such as `Cache<Order>`, darling cannot read.
 pub(super) struct FieldSettings {
     pub(super) settings: Vec<NestedMeta>,
     pub(super) implementations: Vec<ImplementationMeta>,
@@ -116,8 +116,9 @@ fn in_parentheses(tokens: TokenStream) -> ImplementationEntry {
     }
 }
 
-/// The value after `implementation =`, up to the next setting: a list when
-/// it is one pair of square brackets, and one type otherwise.
+/// The value after `implementation =` or `implementations =`, up to the
+/// next setting: a list when it is one pair of square brackets, and one
+/// type otherwise.
 fn implementation_value(input: ParseStream<'_>) -> syn::Result<ImplementationValue> {
     if !is_a_list(input) {
         return entry_value(input).map(ImplementationValue::One);

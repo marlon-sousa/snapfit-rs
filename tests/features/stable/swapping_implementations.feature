@@ -87,7 +87,7 @@ Feature: Swapping a field for another implementation of its trait
       | implementation_inferred      | 1      | field 'reader': 'Arc<_>' is not a type the container can build; write the type in full, such as implementation = StripeGateway |
       | implementation_trait_object  | 1      | field 'reader': 'dyn Reader' is not a type the container can build; write the type in full, such as implementation = StripeGateway |
       | implementation_not_a_type    | 1      | field 'reader': '3' is not a type the container can build; write the type in full, such as implementation = StripeGateway |
-      | repeated_implementation      | 2      | field 'reader': implementation is given more than once; give implementation once |
+      | repeated_implementation      | 2      | field 'reader': implementation is given more than once; give the field one type to build |
 
   @v0_3_0
   Scenario Outline: A service that keeps the trait object inside its own type is built by its constructor
