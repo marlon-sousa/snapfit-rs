@@ -3,8 +3,9 @@
 use crate::domain::{
     Annotated, BuilderMethods, Construction, ContainerDeclaration, ContainerName,
     DependencyDeclaration, DependencyName, DispatchArguments, DispatchAttribute, DomainError,
-    FunctionName, MethodName, MethodShape, Prerequisite, Receiver, ReturnShape, SelfUse,
-    SetterName, TraitDeclaration, TraitItemDeclaration, TraitName,
+    Execution, FunctionName, ItemPosition, MethodName, MethodShape, PlacedItem, Prerequisite,
+    Receiver, ReturnShape, Safety, SelfBound, SelfUse, SetterName, TraitDeclaration,
+    TraitItemDeclaration, TraitName,
 };
 
 pub(crate) fn name(text: &str) -> DependencyName {
@@ -73,7 +74,8 @@ pub(crate) fn container<F>(
     container
 }
 
-/// A method named `name` of the shape given, whose syntax is its name.
+/// A method named `name` of the shape given, synchronous and safe, bounding
+/// `Self` by nothing, whose syntax is its name.
 pub(crate) fn method(
     name: &str,
     receiver: Receiver,
@@ -83,7 +85,14 @@ pub(crate) fn method(
     TraitItemDeclaration::Method {
         name: MethodName::new(name).unwrap(),
         syntax: name,
-        shape: MethodShape::new(receiver, self_use, returns),
+        shape: MethodShape::new(
+            receiver,
+            self_use,
+            SelfBound::Forwardable,
+            returns,
+            Execution::Sync,
+            Safety::Safe,
+        ),
     }
 }
 
@@ -97,6 +106,13 @@ pub(crate) fn forwardable_method(name: &str) -> TraitItemDeclaration<&str, &str>
     )
 }
 
+/// `declaration` as the first item of its trait.
+pub(crate) fn first<'a>(
+    declaration: TraitItemDeclaration<&'a str, &'a str>,
+) -> PlacedItem<&'a str, &'a str> {
+    PlacedItem::new(ItemPosition::new(0), declaration)
+}
+
 /// `#[snapfit::static_dispatch]` with no arguments on a trait named
 /// `Database` holding `items`.
 pub(crate) fn dispatch_attribute<'a>(
@@ -108,13 +124,18 @@ pub(crate) fn dispatch_attribute<'a>(
     )
 }
 
-/// A trait named `Database` holding `items`.
+/// A safe trait named `Database` holding `items`, in order.
 pub(crate) fn dispatched_trait<'a>(
     items: Vec<TraitItemDeclaration<&'a str, &'a str>>,
 ) -> TraitDeclaration<(), &'a str, &'a str> {
-    let mut declaration = TraitDeclaration::new(TraitName::new("Database").unwrap(), ());
-    declaration.items = items;
-    declaration
+    let items = items.into_iter().enumerate().map(placed).collect();
+    TraitDeclaration::new(TraitName::new("Database").unwrap(), (), Safety::Safe, items)
+}
+
+fn placed<'a>(
+    (position, declaration): (usize, TraitItemDeclaration<&'a str, &'a str>),
+) -> PlacedItem<&'a str, &'a str> {
+    PlacedItem::new(ItemPosition::new(position), declaration)
 }
 
 /// What a `macro_rules!` passes for `$e:expr`: the expression in an invisible group.

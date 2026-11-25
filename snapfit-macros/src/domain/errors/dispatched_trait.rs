@@ -3,7 +3,7 @@
 
 use derive_more::Display;
 
-use crate::domain::dispatched_trait::TraitItem;
+use crate::domain::dispatched_trait::{ItemPosition, TraitItem};
 use crate::domain::names::TraitName;
 
 #[derive(Debug, Clone, PartialEq, Eq, Display)]
@@ -12,6 +12,7 @@ pub(crate) enum DispatchProblem {
     Item {
         trait_name: TraitName,
         item: TraitItem,
+        position: ItemPosition,
         problem: ItemProblem,
     },
     #[display(
@@ -51,6 +52,18 @@ pub(crate) enum ItemProblem {
         "uses Self in its arguments or inside its return type, where two dispatched values could hold different implementations; use Self only as the receiver or as the whole return type"
     )]
     SelfElsewhere,
+    #[display(
+        "bounds Self by more than Sized, which snapfit cannot promise of every implementation the dispatched type holds; remove the bound, or make it a supertrait of the trait"
+    )]
+    SelfBound,
+    #[display(
+        "names Self in its bounds, which snapfit cannot promise of the type that dispatches the trait; remove Self from its bounds"
+    )]
+    SelfInBounds,
+    #[display(
+        "is declared under #[cfg] or #[cfg_attr], which the bound that makes every implementation agree on it cannot follow; declare it in every build"
+    )]
+    ConditionalAssociatedType,
     #[display(
         "returns impl Trait, and each implementation would return a type of its own; return a named type instead, such as Box<dyn Iterator<Item = Order>>"
     )]

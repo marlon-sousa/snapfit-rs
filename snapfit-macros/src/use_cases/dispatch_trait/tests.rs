@@ -1,5 +1,7 @@
 use super::*;
-use crate::domain::{DispatchArguments, ForwardedItem, Rebuilding, Receiver, ReturnShape, SelfUse};
+use crate::domain::{
+    DispatchArguments, Execution, ForwardedItem, Rebuilding, Receiver, ReturnShape, Safety, SelfUse,
+};
 use crate::test_support::{dispatch_attribute, forwardable_method, method};
 
 fn messages(errors: DomainErrors) -> Vec<String> {
@@ -19,11 +21,15 @@ fn a_trait_of_forwardable_items_is_planned_in_the_order_it_declares_them() {
         [
             ForwardedItem::Method {
                 syntax: "find",
-                rebuilding: Rebuilding::None
+                rebuilding: Rebuilding::None,
+                execution: Execution::Sync,
+                safety: Safety::Safe,
             },
             ForwardedItem::Method {
                 syntax: "count",
-                rebuilding: Rebuilding::None
+                rebuilding: Rebuilding::None,
+                execution: Execution::Sync,
+                safety: Safety::Safe,
             },
         ]
     );

@@ -1,7 +1,7 @@
 //! Error: which field or trait item an error is about, for the diagnostic to point at.
 
 use super::{DispatchProblem, DomainError, Feature};
-use crate::domain::dispatched_trait::TraitItem;
+use crate::domain::dispatched_trait::ItemPosition;
 use crate::domain::names::DependencyName;
 
 impl DomainError {
@@ -45,8 +45,8 @@ impl DomainError {
 
 /// What of a dispatched trait an error is about.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum DispatchSubject<'a> {
-    Item(&'a TraitItem),
+pub(crate) enum DispatchSubject {
+    Item(ItemPosition),
     /// The `unsafe` of an `unsafe trait`.
     Safety,
     /// What the attribute was given between its parentheses.
@@ -55,15 +55,24 @@ pub(crate) enum DispatchSubject<'a> {
     Annotated,
 }
 
-impl DomainError {
-    pub(crate) fn dispatch_subject(&self) -> DispatchSubject<'_> {
+impl DispatchProblem {
+    fn subject(&self) -> DispatchSubject {
         match self {
-            Self::DispatchedTrait(DispatchProblem::Item { item, .. }) => {
-                DispatchSubject::Item(item)
-            }
-            Self::DispatchedTrait(DispatchProblem::UnsafeTrait(_)) => DispatchSubject::Safety,
-            Self::DispatchedTrait(DispatchProblem::Arguments)
-            | Self::NotYetImplemented {
+            Self::Item { position, .. } => DispatchSubject::Item(*position),
+            Self::UnsafeTrait(_) => DispatchSubject::Safety,
+            Self::Arguments => DispatchSubject::Arguments,
+            Self::NotATrait => DispatchSubject::Annotated,
+        }
+    }
+}
+
+impl DomainError {
+    /// What of a dispatched trait the error is about; an error only a
+    /// container can have is about the item as a whole.
+    pub(crate) fn dispatch_subject(&self) -> DispatchSubject {
+        match self {
+            Self::DispatchedTrait(problem) => problem.subject(),
+            Self::NotYetImplemented {
                 feature: Feature::RemoteStaticDispatch,
             } => DispatchSubject::Arguments,
             _ => DispatchSubject::Annotated,

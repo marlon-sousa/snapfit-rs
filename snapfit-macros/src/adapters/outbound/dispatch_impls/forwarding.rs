@@ -7,12 +7,22 @@ use std::iter;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 
-use super::target::{Target, TraitPath, Variant, is_cfg};
-use crate::domain::Rebuilding;
+use super::target::{Target, Variant};
+use super::trait_path::TraitPath;
+use crate::adapters::syntax::is_cfg;
+use crate::domain::{Execution, Rebuilding, Safety};
+
+/// How the plan says each arm calls the implementation.
+#[derive(Debug, Clone, Copy)]
+pub(super) struct Forwarding {
+    pub(super) rebuilding: Rebuilding,
+    pub(super) execution: Execution,
+    pub(super) safety: Safety,
+}
 
 pub(super) fn forwarded_method(
     method: &syn::TraitItemFn,
-    rebuilding: Rebuilding,
+    forwarding: Forwarding,
     target: Target,
     path: &TraitPath,
 ) -> TokenStream {
@@ -29,7 +39,7 @@ pub(super) fn forwarded_method(
         signature: &signature,
         arguments: &arguments,
         path,
-        rebuilding,
+        forwarding,
     };
     let arms = target
         .variants()
@@ -96,7 +106,7 @@ struct Call<'a> {
     signature: &'a syn::Signature,
     arguments: &'a [&'a syn::Ident],
     path: &'a TraitPath,
-    rebuilding: Rebuilding,
+    forwarding: Forwarding,
 }
 
 impl Call<'_> {
@@ -107,15 +117,18 @@ impl Call<'_> {
         let method = &self.signature.ident;
         let turbofish = self.turbofish();
         let arguments = iter::once(&inner).chain(self.arguments.iter().copied());
-        let awaited = self.signature.asyncness.map(|_| quote!(.await));
+        let awaited = match self.forwarding.execution {
+            Execution::Sync => None,
+            Execution::Async => Some(quote!(.await)),
+        };
         let mut call = quote! {
             <#implementation as #trait_path>::#method #turbofish(#(#arguments),*) #awaited
         };
-        if self.signature.unsafety.is_some() {
+        if self.forwarding.safety.is_unsafe() {
             call = quote!(unsafe { #call });
         }
         let constructor = &variant.constructor;
-        let value = match self.rebuilding {
+        let value = match self.forwarding.rebuilding {
             Rebuilding::None => call,
             Rebuilding::IntoVariant => quote!(#constructor(#call)),
         };

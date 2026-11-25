@@ -16,8 +16,9 @@ pub(crate) use declaration::{
 };
 pub(crate) use dispatch_plan::{DispatchPlan, ForwardedItem, Rebuilding};
 pub(crate) use dispatched_trait::{
-    Annotated, DispatchArguments, DispatchAttribute, MethodShape, Receiver, ReturnShape, Safety,
-    SelfUse, TraitDeclaration, TraitItem, TraitItemDeclaration,
+    Annotated, AssociatedTypeShape, DispatchArguments, DispatchAttribute, ItemPosition,
+    MethodShape, PlacedItem, Presence, Receiver, ReturnShape, Safety, SelfBound, SelfUse,
+    TraitDeclaration, TraitItem, TraitItemDeclaration,
 };
 pub(crate) use errors::{
     AsyncProblem, AttributeProblem, DispatchProblem, DispatchSubject, DomainError, DomainErrors,

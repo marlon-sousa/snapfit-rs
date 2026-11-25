@@ -30,7 +30,7 @@ fn a_list_of_one_holds_its_only_implementation() {
 }
 
 #[test]
-fn a_dispatched_value_clones_and_debugs_as_the_implementation_it_holds() {
+fn a_dispatched_value_clones_and_debugs_as_the_variant_that_holds_its_implementation() {
     let db = Db::of(Mock(7));
 
     assert_eq!(format!("{:?}", db.clone()), "Rest(Rest(Only(Mock(7))))");

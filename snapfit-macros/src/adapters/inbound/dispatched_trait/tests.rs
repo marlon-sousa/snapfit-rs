@@ -27,8 +27,12 @@ fn the_arguments_are_read_as_none_remote_or_other() {
         (quote!(remote), DispatchArguments::Other),
         (quote!(inline), DispatchArguments::Other),
         (
+            quote!(remote = other::Store<u32>),
+            DispatchArguments::Remote,
+        ),
+        (
             quote!(remote = other::Store, inline),
-            DispatchArguments::Other,
+            DispatchArguments::Remote,
         ),
     ];
     for (args, arguments) in cases {
@@ -79,14 +83,14 @@ fn each_item_of_the_trait_is_read_in_order_with_its_kind() {
     );
 }
 
-fn kind_of(item: &ItemDeclaration) -> String {
-    match item {
+fn kind_of(item: &PlacedItem<syn::TraitItemFn, syn::TraitItemType>) -> String {
+    match &item.declaration {
         ItemDeclaration::Method { name, .. } => format!("method {name}"),
-        ItemDeclaration::AssociatedType {
-            name,
-            parameters: TypeParameters::None,
-            ..
-        } => format!("type {name} without parameters"),
+        ItemDeclaration::AssociatedType { name, shape, .. }
+            if shape.parameters == crate::domain::TypeParameters::None =>
+        {
+            format!("type {name} without parameters")
+        }
         ItemDeclaration::AssociatedType { name, .. } => format!("type {name} with parameters"),
         ItemDeclaration::AssociatedConst(name) => format!("const {name}"),
         ItemDeclaration::Macro(name) => format!("macro {name}"),

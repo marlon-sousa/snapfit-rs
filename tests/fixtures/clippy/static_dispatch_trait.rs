@@ -49,6 +49,12 @@ pub trait Database<'a, T: Copy + 'a = u32>: Named + Send + Sync {
     ///
     /// Always safe; the fixture only checks that the call is forwarded.
     unsafe fn raw(&self) -> u8;
+
+    /// Forwarded without the call warning that it is deprecated.
+    #[deprecated(note = "use find")]
+    fn legacy(&self) -> u32 {
+        0
+    }
 }
 
 #[derive(Clone)]

@@ -78,3 +78,9 @@ pub(crate) fn is_user_attribute(attr: &&syn::Attribute) -> bool {
 pub(crate) fn is_container_attribute(attr: &syn::Attribute) -> bool {
     attr.path().is_ident("container")
 }
+
+/// `#[cfg(...)]`, which a forwarding item keeps so that it exists exactly
+/// when the trait's own item does.
+pub(crate) fn is_cfg(attr: &&syn::Attribute) -> bool {
+    attr.path().is_ident("cfg")
+}

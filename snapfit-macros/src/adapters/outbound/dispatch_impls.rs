@@ -3,6 +3,7 @@
 
 mod forwarding;
 mod target;
+mod trait_path;
 
 #[cfg(test)]
 mod tests;
@@ -12,8 +13,9 @@ use quote::quote;
 
 use crate::adapters::syntax::TraitPlan;
 use crate::domain::ForwardedItem;
-use forwarding::forwarded_method;
-use target::{Target, TraitPath};
+use forwarding::{Forwarding, forwarded_method};
+use target::Target;
+use trait_path::TraitPath;
 
 /// The trait's impl for `Either`, which holds the first implementation of a
 /// list or the rest of it, and for `Only`, which holds the last.
@@ -40,15 +42,15 @@ fn emit_impl(plan: &TraitPlan, target: Target) -> TokenStream {
         .flat_map(|clause| &clause.predicates);
     let bounds = target.bounds(&path, &associated);
     let self_type = target.self_type();
-    let items = plan.items.iter().map(|item| match item {
-        ForwardedItem::Method { syntax, rebuilding } => {
-            forwarded_method(syntax, *rebuilding, target, &path)
-        }
-        ForwardedItem::AssociatedType(syntax) => target.associated_type(syntax, &path),
-    });
+    let items = plan
+        .items
+        .iter()
+        .map(|item| forwarded_item(item, target, &path));
     let trait_path = path.plain();
     quote! {
         #[automatically_derived]
+        #[doc(hidden)]
+        #[allow(deprecated)]
         impl #impl_generics #trait_path for #self_type
         where
             #(#predicates,)*
@@ -56,6 +58,31 @@ fn emit_impl(plan: &TraitPlan, target: Target) -> TokenStream {
         {
             #(#items)*
         }
+    }
+}
+
+/// The forwarding item of `item`; a deprecated item is still forwarded,
+/// which is why the impl allows `deprecated`.
+fn forwarded_item(
+    item: &ForwardedItem<syn::TraitItemFn, syn::TraitItemType>,
+    target: Target,
+    path: &TraitPath,
+) -> TokenStream {
+    match item {
+        ForwardedItem::Method {
+            syntax,
+            rebuilding,
+            execution,
+            safety,
+        } => {
+            let forwarding = Forwarding {
+                rebuilding: *rebuilding,
+                execution: *execution,
+                safety: *safety,
+            };
+            forwarded_method(syntax, forwarding, target, path)
+        }
+        ForwardedItem::AssociatedType(syntax) => target.associated_type(syntax, path),
     }
 }
 

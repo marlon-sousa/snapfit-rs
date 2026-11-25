@@ -25,7 +25,7 @@ pub(crate) enum Lifecycle {
 pub(crate) enum Execution {
     #[default]
     Sync,
-    /// Awaited, and its error returned from the container's `init`.
+    /// Awaited; for a dependency, its error is returned from the container's `init`.
     Async,
 }
 

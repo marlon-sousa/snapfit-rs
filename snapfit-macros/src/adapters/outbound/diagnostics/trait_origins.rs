@@ -5,7 +5,7 @@
 use proc_macro2::{Span, TokenStream};
 use quote::ToTokens;
 
-use crate::domain::{DispatchSubject, DomainError, DomainErrors, TraitItem};
+use crate::domain::{DispatchSubject, DomainError, DomainErrors, ItemPosition};
 
 /// The tokens a diagnostic about a dispatched trait underlines.
 #[derive(Debug, Clone)]
@@ -15,22 +15,8 @@ pub(crate) struct TraitOrigins {
     /// The attribute's arguments, or the annotated item when it has none.
     arguments: TokenStream,
     safety: Option<Span>,
-    items: Vec<ItemOrigin>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ItemKind {
-    Method,
-    AssociatedType,
-    AssociatedConst,
-    Macro,
-}
-
-#[derive(Debug, Clone)]
-struct ItemOrigin {
-    kind: ItemKind,
-    name: String,
-    tokens: TokenStream,
+    /// Every item of the trait, in order, so that an item's position finds it.
+    items: Vec<TokenStream>,
 }
 
 impl TraitOrigins {
@@ -39,7 +25,7 @@ impl TraitOrigins {
             syn::Item::Trait(item) => (
                 item.ident.to_token_stream(),
                 item.unsafety.map(|unsafety| unsafety.span),
-                item.items.iter().filter_map(ItemOrigin::of).collect(),
+                item.items.iter().map(item_tokens).collect(),
             ),
             _ => (item.to_token_stream(), None, Vec::new()),
         };
@@ -65,61 +51,29 @@ impl TraitOrigins {
     }
 
     fn error_for(&self, error: &DomainError) -> syn::Error {
-        let tokens = match error.dispatch_subject() {
-            DispatchSubject::Item(item) => self.item_tokens(item),
-            DispatchSubject::Arguments => &self.arguments,
-            DispatchSubject::Safety => {
-                if let Some(span) = self.safety {
-                    return syn::Error::new(span, error);
-                }
-                &self.annotated
+        match error.dispatch_subject() {
+            DispatchSubject::Item(position) => {
+                syn::Error::new_spanned(self.item_at(position), error)
             }
-            DispatchSubject::Annotated => &self.annotated,
-        };
-        syn::Error::new_spanned(tokens, error)
+            DispatchSubject::Arguments => syn::Error::new_spanned(&self.arguments, error),
+            DispatchSubject::Safety => match self.safety {
+                Some(span) => syn::Error::new(span, error),
+                None => syn::Error::new_spanned(&self.annotated, error),
+            },
+            DispatchSubject::Annotated => syn::Error::new_spanned(&self.annotated, error),
+        }
     }
 
-    fn item_tokens(&self, item: &TraitItem) -> &TokenStream {
-        let (kind, name) = match item {
-            TraitItem::Method(name) => (ItemKind::Method, name.as_str()),
-            TraitItem::AssociatedType(name) => (ItemKind::AssociatedType, name.as_str()),
-            TraitItem::AssociatedConst(name) => (ItemKind::AssociatedConst, name.as_str()),
-            TraitItem::Macro(name) => (ItemKind::Macro, name.as_str()),
-        };
-        self.items
-            .iter()
-            .find(|origin| origin.kind == kind && origin.name == name)
-            .map_or(&self.annotated, |origin| &origin.tokens)
+    fn item_at(&self, position: ItemPosition) -> &TokenStream {
+        self.items.get(position.0).unwrap_or(&self.annotated)
     }
 }
 
-impl ItemOrigin {
-    /// A method is underlined at its signature, so that a long default body
-    /// does not take the diagnostic away from the line that is wrong.
-    fn of(item: &syn::TraitItem) -> Option<Self> {
-        let (kind, name, tokens) = match item {
-            syn::TraitItem::Fn(method) => (
-                ItemKind::Method,
-                method.sig.ident.to_string(),
-                method.sig.to_token_stream(),
-            ),
-            syn::TraitItem::Type(associated) => (
-                ItemKind::AssociatedType,
-                associated.ident.to_string(),
-                associated.to_token_stream(),
-            ),
-            syn::TraitItem::Const(constant) => (
-                ItemKind::AssociatedConst,
-                constant.ident.to_string(),
-                constant.to_token_stream(),
-            ),
-            syn::TraitItem::Macro(call) => (
-                ItemKind::Macro,
-                call.mac.path.segments.last()?.ident.to_string(),
-                call.to_token_stream(),
-            ),
-            _ => return None,
-        };
-        Some(Self { kind, name, tokens })
+/// A method is underlined at its signature, so that a long default body
+/// does not take the diagnostic away from the line that is wrong.
+fn item_tokens(item: &syn::TraitItem) -> TokenStream {
+    match item {
+        syn::TraitItem::Fn(method) => method.sig.to_token_stream(),
+        _ => item.to_token_stream(),
     }
 }

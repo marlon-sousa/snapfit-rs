@@ -9,7 +9,7 @@ use derive_more::Display;
 use derive_new::new;
 use strum::EnumIs;
 
-use crate::domain::declaration::TypeParameters;
+use crate::domain::declaration::{Execution, TypeParameters};
 use crate::domain::names::{ConstantName, MacroName, MethodName, TraitName, TypeName};
 
 /// What the attribute itself was given, between its parentheses.
@@ -44,9 +44,10 @@ pub(crate) enum Receiver {
     Other,
 }
 
-/// Whether `Self` appears where two values could hold different variants:
-/// anywhere but the receiver, the whole return type, a `Self::` path and a
-/// bound on `Self`.
+/// Whether `Self` appears where two values could hold different variants,
+/// or where an implementation's type could not stand for it: anywhere but
+/// the receiver, the whole return type, a `Self::` path and the bounded type
+/// of a bound on `Self`.
 #[derive(EnumIs, Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum SelfUse {
     Forwardable,
@@ -64,16 +65,52 @@ pub(crate) enum ReturnShape {
     ImplTrait,
 }
 
+/// What a method's `where` clause bounds `Self` by.
+#[derive(EnumIs, Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SelfBound {
+    /// Nothing, or `Sized` alone, which every dispatch type is.
+    Forwardable,
+    /// Any other bound, such as `Self: Clone`, which an impl cannot promise
+    /// of the implementations it forwards to.
+    Other,
+}
+
+/// Whether an item exists in every build.
+#[derive(EnumIs, Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Presence {
+    Always,
+    /// Under `#[cfg]` or `#[cfg_attr]`.
+    Conditional,
+}
+
 /// A method's signature, as far as forwarding it goes.
 #[derive(new, Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct MethodShape {
     pub(crate) receiver: Receiver,
     pub(crate) self_use: SelfUse,
+    pub(crate) self_bound: SelfBound,
     pub(crate) returns: ReturnShape,
+    /// `async fn`, whose call is awaited.
+    pub(crate) execution: Execution,
+    /// `unsafe fn`, whose call is made in an `unsafe` block.
+    pub(crate) safety: Safety,
 }
 
-/// Which item of the trait an error is about. A trait may give a method and
-/// an associated type the same name, so the kind is part of it.
+/// An associated type, as far as forwarding it goes.
+#[derive(new, Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct AssociatedTypeShape {
+    pub(crate) parameters: TypeParameters,
+    /// Whether its bounds name `Self`.
+    pub(crate) self_use: SelfUse,
+    pub(crate) presence: Presence,
+}
+
+/// Where an item is among the trait's items, counted from 0, which the
+/// diagnostic about it points at.
+#[derive(new, Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct ItemPosition(pub(crate) usize);
+
+/// Which item of the trait an error is about, as its message names it.
 #[derive(Debug, Clone, PartialEq, Eq, Display)]
 pub(crate) enum TraitItem {
     #[display("method '{_0}'")]
@@ -96,7 +133,7 @@ pub(crate) enum TraitItemDeclaration<M, A> {
     AssociatedType {
         name: TypeName,
         syntax: A,
-        parameters: TypeParameters,
+        shape: AssociatedTypeShape,
     },
     AssociatedConst(ConstantName),
     /// A macro called among the items, whose expansion snapfit cannot see.
@@ -118,13 +155,18 @@ pub(crate) struct DispatchAttribute<T, M, A> {
     pub(crate) annotated: Annotated<T, M, A>,
 }
 
+/// An item with where the trait declares it.
+#[derive(new, Debug, Clone, PartialEq, Eq)]
+pub(crate) struct PlacedItem<M, A> {
+    pub(crate) position: ItemPosition,
+    pub(crate) declaration: TraitItemDeclaration<M, A>,
+}
+
 #[derive(new, Debug, Clone, PartialEq, Eq)]
 pub(crate) struct TraitDeclaration<T, M, A> {
     pub(crate) name: TraitName,
     pub(crate) syntax: T,
-    #[new(default)]
     pub(crate) safety: Safety,
     /// In the order the trait declares them.
-    #[new(default)]
-    pub(crate) items: Vec<TraitItemDeclaration<M, A>>,
+    pub(crate) items: Vec<PlacedItem<M, A>>,
 }

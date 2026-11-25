@@ -1,9 +1,11 @@
 //! Adapter: reads how a method of a dispatched trait takes `self`, where its
-//! signature names `Self`, and what it returns. Plays the role of its parent.
+//! signature names `Self`, what it bounds `Self` by, and what it returns.
+//! Plays the role of its parent.
 
-use syn::visit::{self, Visit};
+use syn::visit::Visit;
 
-use crate::domain::{MethodShape, Receiver, ReturnShape, SelfUse};
+use super::self_use::{SelfFinder, is_bare_self, unwrapped};
+use crate::domain::{Execution, MethodShape, Receiver, ReturnShape, Safety, SelfBound, SelfUse};
 
 #[cfg(test)]
 mod tests;
@@ -12,7 +14,12 @@ pub(super) fn method_shape(signature: &syn::Signature) -> MethodShape {
     MethodShape::new(
         receiver(signature),
         self_use(signature),
+        self_bound(signature),
         return_shape(&signature.output),
+        signature
+            .asyncness
+            .map_or(Execution::Sync, |_| Execution::Async),
+        signature.unsafety.map_or(Safety::Safe, |_| Safety::Unsafe),
     )
 }
 
@@ -41,10 +48,8 @@ fn return_shape(output: &syn::ReturnType) -> ReturnShape {
     finder.0
 }
 
-/// Where `Self` appears outside the receiver, the whole return type, a
-/// `Self::` path and a bound on `Self`.
 fn self_use(signature: &syn::Signature) -> SelfUse {
-    let mut finder = SelfFinder(SelfUse::Forwardable);
+    let mut finder = SelfFinder::new();
     finder.visit_generics(&signature.generics);
     for ty in signature.inputs.iter().filter_map(typed_argument) {
         finder.visit_type(ty);
@@ -57,46 +62,53 @@ fn self_use(signature: &syn::Signature) -> SelfUse {
     finder.0
 }
 
+/// `Forwardable` when every bound the `where` clause puts on `Self` is `Sized`.
+fn self_bound(signature: &syn::Signature) -> SelfBound {
+    let predicates = signature
+        .generics
+        .where_clause
+        .iter()
+        .flat_map(|clause| &clause.predicates);
+    if predicates
+        .filter_map(bounds_on_self)
+        .flatten()
+        .all(is_sized)
+    {
+        SelfBound::Forwardable
+    } else {
+        SelfBound::Other
+    }
+}
+
+fn bounds_on_self(
+    predicate: &syn::WherePredicate,
+) -> Option<&syn::punctuated::Punctuated<syn::TypeParamBound, syn::Token![+]>> {
+    match predicate {
+        syn::WherePredicate::Type(predicate) if is_bare_self(unwrapped(&predicate.bounded_ty)) => {
+            Some(&predicate.bounds)
+        }
+        _ => None,
+    }
+}
+
+fn is_sized(bound: &syn::TypeParamBound) -> bool {
+    match bound {
+        syn::TypeParamBound::Trait(bound) => {
+            matches!(bound.modifier, syn::TraitBoundModifier::None)
+                && bound
+                    .path
+                    .segments
+                    .last()
+                    .is_some_and(|segment| segment.ident == "Sized")
+        }
+        _ => false,
+    }
+}
+
 fn typed_argument(input: &syn::FnArg) -> Option<&syn::Type> {
     match input {
         syn::FnArg::Typed(argument) => Some(&argument.ty),
         syn::FnArg::Receiver(_) => None,
-    }
-}
-
-/// The type inside the invisible group a `macro_rules!` puts around `$t:ty`,
-/// or inside parentheses.
-fn unwrapped(ty: &syn::Type) -> &syn::Type {
-    match ty {
-        syn::Type::Group(group) => unwrapped(&group.elem),
-        syn::Type::Paren(paren) => unwrapped(&paren.elem),
-        _ => ty,
-    }
-}
-
-fn is_bare_self(ty: &syn::Type) -> bool {
-    matches!(ty, syn::Type::Path(path) if path.qself.is_none() && path.path.is_ident("Self"))
-}
-
-struct SelfFinder(SelfUse);
-
-impl<'ast> Visit<'ast> for SelfFinder {
-    fn visit_type_path(&mut self, path: &'ast syn::TypePath) {
-        match &path.qself {
-            None if path.path.is_ident("Self") => self.0 = SelfUse::Elsewhere,
-            Some(qself) if is_bare_self(unwrapped(&qself.ty)) => self.visit_path(&path.path),
-            _ => visit::visit_type_path(self, path),
-        }
-    }
-
-    fn visit_predicate_type(&mut self, predicate: &'ast syn::PredicateType) {
-        if is_bare_self(unwrapped(&predicate.bounded_ty)) {
-            for bound in &predicate.bounds {
-                self.visit_type_param_bound(bound);
-            }
-        } else {
-            visit::visit_predicate_type(self, predicate);
-        }
     }
 }
 

@@ -2,6 +2,8 @@ use syn::parse_quote;
 
 use super::*;
 
+mod calls;
+
 fn shape(method: syn::TraitItemFn) -> MethodShape {
     method_shape(&method.sig)
 }
@@ -95,7 +97,7 @@ fn self_is_forwardable_only_as_receiver_whole_return_path_or_bound() {
             parse_quote!(
                 fn f(self)
                 where
-                    Self: Sized + Clone;
+                    Self: Sized;
             ),
             SelfUse::Forwardable,
         ),
@@ -182,19 +184,4 @@ fn a_return_is_read_as_self_as_impl_trait_or_plain() {
         let written = quote::quote!(#method).to_string();
         assert_eq!(shape(method).returns, returns, "{written}");
     }
-}
-
-#[test]
-fn self_passed_by_a_macro_as_a_type_is_the_whole_return_type() {
-    let output = crate::test_support::through_a_macro(quote::quote!(Self));
-    let method: syn::TraitItemFn = parse_quote!(fn f(&self) -> #output;);
-
-    assert_eq!(
-        shape(method),
-        MethodShape::new(
-            Receiver::Reference,
-            SelfUse::Forwardable,
-            ReturnShape::ItSelf
-        )
-    );
 }

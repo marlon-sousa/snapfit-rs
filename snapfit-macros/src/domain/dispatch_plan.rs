@@ -4,6 +4,9 @@
 use derive_new::new;
 use strum::EnumIs;
 
+use crate::domain::declaration::Execution;
+use crate::domain::dispatched_trait::Safety;
+
 /// What becomes of the value a forwarded method returns.
 #[derive(EnumIs, Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Rebuilding {
@@ -18,6 +21,10 @@ pub(crate) enum ForwardedItem<M, A> {
     Method {
         syntax: M,
         rebuilding: Rebuilding,
+        /// Whether the call is awaited.
+        execution: Execution,
+        /// Whether the call is made in an `unsafe` block.
+        safety: Safety,
     },
     /// An associated type, which every implementation gives the same type.
     AssociatedType(A),
