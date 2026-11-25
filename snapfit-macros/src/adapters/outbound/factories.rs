@@ -67,6 +67,7 @@ fn method(container: &syn::Ident, step: &Step<FieldSyntax>) -> TokenStream {
     let method = method_ident(ident);
     let inputs = inputs_ident(container, ident);
     let doc = format!("Builds `{}` from its inputs.", ident.unraw());
+    let allow = private_interfaces(step);
     let output = match step.fallibility {
         Fallibility::Infallible => quote!(#ty),
         Fallibility::Fallible => quote! {
@@ -78,6 +79,7 @@ fn method(container: &syn::Ident, step: &Step<FieldSyntax>) -> TokenStream {
     };
     quote! {
         #[doc = #doc]
+        #allow
         fn #method(inputs: #inputs) -> #output;
     }
 }

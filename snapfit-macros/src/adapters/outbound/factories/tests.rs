@@ -130,3 +130,35 @@ fn an_input_of_a_dispatched_type_allows_a_more_private_implementation() {
         "{code}"
     );
 }
+
+#[test]
+fn the_build_method_of_a_dispatched_field_allows_a_more_private_implementation() {
+    let plan = plan_for(parse_quote! {
+        #[static_dispatch_for(Database as Db, extra = [MySql])]
+        pub struct Shop {
+            #[singleton(build = factory)]
+            shared: Arc<Db>,
+            #[singleton(build = factory)]
+            owned: Db,
+            #[singleton(build = factory)]
+            orders: Arc<Orders>,
+        }
+    });
+
+    let code = compact(emit_factories(&plan));
+
+    assert!(
+        code.contains(
+            "#[allow(private_interfaces)]fnbuild_shared(inputs:ShopSharedInputs)->Arc<Db>;"
+        ),
+        "{code}"
+    );
+    assert!(
+        code.contains("#[allow(private_interfaces)]fnbuild_owned(inputs:ShopOwnedInputs)->Db;"),
+        "{code}"
+    );
+    assert!(
+        code.contains("]fnbuild_orders(inputs:ShopOrdersInputs)->Arc<Orders>;"),
+        "{code}"
+    );
+}
