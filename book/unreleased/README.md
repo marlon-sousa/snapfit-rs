@@ -5,7 +5,7 @@ These chapters were written for `v0.1.0` but cover APIs that ship only behind sn
 1. `chapters/07-transient-dependencies.md`, with `examples/ch07_transients.rs` and `expected/ch07_transients.txt`.
 2. `chapters/08-asynchronous-containers.md`, with `examples/ch08_async_container.rs` and `expected/ch08_async_container.txt`.
 
-When transients and async containers are stabilised (see [What ships in 0.1.0](../../docs/SPEC.md#0-what-ships-in-010)):
+When transients and async containers are stabilised (see [What ships in each version](../../docs/SPEC.md#0-what-ships-in-each-version)):
 
 1. move the chapter back into `book/chapters/` as Part 3 chapters and renumber the chapters after it;
 2. move the example and expected output back into `book/examples/` and `book/expected/`;

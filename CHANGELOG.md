@@ -26,6 +26,7 @@ Static dispatch: a field typed with a name the container declares holds one of a
 ### Fixed
 
 - A public container no longer fails a crate that warns on or denies `missing_docs`: `new()`, `try_new()`, `init()` and every getter carry a doc comment, as a dispatched type's alias does.
+- The doc of a raw container's factories trait names it without `r#`.
 - A field whose `Arc` type a `macro_rules!` passes as `$t:ty`, such as `Arc<Mailer>` or `Arc<dyn Reader>` with an `implementation`, is built inside its `Arc`, as when the type is written by hand.
 
 ## [0.2.0]

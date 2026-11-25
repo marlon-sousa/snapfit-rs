@@ -4,7 +4,7 @@
 
 ---
 
-## 0. What ships in 0.1.0
+## 0. What ships in each version
 
 This document describes the full design. Only part of it ships as a stable API in 0.1.0; the rest is either behind the `unstable` Cargo feature or not implemented yet. Using a planned feature, or an unstable one without the feature, is a compile error that names the feature.
 
@@ -67,7 +67,7 @@ The book's `v0.1.0` edition teaches only the stable API. Its chapters on the uns
 
 * **Async containers get their own macro** (decided 2026-11-16, not implemented yet, recorded on [#37](https://github.com/marlon-sousa/snapfit-rs/issues/37)): `#[async_container]` replaces `#[container(mode = "async")]`, and `mode` is removed. Inside it, async dependencies are marked with the bare `async` flag (`#[singleton(deps = [config], async, build = constructor(connect))]`); everything else stays sync. `async` inside a plain `#[container]` becomes an error pointing to `#[async_container]`. Until then the unstable `mode = "async"` syntax keeps working.
 
-### Container shapes refused in 0.1.0
+### Container shapes refused
 
 These are compile errors that point at the offending field or container, instead of generating code that does not compile:
 
@@ -683,7 +683,7 @@ How the crates and the macro's code are organised, and the rules the code follow
 
 ## 12. Container Introspection (planned)
 
-> Not implemented in 0.1.0: `introspection = true` is a compile error and the descriptor types were removed from the runtime crate (see [§0](#0-what-ships-in-010)).
+> Not implemented in 0.1.0: `introspection = true` is a compile error and the descriptor types were removed from the runtime crate (see [§0](#0-what-ships-in-each-version)).
 
 Users can request a description of the container's graph in the container settings:
 
