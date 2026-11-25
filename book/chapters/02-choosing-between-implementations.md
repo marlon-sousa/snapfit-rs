@@ -92,5 +92,5 @@ But look at `main`. Somebody still writes `StripeGateway`, builds it, and passes
 
 1. **A closed list.** A service that picks from a list of implementations can be tested, but it still knows every implementation, and adding one means editing it.
 2. **Spreading type parameters.** A type parameter costs nothing when the program runs, but it spreads to every type that holds the service.
-3. **Forwarding by hand.** An enum that implements the trait keeps the list in one place, outside the service, and its calls cost no more than a type parameter's, but every method passes every call along by hand, and every new implementation adds an arm to each of them.
+3. **Forwarding by hand.** An enum that implements the trait keeps the list in one place, outside the service, and its calls can be inlined like a type parameter's, but every method passes every call along by hand, and every new implementation adds an arm to each of them.
 4. **Someone still has to choose.** A service that receives its dependencies no longer decides which ones it gets, so something else has to build them and pass them in.

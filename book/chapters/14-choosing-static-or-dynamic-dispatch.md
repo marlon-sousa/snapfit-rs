@@ -64,7 +64,7 @@ region: checkout
 
 `payments` is a trait object, so `Checkout` names only the trait. For prices, though, we had a choice. The `Basket` of [Chapter 13](13-static-dispatch.md) took `Arc<Prices>`, and `Prices` is a type the container declares. That's fine while the services and the container live side by side. But [Chapter 6](06-pure-domain-types.md) suggested keeping domain types in a crate of their own, which the application's crate, the one with the container, depends on. Such a domain crate can't name `Prices` at all: it would have to depend on the crate that depends on it.
 
-So `Checkout` is generic over the trait instead, `Checkout<P: PriceRule>`, and the container names the type once, in its field: `Arc<Checkout<Prices>>`. This is the type parameter of [Chapter 2](02-choosing-between-implementations.md), but it doesn't spread this time: the container fills it in, so nothing above the checkout carries it. Its constructor takes an `Arc<P>`, and the field's type tells Rust that `P` is `Prices`.
+So `Checkout` is generic over the trait instead, `Checkout<P: PriceRule>`, and the container names the type once, in its field: `Arc<Checkout<Prices>>`. This is the type parameter of [Chapter 2](02-choosing-between-implementations.md), and it still spreads: a domain service that held the checkout would hold an `Arc<Checkout<P>>`, and be generic over `P` too. But it stops at the container, which fills it in once. A service in the container's own crate has the other choice, the one `Basket` made: take `Arc<Prices>`, and carry no parameter at all. Its constructor takes an `Arc<P>`, and the field's type tells Rust that `P` is `Prices`.
 
 It makes testing simpler too. A generic checkout takes any single rule, so a test hands it a stand-in directly, with no `Prices`, no list and no extension:
 
@@ -82,7 +82,7 @@ region: test
 | What does the trait need? | Nothing, but it must be one a trait object can hold: no generic methods, for example | `#[snapfit::static_dispatch]`, so it must be a trait of your own crate |
 | Generic methods? | No | Yes |
 | A supertrait of another crate, such as `Display`? | Yes | No |
-| How large is a value? | A pointer | At least as large as the largest implementation |
+| What is stored? | Each implementation at its own size, behind the `Arc` | Room for the largest implementation and which one it holds, behind the `Arc` or held by value |
 | What do dependents name? | The trait | The container's type, or a type parameter the container fills in |
 | How does a test hand in a stand-in? | Any type that implements the trait | A type on the list, through an extension, or directly to a generic dependent |
 
@@ -99,7 +99,7 @@ Picking a dispatch is like picking between a taxi rank and the shop's own delive
 ## Which problem this solves
 
 1. **A closed list** ([Chapter 2](02-choosing-between-implementations.md)): static dispatch closes the list only where we choose it, in the container. Wherever the list must stay open, a trait object keeps it open.
-2. **Spreading type parameters** ([Chapter 2](02-choosing-between-implementations.md)): a service generic over the trait stops the parameter at the container, which names `Checkout<Prices>` once, so a domain crate never needs to name the container's type.
+2. **Spreading type parameters** ([Chapter 2](02-choosing-between-implementations.md)): a service in the container's crate takes `Arc<Prices>` and carries no parameter. A service in a domain crate is generic over the trait instead, and the parameter reaches only the domain types that hold it, then stops at the container, which names `Checkout<Prices>` once.
 3. **Forwarding by hand** ([Chapter 2](02-choosing-between-implementations.md)): neither way asks for a hand-written `match`. A trait object needs none, and `#[snapfit::static_dispatch]` writes it.
 
 ## Remember

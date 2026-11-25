@@ -98,7 +98,7 @@ The test builds the basket directly, as [Chapter 6](06-pure-domain-types.md) tau
 
 A type that isn't on the list doesn't compile: `Prices::of(HalfPrice)` is refused, saying that `HalfPrice` is not one of the implementations this dispatched type holds. Several extensions can add to one type, each under its own condition, and they only ever add. Integration tests under `tests/` build your crate without `cfg(test)`, just as [Chapter 12](12-testing-a-service-on-its-own.md) said of mocks, so they extend the list under a feature instead, such as `cfg_attr(feature = "mocks", ...)`.
 
-One more detail: `FixedPrice` is `pub`. `Basket::new` is public and names `Prices`, so if a rule on the list were more private than `Basket::new`, rustc's `private_interfaces` lint would warn about `Basket::new`. Making the stand-in as visible as the code that names `Prices` keeps the build quiet; you can also allow that lint on your own item.
+One more detail: `FixedPrice` is `pub`. `Basket::new` is public and names `Prices`, so if a rule on the list were more private than `Basket::new`, rustc's `private_interfaces` lint would warn about `Basket::new`, and about every other public item of yours that names `Prices`, such as the methods of your impl of a factories trait. Making the stand-in as visible as the code that names `Prices` keeps the build quiet; you can also allow that lint on your own item.
 
 ## Choosing while the program starts
 
@@ -114,14 +114,18 @@ name: ch13_choosing_the_rule
 region: sale
 ```
 
-Now the container can't name the rule in a field, because it doesn't know whether today is a sale day until the configuration has been read. That's the situation of the end of [Chapter 11](11-choosing-an-implementation.md), and the answer is the same: a factory. It returns the field's type, `Arc<Prices>`, and picks the variant:
+Now the container can't name the rule in a field, because it doesn't know whether today is a sale day until the configuration has been read. That's the situation at the end of [Chapter 11](11-choosing-an-implementation.md), and the answer is the same: a factory. It returns the field's type, `Arc<Prices>`, and picks the variant:
 
 ```example
 name: ch13_choosing_the_rule
 region: container
 ```
 
-No field names `ListPrice` or `SalePrice` any more, so the list would be empty. `extra = [ListPrice, SalePrice]` puts them on it, in every build. If we forgot it, the container would be refused at `static_dispatch_for`, asking for an `extra` list. Let's run it, once with today's configuration, and once calling the factory on its own with a sale:
+No field names `ListPrice` or `SalePrice` any more, so the list would be empty. `extra = [ListPrice, SalePrice]` puts them on it, in every build. If we forgot it, the container would be refused at `static_dispatch_for`:
+
+```compile-error
+name: ch13_rule_without_extra
+``` Let's run it, once with today's configuration, and once calling the factory on its own with a sale:
 
 ```example
 name: ch13_choosing_the_rule
@@ -138,9 +142,9 @@ The factory's `deps` are every input of every rule it might build, and the conta
 
 ## What a trait can hold
 
-Because `#[snapfit::static_dispatch]` writes a `match` for every method, a method has to have a value to match on, and every rule has to agree on what the method means. So the attribute accepts methods that take `self`, `&self` or `&mut self`, with any arguments, generic methods included, default methods, methods that return `Self`, which come back wrapped in the variant they came from, and associated types that every rule gives the same type.
+Because `#[snapfit::static_dispatch]` writes a `match` for every method, a method has to have a value to match on, and every rule has to agree on what the method means. So the attribute accepts methods that take `self`, `&self` or `&mut self`, with any arguments other than `Self`, generic methods included, default methods, methods that return `Self`, which come back wrapped in the variant they came from, and associated types that every rule gives the same type.
 
-It refuses what it can't forward, each at the item it is about, and all of them in the same build: a method with no receiver, an associated constant, a receiver such as `self: Box<Self>`, an argument of type `Self`, a return type that is `impl Trait`, a macro called among the trait's items, and an `unsafe trait`. Here is the first of those, a rule that wants a constructor in the trait:
+It refuses what it can't forward, each at the item it is about, and all of them in the same build. Among them are a method with no receiver, an associated constant, a receiver such as `self: Box<Self>`, `Self` in an argument or inside a return type, such as `Option<Self>`, a generic associated type, a return type that is `impl Trait`, a macro called among the trait's items, and an `unsafe trait`. Here is the first of those, a rule that wants a constructor in the trait:
 
 ```compile-error
 name: ch13_rule_without_receiver
@@ -148,7 +152,7 @@ name: ch13_rule_without_receiver
 
 `PriceRule::standard()` has no value to look at, so there is no way to tell which rule should answer. The message offers the two ways out: give it a receiver, or move it out of the trait, to the rules' own `impl` blocks.
 
-A supertrait needs the attribute too, when it is a trait of your own crate, because the dispatch type has to implement every trait the trait asks for. `Send`, `Sync`, `Sized`, `Clone` and `Debug` need nothing. A trait that has a supertrait of another crate, such as `Display`, can't be dispatched statically, and neither can a trait of another crate: Rust lets a crate implement another crate's trait only for its own types. Those stay with trait objects, and the next chapter looks at how to choose between the two.
+A supertrait needs the attribute too, when it is a trait of your own crate, because the dispatch type has to implement every trait the trait asks for. `Send`, `Sync`, `Sized`, `Clone` and `Debug` need nothing. A trait that has a supertrait of another crate, such as `Display`, can't be dispatched statically, and neither can a trait of another crate: Rust lets a crate implement another crate's trait only for its own types. Those stay with trait objects, when a trait object can hold them, and the next chapter looks at how to choose between the two.
 
 ## Which problem this solves
 
