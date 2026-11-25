@@ -1,6 +1,6 @@
 //! Adapter: the expression that builds one dependency, from its step and its field's syntax.
 
-use proc_macro2::TokenStream;
+use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote, quote_spanned};
 use syn::ext::IdentExt;
 use syn::spanned::Spanned;
@@ -72,16 +72,25 @@ pub(super) fn construct(step: &Step<FieldSyntax>, site: Site<'_>) -> TokenStream
             })
         }
         (Wrapping::Arc, None) => quote!(::std::sync::Arc::new(#value)),
-        (Wrapping::ArcOfVariant, _) => {
-            let dispatched = &field.arc_inner;
-            quote!(::std::sync::Arc::new(<#dispatched>::of(#value)))
+        (Wrapping::ArcOfVariant, implementation) => {
+            let variant = variant(&field.arc_inner, implementation.as_ref(), value);
+            quote!(::std::sync::Arc::new(#variant))
         }
-        (Wrapping::Variant, _) => {
-            let dispatched = &field.ty;
-            quote!(<#dispatched>::of(#value))
-        }
+        (Wrapping::Variant, implementation) => variant(&field.ty, implementation.as_ref(), value),
         (Wrapping::None, _) => value,
     }
+}
+
+/// `<Name>::of(value)`, spanned at the field's `implementation`, so that a
+/// type the list holds under two spellings, which `of` cannot choose
+/// between, is reported at the field rather than at the container.
+fn variant(
+    dispatched: &syn::Type,
+    implementation: Option<&syn::Type>,
+    value: TokenStream,
+) -> TokenStream {
+    let span = implementation.map_or_else(Span::call_site, Spanned::span);
+    quote_spanned!(span=> <#dispatched>::of(#value))
 }
 
 /// A singleton is cloned from where it already lives; a transient is built
