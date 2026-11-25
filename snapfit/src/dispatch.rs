@@ -9,6 +9,7 @@
 use std::marker::PhantomData;
 
 mod same_type;
+mod sealed;
 
 pub use same_type::{SameType, same_type};
 
@@ -33,13 +34,28 @@ pub struct Here;
 pub struct There<I>(PhantomData<I>);
 
 /// A dispatched type that holds `T` as one of its variants, found at the
-/// index `I`, which the compiler infers.
+/// index `I`, which the compiler infers; sealed, so that no other crate adds
+/// a type to a list.
+///
+/// ```compile_fail,E0277
+/// use snapfit::__private::{Either, Here, Holds, Only};
+///
+/// struct MySql;
+/// struct Postgres;
+/// struct Stranger;
+///
+/// impl Holds<Stranger, Here> for Either<MySql, Only<Postgres>> {
+///     fn hold(_: Stranger) -> Self {
+///         Self::First(MySql)
+///     }
+/// }
+/// ```
 #[diagnostic::on_unimplemented(
     message = "`{T}` is not one of the implementations this dispatched type holds",
     label = "not on the list of implementations",
     note = "the dispatched type holds the implementations its container's fields and `extend_static_dispatch` lists name"
 )]
-pub trait Holds<T, I> {
+pub trait Holds<T, I>: sealed::Holds<T, I> {
     fn hold(value: T) -> Self;
 }
 
@@ -64,14 +80,25 @@ impl<Last> Holds<Last, Here> for Only<Last> {
     }
 }
 
-/// A type that is on no list: implemented by none, so that a type passed to
-/// `of` that the list does not hold is refused in words.
+/// A type that is on no list: implemented by none, and sealed so that no
+/// crate can implement it, so that a type passed to `of` that the list does
+/// not hold is refused in words.
+///
+/// ```compile_fail,E0277
+/// struct Stranger;
+///
+/// impl snapfit::__private::NotOnTheList for Stranger {
+///     fn absurd<Anything>(self) -> Anything {
+///         unreachable!()
+///     }
+/// }
+/// ```
 #[diagnostic::on_unimplemented(
     message = "`{Self}` is not one of the implementations this dispatched type holds",
     label = "not on the list of implementations",
     note = "the dispatched type holds the implementations its container's fields and `extend_static_dispatch` lists name"
 )]
-pub trait NotOnTheList {
+pub trait NotOnTheList: sealed::NotOnTheList {
     /// Whatever a value of such a type is asked to become, since there is
     /// no such value.
     fn absurd<Anything>(self) -> Anything;
