@@ -48,3 +48,21 @@ fn a_cfg_that_a_macro_passes_in_a_group_of_its_own_is_read_through_it() {
 
     assert!(is_conditional(&attr));
 }
+
+#[test]
+fn a_cfg_attr_whose_condition_is_a_boolean_keeps_only_the_cfg_it_writes() {
+    let attr: syn::Attribute = parse_quote!(#[cfg_attr(true, cfg(false), deprecated = "old")]);
+
+    let kept = conditional_part(&attr.meta);
+
+    assert_eq!(kept, Some(parse_quote!(cfg_attr(true, cfg(false)))));
+}
+
+#[test]
+fn a_cfg_attr_that_cannot_be_read_is_kept_whole() {
+    let attr: syn::Attribute = parse_quote!(#[cfg_attr(unix cfg(test))]);
+
+    let kept = conditional_part(&attr.meta);
+
+    assert_eq!(kept, Some(attr.meta));
+}
