@@ -1,6 +1,6 @@
 # Contents
 
-**The Snapfit Book** for Rust (`0.2`), in reading order. It follows the plan in [BOOK.md](../BOOK.md) and the directive layout in [FORMAT.md](../FORMAT.md). Every program the chapters show is complete: those in [examples](../examples/) run with `cargo run -p snapfit_book --example <name>` from the repository root.
+**The Snapfit Book** for Rust (`0.3`), in reading order. It follows the plan in [BOOK.md](../BOOK.md) and the directive layout in [FORMAT.md](../FORMAT.md). Every program the chapters show is complete: those in [examples](../examples/) run with `cargo run -p snapfit_book --example <name>` from the repository root.
 
 ## Welcome
 
@@ -29,12 +29,14 @@
 10. [Passing dependencies by name](10-passing-dependencies-by-name.md)
 11. [Choosing an implementation](11-choosing-an-implementation.md)
 12. [Testing a service on its own](12-testing-a-service-on-its-own.md)
-13. [When building can fail](13-when-building-can-fail.md)
+13. [Static dispatch](13-static-dispatch.md)
+14. [Choosing between static and dynamic dispatch](14-choosing-static-or-dynamic-dispatch.md)
+15. [When building can fail](15-when-building-can-fail.md)
 
 ## Part 4: Compile-time guarantees and agents
 
-14. [Mistakes caught by the compiler](14-mistakes-caught-by-the-compiler.md)
-15. [Working with coding agents](15-working-with-coding-agents.md)
+16. [Mistakes caught by the compiler](16-mistakes-caught-by-the-compiler.md)
+17. [Working with coding agents](17-working-with-coding-agents.md)
 
 ## Appendices
 

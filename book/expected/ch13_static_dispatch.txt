@@ -1,0 +1,2 @@
+guest: 3 items at list price: 3900 cents
+member: 3 items at member price, 10 percent off: 3510 cents

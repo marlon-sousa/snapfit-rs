@@ -1,0 +1,2 @@
+today: 3 items at list price: 3900 cents
+sale day: 3 items at sale price, 25 percent off: 2925 cents

@@ -43,7 +43,7 @@ This is the lamp with a plug from [Chapter 1](01-a-service-that-builds-its-own-d
 
 ## Why this matters
 
-1. **No framework in your domain code.** If your domain types live in a separate crate, that crate doesn't even list `snapfit` in its `Cargo.toml`.
+1. **No framework in your domain code.** If your domain types live in a separate crate, that crate doesn't even list `snapfit` in its `Cargo.toml`. There is one exception, which we'll meet in [Chapter 13](13-static-dispatch.md): a trait you choose to dispatch statically carries one `snapfit` attribute, where it is defined. The types that implement it still don't.
 2. **Tests build what they need.** `InvoiceCalculator::new` is an ordinary function, so a test passes it any configuration it likes, with no container and no setup.
 3. **The container is only for wiring.** When `BillingContainer::new()` runs, it calls `PricingConfig::new()`, wraps the result in an `Arc`, and passes a clone to `InvoiceCalculator::new(...)`. That's exactly what you would write by hand.
 

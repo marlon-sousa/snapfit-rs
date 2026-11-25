@@ -1,4 +1,4 @@
-//! Chapter 13: a fallible field that the container's `leaf_build` would build.
+//! Chapter 15: a fallible field that the container's `leaf_build` would build.
 
 use snapfit::container;
 use std::sync::Arc;

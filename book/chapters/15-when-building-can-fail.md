@@ -7,14 +7,14 @@ So far, every constructor in our shop has returned its value and nothing else. R
 Our database connects when it is built. If nothing answers at its address, there is no database to hand to anyone, so `connect` returns a `Result`, with an error of its own that says what went wrong:
 
 ```example
-name: ch13_when_building_can_fail
+name: ch15_when_building_can_fail
 region: database
 ```
 
 `ConnectError` is ordinary Rust. It implements `Display` and `Error`, as any error type would, and it knows nothing about `snapfit`. To keep the example running the same way every time, a flag stands in for the network, and we can pull the cable whenever we like:
 
 ```example
-name: ch13_when_building_can_fail
+name: ch15_when_building_can_fail
 region: network
 ```
 
@@ -25,7 +25,7 @@ Until now, a constructor like this one would have had two bad options. It could 
 Here is the container. Two of its fields say `fallible = true`:
 
 ```example
-name: ch13_when_building_can_fail
+name: ch15_when_building_can_fail
 region: container
 ```
 
@@ -34,7 +34,7 @@ region: container
 The payment gateway is built by a factory, as in [Chapter 11](11-choosing-an-implementation.md). Because the field is fallible, its factory returns a `Result` as well, and says no when the configuration names a provider we don't have:
 
 ```example
-name: ch13_when_building_can_fail
+name: ch15_when_building_can_fail
 region: factory
 ```
 
@@ -45,14 +45,14 @@ The error of a factory is a `Box<dyn Error + Send + Sync>`, so it can be any err
 Let's open the shop once with the database answering, then pull the cable and try again:
 
 ```example
-name: ch13_when_building_can_fail
+name: ch15_when_building_can_fail
 region: run
 ```
 
 It prints:
 
 ```output
-name: ch13_when_building_can_fail
+name: ch15_when_building_can_fail
 ```
 
 The first time, every field was built, and `try_new()` gave us the shop. The second time, the database didn't answer, and `try_new()` gave us an error instead. Notice what that error tells us:
@@ -77,7 +77,7 @@ The error is a `snapfit::BuildError`, and `ShopContainer` implements `snapfit::F
 The last rule has a cousin. In [Chapter 7](07-wiring-dependencies-and-constructors.md), `leaf_build = default` built every field that needs nothing and says nothing about how it is built. A fallible field can't be one of them, because the function `leaf_build` chooses for every leaf can't fail. The one exception is `leaf_build = constructor(new)`, which is what a container does without it. So the container refuses the field, and asks it to say how it is built:
 
 ```compile-error
-name: ch13_fallible_leaf_build
+name: ch15_fallible_leaf_build
 ```
 
 Writing `build = constructor(new)` on `config` fixes it: the field now says, in plain sight, that its own `new` builds it, and that `new` returns a `Result`.

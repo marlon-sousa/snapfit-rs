@@ -1,5 +1,5 @@
 #![deny(warnings)]
-//! Chapter 2: three ways to let a service work with more than one payment provider.
+//! Chapter 2: four ways to let a service work with more than one payment provider.
 
 use std::sync::Arc;
 
@@ -96,6 +96,36 @@ impl SharedOrderService {
 }
 // ANCHOR_END: trait_object
 
+// ANCHOR: enum
+enum Gateway {
+    Stripe(StripeGateway),
+    Fake(FakeGateway),
+}
+
+impl PaymentGateway for Gateway {
+    fn charge(&self, cents: u64) -> String {
+        match self {
+            Gateway::Stripe(stripe) => stripe.charge(cents),
+            Gateway::Fake(fake) => fake.charge(cents),
+        }
+    }
+}
+
+struct OrderServiceWithEnum {
+    payments: Gateway,
+}
+
+impl OrderServiceWithEnum {
+    fn new(payments: Gateway) -> Self {
+        Self { payments }
+    }
+
+    fn place_order(&self, cents: u64) -> String {
+        self.payments.charge(cents)
+    }
+}
+// ANCHOR_END: enum
+
 // ANCHOR: run
 fn main() {
     let listed_production = OrderServiceWithList::new(Provider::Stripe);
@@ -113,5 +143,10 @@ fn main() {
 
     let shared = SharedOrderService::new(Arc::new(StripeGateway));
     println!("trait object: {}", shared.place_order(3000));
+
+    let enum_production = OrderServiceWithEnum::new(Gateway::Stripe(StripeGateway));
+    let enum_test = OrderServiceWithEnum::new(Gateway::Fake(FakeGateway));
+    println!("enum, production: {}", enum_production.place_order(4000));
+    println!("enum, test: {}", enum_test.place_order(4000));
 }
 // ANCHOR_END: run

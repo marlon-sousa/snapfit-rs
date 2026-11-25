@@ -4,7 +4,7 @@ Time to write a container of our own. We'll start as small as possible: one comp
 
 ## Adding Snapfit
 
-`snapfit` is one crate. Add `snapfit = "0.2"` under `[dependencies]` in your `Cargo.toml`. It gives you the `#[container]` attribute and the `Container` trait. You need Rust `1.85.0` or newer; your own crate can use any edition from 2018 on.
+`snapfit` is one crate. Add `snapfit = "0.3"` under `[dependencies]` in your `Cargo.toml`. It gives you the `#[container]` attribute and the `Container` trait. You need Rust `1.85.0` or newer; your own crate can use any edition from 2018 on.
 
 ## A configuration to share
 
