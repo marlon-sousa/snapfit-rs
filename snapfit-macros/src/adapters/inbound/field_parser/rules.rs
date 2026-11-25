@@ -1,6 +1,8 @@
 //! Adapter: the field attributes that cannot be turned into a declaration.
 
-use crate::domain::{AttributeProblem, DependencyName, DomainError};
+use crate::domain::{
+    ArgumentProblem, AttributeProblem, DeclarationProblem, DependencyName, DomainError,
+};
 
 pub(super) fn ensure_unconditional(
     field: &syn::Field,
@@ -10,17 +12,17 @@ pub(super) fn ensure_unconditional(
         .attrs
         .iter()
         .any(|attr| attr.path().is_ident("cfg") || attr.path().is_ident("cfg_attr"));
-    (!is_conditional)
-        .then_some(())
-        .ok_or_else(|| DomainError::ConditionalField {
+    (!is_conditional).then_some(()).ok_or_else(|| {
+        DomainError::Declaration(DeclarationProblem::ConditionalField {
             dependency: name.clone(),
         })
+    })
 }
 
 /// A problem with one of the field's attributes, saying which field.
-pub(super) fn attribute_error(name: &DependencyName, problem: AttributeProblem) -> DomainError {
-    DomainError::FieldAttribute {
+pub(super) fn attribute_error(name: &DependencyName, problem: ArgumentProblem) -> DomainError {
+    DomainError::Attribute(AttributeProblem::Field {
         dependency: name.clone(),
         problem,
-    }
+    })
 }

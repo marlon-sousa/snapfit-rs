@@ -19,8 +19,8 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use crate::domain::{
-    Constructor, ContainerDeclaration, DependencyDeclaration, DependencyName, DomainError,
-    DomainErrors, Step,
+    Constructor, ContainerDeclaration, DeclarationProblem, DependencyDeclaration, DependencyName,
+    DomainError, DomainErrors, GraphProblem, Step,
 };
 use crate::use_cases::static_dispatch::{DispatchedNames, dispatch_of};
 
@@ -90,8 +90,9 @@ impl<F, T> Resolver<F, T> {
 
     fn declare(&mut self, declaration: DependencyDeclaration<F, T>) {
         if self.pending.contains_key(&declaration.name) {
-            self.errors
-                .push(DomainError::DuplicateDependency(declaration.name));
+            self.errors.push(DomainError::Declaration(
+                DeclarationProblem::DuplicateDependency(declaration.name),
+            ));
             return;
         }
         let position = self.declared.len();
@@ -171,11 +172,12 @@ impl<F, T> Resolver<F, T> {
         )
         .distinct;
         if !missing.is_empty() {
-            self.errors.push(DomainError::UnknownPrerequisites {
-                available: self.others_than(&dependency.name),
-                dependency: dependency.name.clone(),
-                missing,
-            });
+            self.errors
+                .push(DomainError::Graph(GraphProblem::UnknownPrerequisites {
+                    available: self.others_than(&dependency.name),
+                    dependency: dependency.name.clone(),
+                    missing,
+                }));
         }
         outcomes.into_iter().map(Outcome::into_step).collect()
     }

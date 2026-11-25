@@ -2,7 +2,7 @@
 
 use super::super::darling_models::ImplementationMeta;
 use super::rules::attribute_error;
-use crate::domain::{AttributeProblem, DependencyName, DomainErrors};
+use crate::domain::{ArgumentProblem, DependencyName, DomainErrors};
 
 #[cfg(test)]
 mod tests;
@@ -14,7 +14,7 @@ pub(super) fn read_implementation(
     name: &DependencyName,
     implementations: Vec<ImplementationMeta>,
 ) -> Result<Option<syn::Type>, DomainErrors> {
-    let repeated = (implementations.len() > 1).then_some(AttributeProblem::RepeatedImplementation);
+    let repeated = (implementations.len() > 1).then_some(ArgumentProblem::RepeatedImplementation);
     let (types, problems): (Vec<_>, Vec<_>) = implementations
         .into_iter()
         .map(implementation_type)
@@ -29,16 +29,16 @@ pub(super) fn read_implementation(
     Ok(types.into_iter().find_map(Result::ok))
 }
 
-fn implementation_type(meta: ImplementationMeta) -> Result<syn::Type, AttributeProblem> {
+fn implementation_type(meta: ImplementationMeta) -> Result<syn::Type, ArgumentProblem> {
     match meta {
         ImplementationMeta::Type(ty) => Ok(ty),
-        ImplementationMeta::Bare => Err(AttributeProblem::BareImplementation),
+        ImplementationMeta::Bare => Err(ArgumentProblem::BareImplementation),
         ImplementationMeta::InParentheses(written) => {
-            Err(AttributeProblem::ImplementationInParentheses(written))
+            Err(ArgumentProblem::ImplementationInParentheses(written))
         }
-        ImplementationMeta::Quoted(text) => Err(AttributeProblem::QuotedImplementation(text)),
+        ImplementationMeta::Quoted(text) => Err(ArgumentProblem::QuotedImplementation(text)),
         ImplementationMeta::NotAType(written) => {
-            Err(AttributeProblem::NotAnImplementationType(written))
+            Err(ArgumentProblem::NotAnImplementationType(written))
         }
     }
 }

@@ -6,7 +6,7 @@ use syn::ext::IdentExt;
 
 use super::super::type_inspector::compact_type_tokens;
 use super::expressions::{single_word, ungrouped};
-use crate::domain::AttributeProblem;
+use crate::domain::ArgumentProblem;
 
 /// Each entry of `deps = [...]` in the order written, or what is wrong with it.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -30,8 +30,7 @@ pub(in crate::adapters::inbound) enum PrerequisiteMeta {
     Parent(String),
 }
 
-pub(in crate::adapters::inbound) type PrerequisiteEntry =
-    Result<PrerequisiteMeta, AttributeProblem>;
+pub(in crate::adapters::inbound) type PrerequisiteEntry = Result<PrerequisiteMeta, ArgumentProblem>;
 
 impl FromMeta for PrerequisiteList {
     /// `deps(...)` is refused whatever its parentheses hold, before darling
@@ -54,13 +53,13 @@ impl PrerequisiteList {
     }
 
     fn in_parentheses(tokens: &proc_macro2::TokenStream) -> Self {
-        Self(vec![Err(AttributeProblem::DepsInParentheses(written(
+        Self(vec![Err(ArgumentProblem::DepsInParentheses(written(
             tokens,
         )))])
     }
 
     fn refusing(written: &str) -> Self {
-        Self(vec![Err(AttributeProblem::DepsNotAList(
+        Self(vec![Err(ArgumentProblem::DepsNotAList(
             written.to_string(),
         ))])
     }
@@ -99,7 +98,7 @@ impl PrerequisiteMeta {
                 label: label.clone(),
                 name: name_of_word(name),
             }),
-            _ => Err(AttributeProblem::NotALabel(written(entry))),
+            _ => Err(ArgumentProblem::NotALabel(written(entry))),
         }
     }
 }
@@ -125,7 +124,7 @@ fn entry_of_expr(expr: &syn::Expr) -> PrerequisiteEntry {
         syn::Expr::Call(call) if single_word(&call.func).is_some_and(|word| word == "parent") => {
             parent_entry(call)
         }
-        other => Err(AttributeProblem::NotAField(written(other))),
+        other => Err(ArgumentProblem::NotAField(written(other))),
     }
 }
 
@@ -135,7 +134,7 @@ fn parent_entry(call: &syn::ExprCall) -> PrerequisiteEntry {
         (Some(syn::Expr::Path(argument)), 1) => Ok(PrerequisiteMeta::Parent(compact_type_tokens(
             quote!(#argument),
         ))),
-        _ => Err(AttributeProblem::NotAParentDependency(written(call))),
+        _ => Err(ArgumentProblem::NotAParentDependency(written(call))),
     }
 }
 

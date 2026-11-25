@@ -121,7 +121,7 @@ proptest! {
         };
         let edges = edges(&graph);
         for error in errors {
-            let DomainError::DependencyCycle { start, through } = error else {
+            let DomainError::Graph(GraphProblem::Cycle { start, through }) = error else {
                 return Err(TestCaseError::fail(format!("not a cycle: {error}")));
             };
             let members: Vec<String> = std::iter::once(&start)

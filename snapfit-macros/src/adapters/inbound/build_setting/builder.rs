@@ -3,7 +3,7 @@
 use super::super::darling_models::single_word;
 use super::written_settings;
 use crate::adapters::syntax::BuilderSyntax;
-use crate::domain::{BuilderMethods, DependencyName, DomainError, FunctionName};
+use crate::domain::{BuilderMethods, BuilderProblem, DependencyName, DomainError, FunctionName};
 
 #[cfg(test)]
 mod tests;
@@ -19,10 +19,10 @@ pub(super) fn methods(
 ) -> Result<(BuilderMethods, BuilderSyntax), DomainError> {
     let read = settings.iter().fold(Settings::default(), Settings::with);
     if !read.refused.is_empty() {
-        return Err(DomainError::InvalidBuilderSetting {
+        return Err(DomainError::Builder(BuilderProblem::InvalidSetting {
             dependency: dependency.clone(),
             written: written_settings(&read.refused),
-        });
+        }));
     }
     let syntax = BuilderSyntax {
         start: read

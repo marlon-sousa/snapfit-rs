@@ -23,11 +23,11 @@ fn a_dependency_that_needs_itself_is_named_once() {
 
 #[test]
 fn an_unknown_prerequisite_names_what_the_container_can_wire() {
-    let error = DomainError::UnknownPrerequisites {
+    let error = DomainError::Graph(GraphProblem::UnknownPrerequisites {
         dependency: name("db"),
         missing: vec![name("confog")],
         available: vec![name("config"), name("user_service")],
-    };
+    });
 
     assert_eq!(
         error.to_string(),
@@ -38,11 +38,11 @@ fn an_unknown_prerequisite_names_what_the_container_can_wire() {
 
 #[test]
 fn several_unknown_prerequisites_are_named_in_the_plural() {
-    let error = DomainError::UnknownPrerequisites {
+    let error = DomainError::Graph(GraphProblem::UnknownPrerequisites {
         dependency: name("db"),
         missing: vec![name("zeta"), name("alpha")],
         available: vec![name("config")],
-    };
+    });
 
     assert_eq!(
         error.to_string(),
@@ -57,7 +57,7 @@ fn a_cycle_points_at_where_it_starts() {
 
 #[test]
 fn an_error_about_the_whole_container_has_no_subject() {
-    let error = DomainError::TupleStruct;
+    let error = DomainError::Declaration(DeclarationProblem::TupleStruct);
 
     assert_eq!(error.subject(), None);
 }

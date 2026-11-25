@@ -129,7 +129,7 @@ pub(crate) enum StaticDispatchProblem {
 }
 
 impl StaticDispatchProblem {
-    pub(crate) fn dependency(&self) -> Option<&DependencyName> {
+    pub(crate) fn subject(&self) -> Option<&DependencyName> {
         match self {
             Self::WithoutImplementation { dependency, .. }
             | Self::ThroughPath { dependency, .. }

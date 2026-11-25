@@ -54,9 +54,9 @@ fn a_problem_points_at_its_attribute_or_at_its_field() {
     };
 
     assert_eq!(undeclared_queue(&[]).position(), Some(AttributePosition(1)));
-    assert_eq!(undeclared_queue(&[]).dependency(), None);
+    assert_eq!(undeclared_queue(&[]).subject(), None);
     assert_eq!(without.position(), None);
-    assert_eq!(without.dependency(), Some(&field));
+    assert_eq!(without.subject(), Some(&field));
     assert!(
         without
             .to_string()

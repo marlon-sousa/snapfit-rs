@@ -11,9 +11,9 @@ fn no_arguments_and_a_safe_trait_are_not_refused() {
 fn remote_is_refused_as_planned_and_any_other_argument_as_unknown() {
     assert_eq!(
         arguments_refusal(DispatchArguments::Remote),
-        Some(DomainError::NotYetImplemented {
-            feature: Feature::RemoteStaticDispatch
-        })
+        Some(DomainError::Feature(FeatureProblem::NotYetImplemented(
+            Feature::RemoteStaticDispatch
+        )))
     );
     assert_eq!(
         arguments_refusal(DispatchArguments::Other),

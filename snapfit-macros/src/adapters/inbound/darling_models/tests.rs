@@ -82,7 +82,7 @@ fn a_dependency_attribute_reads_parent_deps_and_a_factory() {
             .unwrap()
             .deps
             .0,
-        vec![Err(AttributeProblem::NotAField("other(db)".to_string()))]
+        vec![Err(ArgumentProblem::NotAField("other(db)".to_string()))]
     );
 }
 
@@ -176,7 +176,7 @@ fn a_dependency_attribute_knows_async_by_its_own_name_only() {
     assert!(matches!(
         DependencyAttrMeta::from_attribute(&removed),
         Err(UnreadableAttribute {
-            problem: AttributeProblem::Unreadable(message),
+            problem: ArgumentProblem::Unreadable(message),
             ..
         })
             if message.contains("`async`") && !message.contains("is_async")

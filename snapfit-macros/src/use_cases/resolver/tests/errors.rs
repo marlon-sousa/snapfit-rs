@@ -11,16 +11,16 @@ fn every_unknown_prerequisite_is_reported_with_what_could_be_wired() {
     assert_eq!(
         errors,
         [
-            DomainError::UnknownPrerequisites {
+            DomainError::Graph(GraphProblem::UnknownPrerequisites {
                 dependency: name("db"),
                 missing: names(&["confog", "pool"]),
                 available: names(&["config", "cache"]),
-            },
-            DomainError::UnknownPrerequisites {
+            }),
+            DomainError::Graph(GraphProblem::UnknownPrerequisites {
                 dependency: name("cache"),
                 missing: names(&["redis"]),
                 available: names(&["config", "db"]),
-            },
+            }),
         ]
     );
 }
@@ -34,11 +34,11 @@ fn an_unknown_prerequisite_listed_twice_is_named_once() {
 
     assert_eq!(
         errors,
-        [DomainError::UnknownPrerequisites {
+        [DomainError::Graph(GraphProblem::UnknownPrerequisites {
             dependency: name("db"),
             missing: names(&["nosuch", "pool"]),
             available: names(&["config"]),
-        }]
+        })]
     );
 }
 
@@ -52,10 +52,10 @@ fn a_cycle_is_reported_from_the_first_field_on_it() {
 
     assert_eq!(
         errors,
-        [DomainError::DependencyCycle {
+        [DomainError::Graph(GraphProblem::Cycle {
             start: name("service_a"),
             through: names(&["service_b", "service_c"]),
-        }]
+        })]
     );
 }
 
@@ -65,10 +65,10 @@ fn a_dependency_that_needs_itself_is_a_cycle_of_one() {
 
     assert_eq!(
         errors,
-        [DomainError::DependencyCycle {
+        [DomainError::Graph(GraphProblem::Cycle {
             start: name("service_a"),
             through: Vec::new(),
-        }]
+        })]
     );
 }
 
@@ -104,10 +104,13 @@ fn a_cycle_and_an_unknown_prerequisite_are_both_reported() {
         dependency("c", &["nowhere"]),
     ]);
 
-    assert!(matches!(errors[0], DomainError::DependencyCycle { .. }));
+    assert!(matches!(
+        errors[0],
+        DomainError::Graph(GraphProblem::Cycle { .. })
+    ));
     assert!(matches!(
         errors[1],
-        DomainError::UnknownPrerequisites { .. }
+        DomainError::Graph(GraphProblem::UnknownPrerequisites { .. })
     ));
 }
 
@@ -115,7 +118,12 @@ fn a_cycle_and_an_unknown_prerequisite_are_both_reported() {
 fn a_duplicate_name_is_reported_and_the_first_declaration_kept() {
     let errors = errors_of(vec![dependency("db", &[]), dependency("db", &["config"])]);
 
-    assert_eq!(errors, [DomainError::DuplicateDependency(name("db"))]);
+    assert_eq!(
+        errors,
+        [DomainError::Declaration(
+            DeclarationProblem::DuplicateDependency(name("db"))
+        )]
+    );
 }
 
 #[test]
@@ -126,7 +134,10 @@ fn a_trait_object_without_a_factory_is_reported_beside_graph_errors() {
     let errors = errors_of(vec![store, dependency("a", &["a"])]);
 
     assert!(matches!(errors[0], DomainError::TraitObject { .. }));
-    assert!(matches!(errors[1], DomainError::DependencyCycle { .. }));
+    assert!(matches!(
+        errors[1],
+        DomainError::Graph(GraphProblem::Cycle { .. })
+    ));
 }
 
 #[test]
@@ -139,9 +150,9 @@ fn a_cycle_entered_from_its_middle_is_told_from_its_first_declared_field() {
 
     assert_eq!(
         errors,
-        [DomainError::DependencyCycle {
+        [DomainError::Graph(GraphProblem::Cycle {
             start: name("a"),
             through: names(&["b"]),
-        }]
+        })]
     );
 }

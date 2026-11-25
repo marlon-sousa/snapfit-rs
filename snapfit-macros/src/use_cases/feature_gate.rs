@@ -2,7 +2,7 @@
 
 use crate::domain::{
     Construction, ContainerDeclaration, DependencyDeclaration, DependencyName, DomainError,
-    Execution, Feature, FeatureGate,
+    Execution, Feature, FeatureGate, FeatureProblem,
 };
 
 #[cfg(test)]
@@ -122,9 +122,9 @@ fn transient(dependency: &DependencyName) -> Feature {
 }
 
 fn not_yet_implemented(feature: Feature) -> DomainError {
-    DomainError::NotYetImplemented { feature }
+    DomainError::Feature(FeatureProblem::NotYetImplemented(feature))
 }
 
 fn requires_unstable(feature: Feature) -> DomainError {
-    DomainError::RequiresUnstable { feature }
+    DomainError::Feature(FeatureProblem::RequiresUnstable(feature))
 }

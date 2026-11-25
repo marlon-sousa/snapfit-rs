@@ -1,6 +1,6 @@
 //! Error: which field or trait item an error is about, for the diagnostic to point at.
 
-use super::{DispatchProblem, DomainError, Feature};
+use super::{DispatchProblem, DomainError, Feature, FeatureProblem};
 use crate::domain::dispatched_trait::ItemPosition;
 use crate::domain::dispatched_type::AttributePosition;
 use crate::domain::names::DependencyName;
@@ -9,37 +9,16 @@ impl DomainError {
     /// The dependency the error is about, whose field the diagnostic points at.
     pub(crate) fn subject(&self) -> Option<&DependencyName> {
         match self {
-            Self::DependencyCycle { start, .. } => Some(start),
-            Self::UnknownPrerequisites { dependency, .. }
-            | Self::DuplicateDependency(dependency)
-            | Self::FieldAttribute { dependency, .. }
-            | Self::Unannotated { dependency }
-            | Self::MultipleLifecycles { dependency }
-            | Self::ConditionalField { dependency }
-            | Self::UnknownBuild { dependency, .. }
-            | Self::QuotedBuild { dependency, .. }
-            | Self::NotABuild { dependency, .. }
-            | Self::ConstructorWithoutName { dependency }
-            | Self::DefaultWithDependencies { dependency }
-            | Self::BuildCannotFail { dependency, .. }
-            | Self::QuotedFunctionName { dependency, .. }
-            | Self::NotAFunctionName { dependency, .. }
-            | Self::TraitObject { dependency, .. }
-            | Self::InvalidBuilderSetting { dependency, .. }
-            | Self::LabelWithoutBuilder { dependency, .. }
-            | Self::RepeatedPrerequisite { dependency, .. }
-            | Self::DuplicateSetter { dependency, .. } => Some(dependency),
-            Self::Async(problem) => Some(problem.dependency()),
-            Self::StaticDispatch(problem) => problem.dependency(),
-            Self::RequiresUnstable { feature } | Self::NotYetImplemented { feature } => {
-                feature.dependency()
-            }
-            Self::BlankName { .. }
-            | Self::TupleStruct
-            | Self::MultipleContainerAttributes
-            | Self::InvalidLeafBuild { .. }
-            | Self::ContainerAttribute { .. }
-            | Self::DispatchedTrait(_) => None,
+            Self::Declaration(problem) => problem.subject(),
+            Self::Attribute(problem) => problem.subject(),
+            Self::Graph(problem) => Some(problem.subject()),
+            Self::Build(problem) => problem.subject(),
+            Self::Builder(problem) => Some(problem.subject()),
+            Self::Async(problem) => Some(problem.subject()),
+            Self::TraitObject { dependency, .. } => Some(dependency),
+            Self::StaticDispatch(problem) => problem.subject(),
+            Self::Feature(problem) => problem.subject(),
+            Self::DispatchedTrait(_) => None,
         }
     }
 }
@@ -84,9 +63,9 @@ impl DomainError {
     pub(crate) fn dispatch_subject(&self) -> DispatchSubject {
         match self {
             Self::DispatchedTrait(problem) => problem.subject(),
-            Self::NotYetImplemented {
-                feature: Feature::RemoteStaticDispatch,
-            } => DispatchSubject::Arguments,
+            Self::Feature(FeatureProblem::NotYetImplemented(Feature::RemoteStaticDispatch)) => {
+                DispatchSubject::Arguments
+            }
             _ => DispatchSubject::Annotated,
         }
     }

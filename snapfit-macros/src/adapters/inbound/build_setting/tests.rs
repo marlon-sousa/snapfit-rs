@@ -158,9 +158,9 @@ fn leaf_build_takes_default_or_a_constructor_and_nothing_else() {
     for (build, written) in refused {
         assert_eq!(
             leaf(build),
-            Err(DomainError::InvalidLeafBuild {
+            Err(DomainError::Build(BuildProblem::InvalidLeafBuild {
                 written: written.to_string()
-            })
+            }))
         );
     }
 }

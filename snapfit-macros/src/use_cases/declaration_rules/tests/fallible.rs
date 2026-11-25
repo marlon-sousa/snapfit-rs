@@ -13,10 +13,10 @@ fn default_is_refused_on_a_fallible_field_because_it_cannot_fail() {
 
     assert_eq!(
         rule_violations(&container(vec![rates])),
-        [DomainError::BuildCannotFail {
+        [DomainError::Build(BuildProblem::CannotFail {
             dependency: DependencyName::new("rates").unwrap(),
             build: InfallibleBuild::Default,
-        }]
+        })]
     );
 }
 
@@ -33,10 +33,10 @@ fn a_fallible_leaf_is_refused_when_leaf_build_would_build_it_because_it_cannot_f
 
     assert_eq!(
         rule_violations(&app),
-        [DomainError::BuildCannotFail {
+        [DomainError::Build(BuildProblem::CannotFail {
             dependency: DependencyName::new("config").unwrap(),
             build: InfallibleBuild::LeafBuild,
-        }]
+        })]
     );
 }
 

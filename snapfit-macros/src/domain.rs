@@ -26,9 +26,10 @@ pub(crate) use dispatched_type::{
     DispatchedTypeFallback, DispatchedTypePlan, Variant, WrittenType,
 };
 pub(crate) use errors::{
-    AsyncProblem, AttributeProblem, DispatchAttributeKind, DispatchProblem, DispatchSubject,
-    DomainError, DomainErrors, Feature, InfallibleBuild, ItemProblem, StaticDispatchProblem,
-    TraitObjectProblem, Unreadability,
+    ArgumentProblem, AsyncProblem, AttributeProblem, BuildProblem, BuilderProblem,
+    DeclarationProblem, DispatchAttributeKind, DispatchProblem, DispatchSubject, DomainError,
+    DomainErrors, Feature, FeatureProblem, GraphProblem, InfallibleBuild, ItemProblem,
+    StaticDispatchProblem, TraitObjectProblem, Unreadability,
 };
 pub(crate) use names::{
     ConstantName, ContainerName, DependencyName, FunctionName, MacroName, MethodName, SetterName,

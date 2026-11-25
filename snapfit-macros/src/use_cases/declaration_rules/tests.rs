@@ -49,9 +49,9 @@ fn default_is_refused_with_deps_and_accepted_without() {
     assert!(rule_violations(&container(vec![built_by_default(&[])])).is_empty());
     assert_eq!(
         rule_violations(&container(vec![built_by_default(&["config"])])),
-        [DomainError::DefaultWithDependencies {
+        [DomainError::Build(BuildProblem::DefaultWithDependencies {
             dependency: DependencyName::new("rates").unwrap()
-        }]
+        })]
     );
 }
 
@@ -103,10 +103,10 @@ fn a_builder_takes_labels_and_refuses_a_setter_passed_twice_once() {
 
     assert_eq!(
         rule_violations(&container(vec![writer])),
-        [DomainError::DuplicateSetter {
+        [DomainError::Builder(BuilderProblem::DuplicateSetter {
             dependency: DependencyName::new("writer").unwrap(),
             setter: SetterName::new("disk").unwrap(),
-        }]
+        })]
     );
 }
 
@@ -161,9 +161,9 @@ fn a_field_passed_twice_to_one_setter_is_a_repeat_not_a_second_use_of_the_setter
 
     assert_eq!(
         rule_violations(&container(vec![writer])),
-        [DomainError::RepeatedPrerequisite {
+        [DomainError::Graph(GraphProblem::RepeatedPrerequisite {
             dependency: DependencyName::new("writer").unwrap(),
             prerequisite: DependencyName::new("folder_files").unwrap(),
-        }]
+        })]
     );
 }

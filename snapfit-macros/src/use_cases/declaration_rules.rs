@@ -3,8 +3,9 @@
 use std::iter;
 
 use crate::domain::{
-    AsyncProblem, Construction, Constructor, ContainerDeclaration, DependencyDeclaration,
-    DependencyName, DomainError, InfallibleBuild, Prerequisite, SetterName,
+    AsyncProblem, BuildProblem, BuilderProblem, Construction, Constructor, ContainerDeclaration,
+    DependencyDeclaration, DependencyName, DomainError, GraphProblem, InfallibleBuild,
+    Prerequisite, SetterName,
 };
 
 #[cfg(test)]
@@ -71,9 +72,9 @@ fn async_transient(dependency: &DependencyName) -> DomainError {
 }
 
 fn default_with_dependencies(dependency: &DependencyName) -> DomainError {
-    DomainError::DefaultWithDependencies {
+    DomainError::Build(BuildProblem::DefaultWithDependencies {
         dependency: dependency.clone(),
-    }
+    })
 }
 
 fn async_default(dependency: &DependencyName) -> DomainError {
@@ -81,10 +82,10 @@ fn async_default(dependency: &DependencyName) -> DomainError {
 }
 
 fn cannot_fail(dependency: &DependencyName, build: InfallibleBuild) -> DomainError {
-    DomainError::BuildCannotFail {
+    DomainError::Build(BuildProblem::CannotFail {
         dependency: dependency.clone(),
         build,
-    }
+    })
 }
 
 fn repeated_prerequisites<F, T>(dependency: &DependencyDeclaration<F, T>) -> Vec<DomainError> {
@@ -102,10 +103,10 @@ fn uses(prerequisites: &[Prerequisite]) -> Repeats<(&DependencyName, SetterName)
 fn repeated_prerequisite(
     (dependency, (prerequisite, _)): (&DependencyName, (&DependencyName, SetterName)),
 ) -> DomainError {
-    DomainError::RepeatedPrerequisite {
+    DomainError::Graph(GraphProblem::RepeatedPrerequisite {
         dependency: dependency.clone(),
         prerequisite: prerequisite.clone(),
-    }
+    })
 }
 
 fn setter_violations<F, T>(dependency: &DependencyDeclaration<F, T>) -> Vec<DomainError> {
@@ -138,19 +139,19 @@ fn setter_of((_, setter): (&DependencyName, SetterName)) -> SetterName {
 }
 
 fn duplicate_setter((dependency, setter): (&DependencyName, SetterName)) -> DomainError {
-    DomainError::DuplicateSetter {
+    DomainError::Builder(BuilderProblem::DuplicateSetter {
         dependency: dependency.clone(),
         setter,
-    }
+    })
 }
 
 fn label_without_builder(
     (dependency, prerequisite): (&DependencyName, &Prerequisite),
 ) -> Option<DomainError> {
     let label = prerequisite.label.clone()?;
-    Some(DomainError::LabelWithoutBuilder {
+    Some(DomainError::Builder(BuilderProblem::LabelWithoutBuilder {
         dependency: dependency.clone(),
         label,
         field: prerequisite.field.clone(),
-    })
+    }))
 }

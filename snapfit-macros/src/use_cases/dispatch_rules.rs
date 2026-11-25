@@ -2,7 +2,8 @@
 //! dispatch the trait statically.
 
 use crate::domain::{
-    DispatchArguments, DispatchProblem, DomainError, Feature, Safety, TraitDeclaration,
+    DispatchArguments, DispatchProblem, DomainError, Feature, FeatureProblem, Safety,
+    TraitDeclaration,
 };
 
 #[cfg(test)]
@@ -12,9 +13,9 @@ mod tests;
 pub(crate) fn arguments_refusal(arguments: DispatchArguments) -> Option<DomainError> {
     match arguments {
         DispatchArguments::None => None,
-        DispatchArguments::Remote => Some(DomainError::NotYetImplemented {
-            feature: Feature::RemoteStaticDispatch,
-        }),
+        DispatchArguments::Remote => Some(DomainError::Feature(FeatureProblem::NotYetImplemented(
+            Feature::RemoteStaticDispatch,
+        ))),
         DispatchArguments::Other => Some(DomainError::DispatchedTrait(DispatchProblem::Arguments)),
     }
 }

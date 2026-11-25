@@ -9,8 +9,8 @@ pub(crate) use dispatched_types::{
 use crate::domain::{
     Annotated, BuilderMethods, Construction, ContainerDeclaration, ContainerName,
     DependencyDeclaration, DependencyName, DispatchArguments, DispatchAttribute, DomainError,
-    Execution, FunctionName, ItemPosition, MethodName, MethodShape, PlacedItem, Prerequisite,
-    Receiver, ReturnShape, Safety, SelfBound, SelfUse, SetterName, TraitDeclaration,
+    Execution, FunctionName, GraphProblem, ItemPosition, MethodName, MethodShape, PlacedItem,
+    Prerequisite, Receiver, ReturnShape, Safety, SelfBound, SelfUse, SetterName, TraitDeclaration,
     TraitItemDeclaration, TraitName,
 };
 
@@ -20,10 +20,10 @@ pub(crate) fn name(text: &str) -> DependencyName {
 
 /// A cycle from `start` through `through`, back to `start`.
 pub(crate) fn cycle(start: &str, through: &[&str]) -> DomainError {
-    DomainError::DependencyCycle {
+    DomainError::Graph(GraphProblem::Cycle {
         start: name(start),
         through: names(through),
-    }
+    })
 }
 
 pub(crate) fn names(texts: &[&str]) -> Vec<DependencyName> {

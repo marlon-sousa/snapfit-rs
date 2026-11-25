@@ -20,7 +20,7 @@ pub(crate) enum AsyncProblem {
 }
 
 impl AsyncProblem {
-    pub(crate) fn dependency(&self) -> &DependencyName {
+    pub(crate) fn subject(&self) -> &DependencyName {
         match self {
             Self::InSyncContainer(dependency)
             | Self::Transient(dependency)

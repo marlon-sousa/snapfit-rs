@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 
 use derive_more::Display;
 
-use crate::domain::errors::DomainError;
+use crate::domain::errors::{DeclarationProblem, DomainError};
 
 #[cfg(test)]
 mod tests;
@@ -115,7 +115,9 @@ impl<K: NameKind> Name<K> {
     pub(crate) fn new(text: impl Into<String>) -> Result<Self, DomainError> {
         let text = text.into();
         if text.trim().is_empty() {
-            return Err(DomainError::BlankName { label: K::LABEL });
+            return Err(DomainError::Declaration(DeclarationProblem::BlankName {
+                label: K::LABEL,
+            }));
         }
         Ok(Self {
             text,

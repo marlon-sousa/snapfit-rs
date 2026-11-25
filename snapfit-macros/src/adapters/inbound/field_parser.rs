@@ -7,8 +7,9 @@ use super::darling_models::DependencyAttrMeta;
 use super::type_inspector::{compact_type_tokens, type_shape, written_type};
 use crate::adapters::syntax::FieldDeclaration;
 use crate::domain::{
-    DependencyDeclaration, DependencyName, DomainError, DomainErrors, Execution, Fallibility,
-    Implementation, Lifecycle, StaticDispatchProblem, TypeName, Variant,
+    AttributeProblem, DeclarationProblem, DependencyDeclaration, DependencyName, DomainError,
+    DomainErrors, Execution, Fallibility, Implementation, Lifecycle, StaticDispatchProblem,
+    TypeName, Variant,
 };
 
 mod deps;
@@ -87,14 +88,17 @@ pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, Domain
 }
 
 fn field_name(field: &syn::Field) -> Result<(DependencyName, syn::Ident), DomainError> {
-    let ident = field.ident.clone().ok_or(DomainError::TupleStruct)?;
+    let ident = field
+        .ident
+        .clone()
+        .ok_or(DomainError::Declaration(DeclarationProblem::TupleStruct))?;
     Ok((DependencyName::new(ident.unraw().to_string())?, ident))
 }
 
 fn unannotated(name: &DependencyName) -> DomainError {
-    DomainError::Unannotated {
+    DomainError::Attribute(AttributeProblem::Unannotated {
         dependency: name.clone(),
-    }
+    })
 }
 
 fn lifecycle_attr(
@@ -103,10 +107,12 @@ fn lifecycle_attr(
 ) -> Result<Option<(Lifecycle, DependencyAttrMeta)>, DomainErrors> {
     let matched: Vec<_> = attrs.iter().filter_map(lifecycle_attribute).collect();
     if matched.len() > 1 {
-        return Err(DomainError::MultipleLifecycles {
-            dependency: name.clone(),
-        }
-        .into());
+        return Err(
+            DomainError::Attribute(AttributeProblem::MultipleLifecycles {
+                dependency: name.clone(),
+            })
+            .into(),
+        );
     }
     matched
         .into_iter()
