@@ -25,5 +25,5 @@ pub use snapfit_macros::{container, static_dispatch};
 #[doc(hidden)]
 pub mod __private {
     pub use crate::build_result::BuildResult;
-    pub use crate::dispatch::{Either, Here, Holds, Only, There};
+    pub use crate::dispatch::{Either, Here, Holds, NotOnTheList, Only, There};
 }

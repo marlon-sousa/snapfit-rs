@@ -60,6 +60,31 @@ impl<Last> Holds<Last, Here> for Only<Last> {
     }
 }
 
+/// A type that is on no list: implemented by none, so that a type passed to
+/// `of` that the list does not hold is refused in words.
+#[diagnostic::on_unimplemented(
+    message = "`{Self}` is not one of the implementations this dispatched type holds",
+    label = "not on the list of implementations",
+    note = "the dispatched type holds the implementations its container's fields, `extra` list and `extend_static_dispatch` lists name"
+)]
+pub trait NotOnTheList {
+    /// Whatever a value of such a type is asked to become, since there is
+    /// no such value.
+    fn absurd<Anything>(self) -> Anything;
+}
+
+/// A second candidate beside `Holds<Last, Here>`, which no type meets. With
+/// one candidate alone, the compiler would take the value's type for `Last`
+/// and report mismatched types instead of the message above.
+impl<Last, T> Holds<T, There<Here>> for Only<Last>
+where
+    T: NotOnTheList,
+{
+    fn hold(value: T) -> Self {
+        value.absurd()
+    }
+}
+
 impl<First, Rest> Either<First, Rest> {
     /// `value` in its variant.
     pub fn of<T, I>(value: T) -> Self

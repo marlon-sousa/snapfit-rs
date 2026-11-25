@@ -66,12 +66,17 @@ Feature: Dispatching a trait statically
     Then clippy should report no warning
 
   @v0_3_0
-  Scenario: A value of a type that is not on the list is refused where it is wrapped
-    Given an invalid dispatched trait fixture "static_dispatch_not_on_the_list"
+  Scenario Outline: A value of a type that is not on the list is refused where it is wrapped, also on a list of one
+    Given an invalid dispatched trait fixture "<fixture>"
     When the fixture is compiled
     Then compilation should fail with "`Sqlite` is not one of the implementations this dispatched type holds"
-    And the error should point at line 27 of the fixture
+    And the error should point at line <line> of the fixture
     And the compiler should report 1 errors
+
+    Examples:
+      | fixture                              | line |
+      | static_dispatch_not_on_the_list      | 27   |
+      | static_dispatch_not_on_a_list_of_one | 20   |
 
   @v0_3_0
   Scenario: A supertrait without the attribute is rustc's own error at the attribute
