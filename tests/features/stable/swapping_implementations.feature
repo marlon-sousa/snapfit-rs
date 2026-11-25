@@ -34,7 +34,7 @@ Feature: Swapping a field for another implementation of its trait
   @v0_2_0 @regression
   Scenario Outline: A container written by a macro_rules! builds the implementation it passes as tokens
     When the desks whose implementation a macro_rules! passes as tokens are opened
-    Then the desk whose implementation is passed as "<form>" should read from disk
+    Then the desk whose implementation is passed as <form> should read from disk
 
     Examples:
       | form           |
@@ -89,6 +89,17 @@ Feature: Swapping a field for another implementation of its trait
       | implementation_not_a_type    | 1      | field 'reader': '3' is not a type the container can build; write the type in full, such as implementation = StripeGateway |
       | repeated_implementation      | 2      | field 'reader': implementation is given more than once; give the field one type to build |
 
+  @v0_3_0
+  Scenario Outline: A service that keeps the trait object inside its own type is built by its constructor
+    When the desks whose services keep the reader's trait object inside their own type are opened
+    Then its service kept as <form> should read from disk
+
+    Examples:
+      | form                                   |
+      | an Arc built by new                    |
+      | a value built by a constructor         |
+      | an Arc a macro_rules! passes as a type |
+
   @v0_2_0
   Scenario Outline: An implementation on a field that cannot be built from it is refused at the field
     Given an invalid container fixture "<fixture>"
@@ -102,6 +113,14 @@ Feature: Swapping a field for another implementation of its trait
       | implementation_without_trait_object | field 'reader' names an implementation, but its type holds no trait object; write the trait object as the field's type, such as Arc<dyn PaymentGateway>, or remove implementation |
       | implementation_outside_arc          | field 'reader' names an implementation, but holds its trait object in something other than an Arc; write the field as an Arc of the trait object, such as Arc<dyn PaymentGateway>, or remove implementation and build the field with build = factory |
       | implementation_with_factory         | field 'reader' names an implementation and is built with build = factory, which returns the field itself; remove implementation, or remove build = factory so that the container builds the implementation |
+
+  @v0_3_0
+  Scenario: An implementation on a field that keeps its trait object inside another type is refused at the field
+    Given an invalid container fixture "implementation_kept_inside"
+    When the fixture is compiled
+    Then compilation should fail with "field 'reader' names an implementation, but keeps its trait object inside another type, whose own constructor takes it; give the trait object a field of its own, such as Arc<dyn PaymentGateway> with its implementation, and list that field in deps, or remove implementation"
+    And the error should point at line 24 of the fixture
+    And the compiler should report 1 errors
 
   @v0_2_0
   Scenario: An implementation that does not implement the field's trait is a compile error

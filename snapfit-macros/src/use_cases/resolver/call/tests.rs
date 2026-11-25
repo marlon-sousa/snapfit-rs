@@ -28,17 +28,18 @@ fn constructor(wrapping: Wrapping) -> Call {
 }
 
 #[test]
-fn a_plain_type_is_built_by_its_constructor_as_it_is() {
-    let call = call_for(&dependency(TypeShape::Value, None), &Constructor::New);
+fn a_value_is_built_by_its_constructor_as_it_is_and_an_arc_by_its_inner_type_s() {
+    let cases = [
+        (TypeShape::Value, Wrapping::None),
+        (TypeShape::KeepsTraitObject, Wrapping::None),
+        (TypeShape::Arc, Wrapping::Arc),
+        (TypeShape::ArcKeepsTraitObject, Wrapping::Arc),
+    ];
 
-    assert_eq!(call, Ok(constructor(Wrapping::None)));
-}
-
-#[test]
-fn an_arc_is_built_by_its_inner_type_s_constructor_and_wrapped() {
-    let call = call_for(&dependency(TypeShape::Arc, None), &Constructor::New);
-
-    assert_eq!(call, Ok(constructor(Wrapping::Arc)));
+    for (shape, wrapping) in cases {
+        let call = call_for(&dependency(shape, None), &Constructor::New);
+        assert_eq!(call, Ok(constructor(wrapping)), "{shape:?}");
+    }
 }
 
 #[test]
@@ -173,6 +174,16 @@ fn an_implementation_is_refused_where_it_cannot_be_built() {
             TypeShape::TraitObject,
             None,
             TraitObjectProblem::ImplementationOutsideArc,
+        ),
+        (
+            TypeShape::KeepsTraitObject,
+            None,
+            TraitObjectProblem::ImplementationKeptInside,
+        ),
+        (
+            TypeShape::ArcKeepsTraitObject,
+            None,
+            TraitObjectProblem::ImplementationKeptInside,
         ),
         (
             TypeShape::ArcTraitObject,

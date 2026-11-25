@@ -6,7 +6,11 @@ use cucumber::Parameter;
 use snapfit::BuildError;
 use strum::EnumString;
 
+mod keeping;
 mod regressions;
+
+pub use keeping::KeptForm;
+pub use regressions::PassedForm;
 
 use crate::swap_containers::built_desks::{BuiltDesk, LeafDesk, LockedDesk};
 use crate::swap_containers::desks::{DiskDesk, MemoryDesk};
@@ -76,7 +80,8 @@ pub struct SwapRuns {
     desk: Option<DeskSources>,
     built: Option<BuiltReads>,
     local: Option<Source>,
-    passed: Option<Vec<(&'static str, Source)>>,
+    passed: Option<regressions::PassedSources>,
+    kept: Option<keeping::KeptSources>,
     typed: Option<Source>,
     #[cfg(feature = "unstable")]
     transient: Option<TransientReads>,

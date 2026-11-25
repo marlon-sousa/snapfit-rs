@@ -8,9 +8,9 @@ use crate::use_cases::leaf::is_leaf;
 
 /// A constructor or a builder belongs to the type the field holds, to `T`
 /// when the field holds `Arc<T>`, whose value is then wrapped, or to the
-/// implementation the field names for its `Arc<dyn Trait>`. Any other trait
-/// object needs a factory. A dispatched field is refused by the feature
-/// gate, so its shape decides nothing yet.
+/// implementation the field names for its `Arc<dyn Trait>`. Any other value
+/// that is a trait object needs a factory. A dispatched field is refused by
+/// the feature gate, so its shape decides nothing yet.
 pub(super) fn call_for<F>(
     dependency: &DependencyDeclaration<F>,
     leaf: &Constructor,
@@ -39,8 +39,10 @@ fn wrapping_of<F>(dependency: &DependencyDeclaration<F>) -> Result<Wrapping, Dom
         return Ok(Wrapping::None);
     }
     let problem = match (dependency.shape, dependency.implementation) {
-        (TypeShape::Value, Implementation::OfField) => return Ok(Wrapping::None),
-        (TypeShape::Arc, Implementation::OfField)
+        (TypeShape::Value | TypeShape::KeepsTraitObject, Implementation::OfField) => {
+            return Ok(Wrapping::None);
+        }
+        (TypeShape::Arc | TypeShape::ArcKeepsTraitObject, Implementation::OfField)
         | (TypeShape::ArcTraitObject, Implementation::Named) => return Ok(Wrapping::Arc),
         (TypeShape::ArcTraitObject, Implementation::OfField) => {
             TraitObjectProblem::WithoutImplementation
@@ -51,6 +53,9 @@ fn wrapping_of<F>(dependency: &DependencyDeclaration<F>) -> Result<Wrapping, Dom
         }
         (TypeShape::Value | TypeShape::Arc, Implementation::Named) => {
             TraitObjectProblem::ImplementationWithoutTraitObject
+        }
+        (TypeShape::KeepsTraitObject | TypeShape::ArcKeepsTraitObject, Implementation::Named) => {
+            TraitObjectProblem::ImplementationKeptInside
         }
     };
     Err(trait_object(dependency, problem))

@@ -47,11 +47,11 @@ fn a_dispatch_field_without_a_trait_object_is_refused() {
 }
 
 #[test]
-fn a_type_holding_dyn_is_a_trait_object_and_an_arc_of_one_is_told_apart() {
+fn a_type_whose_value_is_dyn_is_a_trait_object_and_one_that_keeps_it_deeper_is_not() {
     let arc_of_trait_through_a_macro = through_a_macro(quote!(Arc<dyn Store>));
     let arc_through_a_macro = through_a_macro(quote!(Arc<Store>));
     let through_a_macro = through_a_macro(quote!(dyn Store));
-    let shapes: [(syn::Type, TypeShape); 10] = [
+    let shapes: [(syn::Type, TypeShape); 17] = [
         (parse_quote!(Arc<dyn Store>), TypeShape::ArcTraitObject),
         (
             parse_quote!(std::sync::Arc<dyn Store + Send + Sync>),
@@ -74,6 +74,28 @@ fn a_type_holding_dyn_is_a_trait_object_and_an_arc_of_one_is_told_apart() {
         (parse_quote!(#arc_through_a_macro), TypeShape::Arc),
         (parse_quote!(std::rc::Rc<Store>), TypeShape::Value),
         (parse_quote!(Store), TypeShape::Value),
+        (
+            parse_quote!(Arc<Shelf<Arc<dyn Store>>>),
+            TypeShape::ArcKeepsTraitObject,
+        ),
+        (
+            parse_quote!(Shelf<Box<dyn Store>>),
+            TypeShape::KeepsTraitObject,
+        ),
+        (
+            parse_quote!(Shelf<&'static dyn Store>),
+            TypeShape::KeepsTraitObject,
+        ),
+        (
+            parse_quote!(Arc<Shelf<#arc_of_trait_through_a_macro>>),
+            TypeShape::ArcKeepsTraitObject,
+        ),
+        (parse_quote!(Arc<Box<dyn Store>>), TypeShape::TraitObject),
+        (parse_quote!(&'static dyn Store), TypeShape::TraitObject),
+        (
+            parse_quote!(Arc<&'static dyn Store>),
+            TypeShape::TraitObject,
+        ),
     ];
     for (ty, shape) in shapes {
         assert_eq!(type_shape(&ty), shape, "{}", quote!(#ty));
