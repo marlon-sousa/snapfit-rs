@@ -4,8 +4,8 @@
 
 use syn::visit::Visit;
 
-use super::self_use::{SelfFinder, is_bare_self, unwrapped};
-use crate::domain::{Execution, MethodShape, Receiver, ReturnShape, Safety, SelfBound, SelfUse};
+use super::self_use::{SelfFinder, is_bare_self, self_bound, unwrapped};
+use crate::domain::{Execution, MethodShape, Receiver, ReturnShape, Safety, SelfUse};
 
 #[cfg(test)]
 mod tests;
@@ -14,7 +14,7 @@ pub(super) fn method_shape(signature: &syn::Signature) -> MethodShape {
     MethodShape::new(
         receiver(signature),
         self_use(signature),
-        self_bound(signature),
+        self_bound(signature.generics.where_clause.as_ref()),
         return_shape(&signature.output),
         signature
             .asyncness
@@ -60,49 +60,6 @@ fn self_use(signature: &syn::Signature) -> SelfUse {
         }
     }
     finder.0
-}
-
-/// `Forwardable` when every bound the `where` clause puts on `Self` is `Sized`.
-fn self_bound(signature: &syn::Signature) -> SelfBound {
-    let predicates = signature
-        .generics
-        .where_clause
-        .iter()
-        .flat_map(|clause| &clause.predicates);
-    if predicates
-        .filter_map(bounds_on_self)
-        .flatten()
-        .all(is_sized)
-    {
-        SelfBound::Forwardable
-    } else {
-        SelfBound::Other
-    }
-}
-
-fn bounds_on_self(
-    predicate: &syn::WherePredicate,
-) -> Option<&syn::punctuated::Punctuated<syn::TypeParamBound, syn::Token![+]>> {
-    match predicate {
-        syn::WherePredicate::Type(predicate) if is_bare_self(unwrapped(&predicate.bounded_ty)) => {
-            Some(&predicate.bounds)
-        }
-        _ => None,
-    }
-}
-
-fn is_sized(bound: &syn::TypeParamBound) -> bool {
-    match bound {
-        syn::TypeParamBound::Trait(bound) => {
-            matches!(bound.modifier, syn::TraitBoundModifier::None)
-                && bound
-                    .path
-                    .segments
-                    .last()
-                    .is_some_and(|segment| segment.ident == "Sized")
-        }
-        _ => false,
-    }
 }
 
 fn typed_argument(input: &syn::FnArg) -> Option<&syn::Type> {

@@ -53,7 +53,7 @@ pub(crate) enum ItemProblem {
     )]
     SelfElsewhere,
     #[display(
-        "bounds Self by more than Sized, which snapfit cannot promise of every implementation the dispatched type holds; remove the bound, or make it a supertrait of the trait"
+        "bounds Self by a trait other than Sized, which snapfit cannot promise of every implementation the dispatched type holds; remove the bound, or make it a supertrait of the trait"
     )]
     SelfBound,
     #[display(

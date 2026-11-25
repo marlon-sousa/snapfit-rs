@@ -5,5 +5,9 @@ pub trait Database {
     #[cfg(not(any()))]
     type Row;
 
+    type Pair
+    where
+        Self: Clone;
+
     fn find(&self, id: u32) -> Self::Row;
 }

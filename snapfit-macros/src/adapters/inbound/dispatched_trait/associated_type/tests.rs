@@ -1,7 +1,7 @@
 use syn::parse_quote;
 
 use super::*;
-use crate::domain::SelfUse;
+use crate::domain::{SelfBound, SelfUse};
 
 #[test]
 fn a_plain_associated_type_is_forwardable_in_every_way() {
@@ -11,13 +11,18 @@ fn a_plain_associated_type_is_forwardable_in_every_way() {
 
     assert_eq!(
         associated_type_shape(&associated),
-        AssociatedTypeShape::new(TypeParameters::None, SelfUse::Forwardable, Presence::Always)
+        AssociatedTypeShape::new(
+            TypeParameters::None,
+            SelfUse::Forwardable,
+            SelfBound::Forwardable,
+            Presence::Always
+        )
     );
 }
 
 #[test]
 fn parameters_self_in_a_bound_and_a_cfg_are_each_read() {
-    let cases: [(syn::TraitItemType, AssociatedTypeShape); 4] = [
+    let cases: [(syn::TraitItemType, AssociatedTypeShape); 6] = [
         (
             parse_quote!(
                 type Rows<'a>;
@@ -25,6 +30,7 @@ fn parameters_self_in_a_bound_and_a_cfg_are_each_read() {
             AssociatedTypeShape::new(
                 TypeParameters::Declared,
                 SelfUse::Forwardable,
+                SelfBound::Forwardable,
                 Presence::Always,
             ),
         ),
@@ -32,7 +38,12 @@ fn parameters_self_in_a_bound_and_a_cfg_are_each_read() {
             parse_quote!(
                 type Twin: Into<Self>;
             ),
-            AssociatedTypeShape::new(TypeParameters::None, SelfUse::Elsewhere, Presence::Always),
+            AssociatedTypeShape::new(
+                TypeParameters::None,
+                SelfUse::Elsewhere,
+                SelfBound::Forwardable,
+                Presence::Always,
+            ),
         ),
         (
             parse_quote!(
@@ -42,18 +53,47 @@ fn parameters_self_in_a_bound_and_a_cfg_are_each_read() {
             AssociatedTypeShape::new(
                 TypeParameters::None,
                 SelfUse::Forwardable,
+                SelfBound::Forwardable,
                 Presence::Conditional,
             ),
         ),
         (
             parse_quote!(
-                #[cfg_attr(test, allow(unused))]
+                #[cfg_attr(test, cfg(test))]
                 type Row;
             ),
             AssociatedTypeShape::new(
                 TypeParameters::None,
                 SelfUse::Forwardable,
+                SelfBound::Forwardable,
                 Presence::Conditional,
+            ),
+        ),
+        (
+            parse_quote!(
+                type Row
+                where
+                    Self: Clone;
+            ),
+            AssociatedTypeShape::new(
+                TypeParameters::None,
+                SelfUse::Forwardable,
+                SelfBound::Other,
+                Presence::Always,
+            ),
+        ),
+        (
+            parse_quote!(
+                #[cfg_attr(docsrs, doc = "Rows of the table.")]
+                type Row
+                where
+                    Self: Sized;
+            ),
+            AssociatedTypeShape::new(
+                TypeParameters::None,
+                SelfUse::Forwardable,
+                SelfBound::Forwardable,
+                Presence::Always,
             ),
         ),
     ];

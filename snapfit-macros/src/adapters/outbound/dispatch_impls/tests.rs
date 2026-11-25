@@ -23,6 +23,9 @@ fn either_forwards_each_method_to_the_variant_it_holds() {
     ));
 
     assert!(code.contains(&compact(quote!(
+        #[automatically_derived]
+        #[doc(hidden)]
+        #[allow(deprecated)]
         impl<__SnapfitFirst, __SnapfitRest> Database
             for ::snapfit::__private::Either<__SnapfitFirst, __SnapfitRest>
         where
@@ -46,6 +49,9 @@ fn only_forwards_each_method_to_the_last_implementation() {
     ));
 
     assert!(code.contains(&compact(quote!(
+        #[automatically_derived]
+        #[doc(hidden)]
+        #[allow(deprecated)]
         impl<__SnapfitLast> Database for ::snapfit::__private::Only<__SnapfitLast>
         where
             __SnapfitLast: Database,

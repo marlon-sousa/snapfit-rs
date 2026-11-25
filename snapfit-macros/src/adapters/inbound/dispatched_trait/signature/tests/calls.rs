@@ -3,10 +3,11 @@
 use syn::parse_quote;
 
 use super::*;
+use crate::domain::SelfBound;
 
 #[test]
-fn a_where_clause_bounding_self_only_by_sized_can_be_forwarded() {
-    let cases: [(syn::TraitItemFn, SelfBound); 5] = [
+fn a_where_clause_bounding_self_only_by_sized_or_a_lifetime_can_be_forwarded() {
+    let cases: [(syn::TraitItemFn, SelfBound); 6] = [
         (
             parse_quote!(
                 fn f(&self);
@@ -26,6 +27,14 @@ fn a_where_clause_bounding_self_only_by_sized_can_be_forwarded() {
                 fn f(self)
                 where
                     Self: ::core::marker::Sized;
+            ),
+            SelfBound::Forwardable,
+        ),
+        (
+            parse_quote!(
+                fn f<'a>(&'a self)
+                where
+                    Self: 'a + Sized;
             ),
             SelfBound::Forwardable,
         ),

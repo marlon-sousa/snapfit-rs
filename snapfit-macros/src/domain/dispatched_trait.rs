@@ -27,7 +27,8 @@ pub(crate) enum DispatchArguments {
 pub(crate) enum Safety {
     #[default]
     Safe,
-    /// `unsafe trait`, whose implementations promise a contract.
+    /// An `unsafe trait`, whose implementations promise a contract, or an
+    /// `unsafe fn`, whose callers do.
     Unsafe,
 }
 
@@ -68,7 +69,8 @@ pub(crate) enum ReturnShape {
 /// What a method's `where` clause bounds `Self` by.
 #[derive(EnumIs, Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum SelfBound {
-    /// Nothing, or `Sized` alone, which every dispatch type is.
+    /// Nothing, `Sized`, which every dispatch type is, or lifetimes, which a
+    /// dispatch type outlives whenever its implementations do.
     Forwardable,
     /// Any other bound, such as `Self: Clone`, which an impl cannot promise
     /// of the implementations it forwards to.
@@ -102,6 +104,8 @@ pub(crate) struct AssociatedTypeShape {
     pub(crate) parameters: TypeParameters,
     /// Whether its bounds name `Self`.
     pub(crate) self_use: SelfUse,
+    /// What its `where` clause bounds `Self` by.
+    pub(crate) self_bound: SelfBound,
     pub(crate) presence: Presence,
 }
 

@@ -1,7 +1,7 @@
 //! Associated types, associated consts and macro calls.
 
 use super::*;
-use crate::domain::{ConstantName, MacroName, Presence, TypeName};
+use crate::domain::{ConstantName, MacroName, Presence, SelfBound, TypeName};
 
 fn rows() -> TypeName {
     TypeName::new("Rows").unwrap()
@@ -16,7 +16,12 @@ fn associated_type(shape: AssociatedTypeShape) -> TraitItemDeclaration<&'static 
 }
 
 fn plain_type() -> AssociatedTypeShape {
-    AssociatedTypeShape::new(TypeParameters::None, SelfUse::Forwardable, Presence::Always)
+    AssociatedTypeShape::new(
+        TypeParameters::None,
+        SelfUse::Forwardable,
+        SelfBound::Forwardable,
+        Presence::Always,
+    )
 }
 
 #[test]
@@ -34,18 +39,34 @@ fn each_associated_type_a_bound_cannot_agree_on_is_refused_with_its_own_reason()
             AssociatedTypeShape::new(
                 TypeParameters::Declared,
                 SelfUse::Forwardable,
+                SelfBound::Forwardable,
                 Presence::Always,
             ),
             ItemProblem::GenericAssociatedType,
         ),
         (
-            AssociatedTypeShape::new(TypeParameters::None, SelfUse::Elsewhere, Presence::Always),
+            AssociatedTypeShape::new(
+                TypeParameters::None,
+                SelfUse::Elsewhere,
+                SelfBound::Forwardable,
+                Presence::Always,
+            ),
             ItemProblem::SelfInBounds,
         ),
         (
             AssociatedTypeShape::new(
                 TypeParameters::None,
                 SelfUse::Forwardable,
+                SelfBound::Other,
+                Presence::Always,
+            ),
+            ItemProblem::SelfBound,
+        ),
+        (
+            AssociatedTypeShape::new(
+                TypeParameters::None,
+                SelfUse::Forwardable,
+                SelfBound::Forwardable,
                 Presence::Conditional,
             ),
             ItemProblem::ConditionalAssociatedType,

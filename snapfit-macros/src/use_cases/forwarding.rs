@@ -91,11 +91,19 @@ fn type_problems(shape: AssociatedTypeShape) -> impl Iterator<Item = ItemProblem
         .self_use
         .is_elsewhere()
         .then_some(ItemProblem::SelfInBounds);
+    let self_bound = shape
+        .self_bound
+        .is_other()
+        .then_some(ItemProblem::SelfBound);
     let presence = shape
         .presence
         .is_conditional()
         .then_some(ItemProblem::ConditionalAssociatedType);
-    parameters.into_iter().chain(self_use).chain(presence)
+    parameters
+        .into_iter()
+        .chain(self_use)
+        .chain(self_bound)
+        .chain(presence)
 }
 
 fn rebuilding(returns: ReturnShape) -> Rebuilding {

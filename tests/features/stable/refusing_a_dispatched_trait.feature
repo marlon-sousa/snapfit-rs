@@ -101,19 +101,21 @@ Feature: Refusing a trait that static dispatch cannot follow
     And the compiler should report 2 errors
 
   @v0_3_0
-  Scenario: A method bounding Self by more than Sized is refused at the method
+  Scenario: A method bounding Self by a trait other than Sized is refused at the method
     Given an invalid dispatched trait fixture "static_dispatch_self_bound"
     When the fixture is compiled
-    Then compilation should fail with "method 'copied' in trait 'Database' bounds Self by more than Sized, which snapfit cannot promise of every implementation the dispatched type holds; remove the bound, or make it a supertrait of the trait"
+    Then compilation should fail with "method 'copied' in trait 'Database' bounds Self by a trait other than Sized, which snapfit cannot promise of every implementation the dispatched type holds; remove the bound, or make it a supertrait of the trait"
     And the error should point at line 5 of the fixture
     And the compiler should report 1 errors
 
   @v0_3_0
-  Scenario: An associated type naming Self in its bounds, or declared under cfg, is refused at the type
+  Scenario: An associated type naming Self in its bounds, bounding Self by a trait other than Sized, or declared under cfg, is refused at the type
     Given an invalid dispatched trait fixture "static_dispatch_associated_type_bounds"
     When the fixture is compiled
     Then compilation should fail with "associated type 'Twin' in trait 'Database' names Self in its bounds, which snapfit cannot promise of the type that dispatches the trait; remove Self from its bounds"
     And compilation should fail with "associated type 'Row' in trait 'Database' is declared under #[cfg] or #[cfg_attr], which the bound that makes every implementation agree on it cannot follow; declare it in every build"
+    And compilation should fail with "associated type 'Pair' in trait 'Database' bounds Self by a trait other than Sized"
     And the error should point at line 3 of the fixture
     And the error should point at line 5 of the fixture
-    And the compiler should report 2 errors
+    And the error should point at line 8 of the fixture
+    And the compiler should report 3 errors
