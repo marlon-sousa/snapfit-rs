@@ -19,7 +19,7 @@ fn plan(
 ) -> ConstructionPlan<(), &'static str> {
     resolve(container)
         .unwrap()
-        .into_plan(execution, Fallibility::Infallible)
+        .into_plan(execution, Fallibility::Infallible, Vec::new())
 }
 
 fn errors_of(dependencies: Vec<DependencyDeclaration<&'static str>>) -> Vec<DomainError> {

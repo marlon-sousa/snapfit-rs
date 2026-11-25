@@ -7,7 +7,7 @@ use strum::{EnumIs, EnumTryAs};
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
 
-use super::super::type_inspector::compact_type_tokens;
+use super::super::type_inspector::{compact_type_tokens, is_buildable};
 
 /// One `implementation` setting, or the shape it was written in instead.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -129,30 +129,6 @@ fn not_a_type(written: TokenStream) -> ImplementationMeta {
 
 fn ends_setting(input: ParseStream<'_>) -> bool {
     input.is_empty() || input.peek(syn::Token![,])
-}
-
-/// A type the container can call a constructor of: not a trait object,
-/// and with no `impl Trait` or `_` anywhere in it, which generated code
-/// cannot name.
-fn is_buildable(ty: &syn::Type) -> bool {
-    match ty {
-        syn::Type::Group(group) => is_buildable(&group.elem),
-        syn::Type::Paren(paren) => is_buildable(&paren.elem),
-        syn::Type::TraitObject(_) => false,
-        _ => names_every_type(quote::quote!(#ty)),
-    }
-}
-
-fn names_every_type(tokens: TokenStream) -> bool {
-    tokens.into_iter().all(names_a_type)
-}
-
-fn names_a_type(tree: TokenTree) -> bool {
-    match tree {
-        TokenTree::Ident(word) => word != "impl" && word != "_",
-        TokenTree::Group(group) => names_every_type(group.stream()),
-        TokenTree::Punct(_) | TokenTree::Literal(_) => true,
-    }
 }
 
 /// The tokens up to the next setting, as written.

@@ -6,6 +6,7 @@ mod builder_containers;
 mod codegen_containers;
 mod containers;
 mod dispatch_world;
+mod dispatched_containers;
 mod dispatched_traits;
 mod factory_containers;
 mod fallible_containers;

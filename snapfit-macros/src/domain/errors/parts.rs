@@ -13,8 +13,6 @@ pub(crate) enum Feature {
     Introspection,
     #[display("generic parameters on container '{container}'")]
     GenericContainer { container: ContainerName },
-    #[display("#[dispatch(...)] on dependency '{dependency}'")]
-    Dispatch { dependency: DependencyName },
     #[display("parent dependency 'parent({parent})' on dependency '{dependency}'")]
     ParentDependency {
         parent: DependencyName,
@@ -53,8 +51,7 @@ pub(crate) enum InfallibleBuild {
 impl Feature {
     pub(crate) fn dependency(&self) -> Option<&DependencyName> {
         match self {
-            Self::Dispatch { dependency }
-            | Self::ParentDependency { dependency, .. }
+            Self::ParentDependency { dependency, .. }
             | Self::AsyncDependency { dependency }
             | Self::Transient { dependency }
             | Self::AsyncFactory { dependency }
@@ -134,12 +131,4 @@ pub(crate) enum AttributeProblem {
     RepeatedImplementation,
     #[display("invalid container mode '{_0}': write mode = \"sync\", or leave mode out")]
     InvalidMode(String),
-    #[display("#[dispatch(...)] requires a parenthesized list of implementation types")]
-    DispatchWithoutList,
-    #[display("#[dispatch(...)] requires at least one implementation type")]
-    DispatchWithoutImplementations,
-    #[display("#[dispatch(...)] field type must contain a 'dyn Trait' trait object")]
-    DispatchWithoutTraitObject,
-    #[display("trait object in #[dispatch] must specify a primary trait bound")]
-    DispatchWithoutTrait,
 }

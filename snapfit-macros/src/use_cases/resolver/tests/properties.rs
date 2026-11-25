@@ -99,7 +99,7 @@ proptest! {
     #[test]
     fn every_field_is_built_once_and_after_each_of_its_prerequisites(graph in acyclic_graphs()) {
         let resolved = resolve(container(declarations(&graph))).unwrap();
-        let order: Vec<String> = step_names(&resolved.into_plan(Execution::Sync, Fallibility::Infallible).construction_order)
+        let order: Vec<String> = step_names(&resolved.into_plan::<(), ()>(Execution::Sync, Fallibility::Infallible, Vec::new()).construction_order)
             .into_iter()
             .map(str::to_string)
             .collect();

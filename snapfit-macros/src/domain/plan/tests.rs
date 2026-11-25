@@ -29,6 +29,7 @@ fn singletons_are_listed_in_construction_order_without_transients() {
         Fallibility::Infallible,
         order.clone(),
         order,
+        Vec::<DispatchedTypePlan<(), ()>>::new(),
     );
 
     let names: Vec<_> = plan.singletons().map(|step| step.name.as_str()).collect();

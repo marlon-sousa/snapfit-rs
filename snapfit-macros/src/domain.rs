@@ -4,6 +4,7 @@ mod build;
 mod declaration;
 mod dispatch_plan;
 mod dispatched_trait;
+mod dispatched_type;
 mod errors;
 mod names;
 mod plan;
@@ -11,8 +12,8 @@ mod plan;
 pub(crate) use build::FeatureGate;
 pub(crate) use declaration::{
     BuilderMethods, Construction, Constructor, ContainerDeclaration, DependencyDeclaration,
-    EnumDispatch, Execution, Fallibility, Implementation, Introspection, Lifecycle, Prerequisite,
-    TypeParameters, TypeShape,
+    Execution, Fallibility, Implementation, Introspection, Lifecycle, Prerequisite, TypeParameters,
+    TypeShape,
 };
 pub(crate) use dispatch_plan::{DispatchPlan, ForwardedItem, Rebuilding};
 pub(crate) use dispatched_trait::{
@@ -20,9 +21,14 @@ pub(crate) use dispatched_trait::{
     MethodShape, PlacedItem, Presence, Receiver, ReturnShape, Safety, SelfBound, SelfUse,
     TraitDeclaration, TraitItem, TraitItemDeclaration,
 };
+pub(crate) use dispatched_type::{
+    AttributePosition, Dispatch, DispatchExtension, DispatchedTypeDeclaration, DispatchedTypePlan,
+    Variant, WrittenType,
+};
 pub(crate) use errors::{
-    AsyncProblem, AttributeProblem, DispatchProblem, DispatchSubject, DomainError, DomainErrors,
-    Feature, InfallibleBuild, ItemProblem, TraitObjectProblem,
+    AsyncProblem, AttributeProblem, DispatchAttributeKind, DispatchProblem, DispatchSubject,
+    DomainError, DomainErrors, Feature, InfallibleBuild, ItemProblem, StaticDispatchProblem,
+    TraitObjectProblem,
 };
 pub(crate) use names::{
     ConstantName, ContainerName, DependencyName, FunctionName, MacroName, MethodName, SetterName,

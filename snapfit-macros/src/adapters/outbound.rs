@@ -3,6 +3,7 @@
 
 mod diagnostics;
 mod dispatch_impls;
+mod dispatched_types;
 mod expr;
 mod factories;
 mod getters;
@@ -21,14 +22,19 @@ use crate::adapters::syntax::Plan;
 
 pub(crate) use diagnostics::{Origins, TraitOrigins, fallback_struct};
 pub(crate) use dispatch_impls::emit_dispatch_impls;
+pub(crate) use dispatched_types::emit_aliases;
 
-/// `#[container]` rewrites the struct and adds its impls.
+/// `#[container]` rewrites the struct, declares the types it dispatches
+/// statically, and adds its impls.
 pub(crate) fn emit_container(plan: &Plan) -> TokenStream {
     let struct_def = struct_def::emit_struct_definition(plan);
+    let dispatched_types =
+        dispatched_types::emit_dispatched_types(&plan.dispatched_types, &plan.syntax.vis);
     let impls = emit_impls(plan);
 
     quote! {
         #struct_def
+        #dispatched_types
         #impls
     }
 }

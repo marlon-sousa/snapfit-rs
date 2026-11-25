@@ -1,10 +1,13 @@
 //! Adapter: the factories trait and one inputs struct per factory, when any field has `build = factory`.
 
+use std::rc::Rc;
+
 use heck::ToUpperCamelCase;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::ext::IdentExt;
 
+use super::getters::private_interfaces;
 use crate::adapters::syntax::{FieldSyntax, Plan};
 use crate::domain::{Fallibility, Step};
 
@@ -93,10 +96,7 @@ fn inputs_struct(
         trait_ident(container),
         method_ident(field)
     );
-    let fields = step
-        .prerequisites
-        .iter()
-        .map(|prerequisite| input_field(&prerequisite.syntax));
+    let fields = step.prerequisites.iter().map(Rc::as_ref).map(input_field);
     quote! {
         #[doc = #doc]
         #vis struct #inputs {
@@ -105,11 +105,13 @@ fn inputs_struct(
     }
 }
 
-fn input_field(prerequisite: &FieldSyntax) -> TokenStream {
-    let FieldSyntax { ident, ty, .. } = prerequisite;
+fn input_field(prerequisite: &Step<FieldSyntax>) -> TokenStream {
+    let FieldSyntax { ident, ty, .. } = &prerequisite.syntax;
     let doc = format!("The container's `{}`.", ident.unraw());
+    let allow = private_interfaces(prerequisite);
     quote! {
         #[doc = #doc]
+        #allow
         pub #ident: #ty
     }
 }

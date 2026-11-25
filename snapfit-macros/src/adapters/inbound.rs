@@ -4,6 +4,7 @@
 
 mod build_setting;
 mod darling_models;
+mod dispatch_declarations;
 mod dispatched_trait;
 mod field_parser;
 mod type_inspector;
@@ -23,6 +24,7 @@ use crate::domain::{
     Execution, Introspection, TypeName, TypeParameters,
 };
 use darling_models::{ContainerAttrMeta, UnreadableAttribute};
+use dispatch_declarations::read_dispatch_declarations;
 
 /// `#[container(args)]` on `item`.
 pub(crate) fn parse_attribute(
@@ -30,8 +32,13 @@ pub(crate) fn parse_attribute(
     item: &syn::ItemStruct,
 ) -> Result<Declaration, DomainErrors> {
     let header = container_meta(args, &item.attrs).and_then(|meta| container_header(item, meta));
-    let (mut container, dependencies) = DomainErrors::both(header, parse_fields(&item.fields))?;
+    let dispatch = read_dispatch_declarations(&item.attrs);
+    let fields = parse_fields(&item.fields);
+    let ((mut container, (dispatched_types, extensions)), dependencies) =
+        DomainErrors::both(DomainErrors::both(header, dispatch), fields)?;
     container.dependencies = dependencies;
+    container.dispatched_types = dispatched_types;
+    container.extensions = extensions;
     Ok(container)
 }
 

@@ -37,10 +37,22 @@ fn emit_getter(step: &Step<FieldSyntax>, site: Site<'_>) -> TokenStream {
     } else {
         construct(step, site)
     };
+    let allow = private_interfaces(step);
 
     quote! {
+        #allow
         pub fn #getter(&self) -> #ty {
             #body
         }
+    }
+}
+
+/// A dispatched type may hold an implementation more private than an item
+/// that names it, which rustc reports at the user's own items instead.
+pub(super) fn private_interfaces(step: &Step<FieldSyntax>) -> TokenStream {
+    if step.dispatch.is_static() {
+        quote!(#[allow(private_interfaces)])
+    } else {
+        TokenStream::new()
     }
 }

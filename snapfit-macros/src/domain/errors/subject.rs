@@ -2,6 +2,7 @@
 
 use super::{DispatchProblem, DomainError, Feature};
 use crate::domain::dispatched_trait::ItemPosition;
+use crate::domain::dispatched_type::AttributePosition;
 use crate::domain::names::DependencyName;
 
 impl DomainError {
@@ -14,7 +15,6 @@ impl DomainError {
             | Self::FieldAttribute { dependency, .. }
             | Self::Unannotated { dependency }
             | Self::MultipleLifecycles { dependency }
-            | Self::MultipleDispatches { dependency }
             | Self::ConditionalField { dependency }
             | Self::UnknownBuild { dependency, .. }
             | Self::QuotedBuild { dependency, .. }
@@ -30,6 +30,7 @@ impl DomainError {
             | Self::RepeatedPrerequisite { dependency, .. }
             | Self::DuplicateSetter { dependency, .. } => Some(dependency),
             Self::Async(problem) => Some(problem.dependency()),
+            Self::StaticDispatch(problem) => problem.dependency(),
             Self::RequiresUnstable { feature } | Self::NotYetImplemented { feature } => {
                 feature.dependency()
             }
@@ -39,6 +40,17 @@ impl DomainError {
             | Self::InvalidLeafBuild { .. }
             | Self::ContainerAttribute { .. }
             | Self::DispatchedTrait(_) => None,
+        }
+    }
+}
+
+impl DomainError {
+    /// The container's dispatch attribute the error is about, which the
+    /// diagnostic points at instead of a field or the container's name.
+    pub(crate) fn attribute_position(&self) -> Option<AttributePosition> {
+        match self {
+            Self::StaticDispatch(problem) => problem.position(),
+            _ => None,
         }
     }
 }

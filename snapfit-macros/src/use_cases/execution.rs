@@ -9,8 +9,8 @@ mod tests;
 
 /// The declared mode, or async when any dependency is. A synchronous container
 /// cannot await, so every async dependency it holds is reported.
-pub(crate) fn container_execution<C, F>(
-    container: &ContainerDeclaration<C, F>,
+pub(crate) fn container_execution<C, F, S, T>(
+    container: &ContainerDeclaration<C, F, S, T>,
 ) -> Result<Execution, DomainErrors> {
     let mut async_dependencies = container.dependencies.iter().filter(is_async).peekable();
     match container.mode {
@@ -24,10 +24,10 @@ pub(crate) fn container_execution<C, F>(
     }
 }
 
-fn is_async<F>(dependency: &&DependencyDeclaration<F>) -> bool {
+fn is_async<F, T>(dependency: &&DependencyDeclaration<F, T>) -> bool {
     dependency.execution.is_async()
 }
 
-fn async_in_sync_container<F>(dependency: &DependencyDeclaration<F>) -> DomainError {
+fn async_in_sync_container<F, T>(dependency: &DependencyDeclaration<F, T>) -> DomainError {
     DomainError::Async(AsyncProblem::InSyncContainer(dependency.name.clone()))
 }

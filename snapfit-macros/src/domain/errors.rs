@@ -7,7 +7,10 @@ mod asynchrony;
 mod dispatched_trait;
 mod parts;
 mod sentences;
+mod static_dispatch;
 mod subject;
+#[cfg(test)]
+mod tests;
 mod trait_objects;
 
 use thiserror::Error;
@@ -19,11 +22,9 @@ pub(crate) use asynchrony::AsyncProblem;
 pub(crate) use dispatched_trait::{DispatchProblem, ItemProblem};
 pub(crate) use parts::{AttributeProblem, Feature, InfallibleBuild};
 use sentences::{cycle_sentence, dependencies_noun, join_names};
+pub(crate) use static_dispatch::{DispatchAttributeKind, StaticDispatchProblem};
 pub(crate) use subject::DispatchSubject;
 pub(crate) use trait_objects::TraitObjectProblem;
-
-#[cfg(test)]
-mod tests;
 
 #[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub(crate) enum DomainError {
@@ -74,9 +75,6 @@ pub(crate) enum DomainError {
 
     #[error("field '{dependency}' cannot declare multiple lifecycle attributes")]
     MultipleLifecycles { dependency: DependencyName },
-
-    #[error("field '{dependency}' cannot declare multiple #[dispatch] attributes")]
-    MultipleDispatches { dependency: DependencyName },
 
     #[error(
         "field '{dependency}' cannot use #[cfg] or #[cfg_attr]; conditional dependencies are not supported"
@@ -193,6 +191,9 @@ pub(crate) enum DomainError {
 
     #[error("{0}")]
     DispatchedTrait(DispatchProblem),
+
+    #[error("{0}")]
+    StaticDispatch(StaticDispatchProblem),
 
     #[error("{feature} is planned for a future version of snapfit and is not implemented yet")]
     NotYetImplemented { feature: Feature },

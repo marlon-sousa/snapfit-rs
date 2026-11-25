@@ -6,7 +6,9 @@ use crate::domain::{ContainerDeclaration, DependencyDeclaration, Fallibility};
 mod tests;
 
 /// Fallible when any dependency is, whose error building the container returns.
-pub(crate) fn container_fallibility<C, F>(container: &ContainerDeclaration<C, F>) -> Fallibility {
+pub(crate) fn container_fallibility<C, F, S, T>(
+    container: &ContainerDeclaration<C, F, S, T>,
+) -> Fallibility {
     if container.dependencies.iter().any(is_fallible) {
         Fallibility::Fallible
     } else {
@@ -14,6 +16,6 @@ pub(crate) fn container_fallibility<C, F>(container: &ContainerDeclaration<C, F>
     }
 }
 
-fn is_fallible<F>(dependency: &DependencyDeclaration<F>) -> bool {
+fn is_fallible<F, T>(dependency: &DependencyDeclaration<F, T>) -> bool {
     dependency.fallibility.is_fallible()
 }

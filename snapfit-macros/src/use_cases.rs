@@ -12,6 +12,7 @@ mod forwarding;
 mod leaf;
 mod repeats;
 mod resolver;
+mod static_dispatch;
 
-pub(crate) use derive_container::plan_container;
+pub(crate) use derive_container::{declared_dispatched_types, plan_container};
 pub(crate) use dispatch_trait::plan_dispatch;

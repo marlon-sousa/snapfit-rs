@@ -19,7 +19,9 @@ use super::repeats::{Repeats, repeats};
 /// function `leaf_build` names; only a builder has setters for a label to
 /// name, and each setter takes one dependency; and no field is passed twice
 /// to the same setter.
-pub(crate) fn rule_violations<C, F>(container: &ContainerDeclaration<C, F>) -> Vec<DomainError> {
+pub(crate) fn rule_violations<C, F, S, T>(
+    container: &ContainerDeclaration<C, F, S, T>,
+) -> Vec<DomainError> {
     let leaves = iter::repeat(&container.leaf_constructor).zip(&container.dependencies);
     container
         .dependencies
@@ -32,14 +34,14 @@ pub(crate) fn rule_violations<C, F>(container: &ContainerDeclaration<C, F>) -> V
 /// A fallible field that a `leaf_build` other than `new` would build. Left
 /// to its own `new` instead, the container would say one thing and do
 /// another.
-fn fallible_leaf<F>(
-    (leaf, dependency): (&Constructor, &DependencyDeclaration<F>),
+fn fallible_leaf<F, T>(
+    (leaf, dependency): (&Constructor, &DependencyDeclaration<F, T>),
 ) -> Option<DomainError> {
     (!leaf.is_new() && is_leaf(dependency) && dependency.fallibility.is_fallible())
         .then(|| cannot_fail(&dependency.name, InfallibleBuild::LeafBuild))
 }
 
-fn violations_of<F>(dependency: &DependencyDeclaration<F>) -> Vec<DomainError> {
+fn violations_of<F, T>(dependency: &DependencyDeclaration<F, T>) -> Vec<DomainError> {
     let name = &dependency.name;
     let is_async_transient = dependency.lifecycle.is_transient() && dependency.execution.is_async();
     let async_transient = is_async_transient.then(|| async_transient(name));
@@ -85,7 +87,7 @@ fn cannot_fail(dependency: &DependencyName, build: InfallibleBuild) -> DomainErr
     }
 }
 
-fn repeated_prerequisites<F>(dependency: &DependencyDeclaration<F>) -> Vec<DomainError> {
+fn repeated_prerequisites<F, T>(dependency: &DependencyDeclaration<F, T>) -> Vec<DomainError> {
     iter::repeat(&dependency.name)
         .zip(uses(&dependency.prerequisites).repeated)
         .map(repeated_prerequisite)
@@ -106,7 +108,7 @@ fn repeated_prerequisite(
     }
 }
 
-fn setter_violations<F>(dependency: &DependencyDeclaration<F>) -> Vec<DomainError> {
+fn setter_violations<F, T>(dependency: &DependencyDeclaration<F, T>) -> Vec<DomainError> {
     let name = iter::repeat(&dependency.name);
     match &dependency.construction {
         Some(Construction::Builder(_)) => name

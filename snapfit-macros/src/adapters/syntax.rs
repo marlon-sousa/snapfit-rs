@@ -3,6 +3,7 @@
 
 use crate::domain::{
     ConstructionPlan, ContainerDeclaration, DependencyDeclaration, DispatchAttribute, DispatchPlan,
+    DispatchedTypePlan,
 };
 
 /// The container struct, apart from its fields.
@@ -48,6 +49,13 @@ pub(crate) struct BuilderSyntax {
     pub(crate) finish: syn::Ident,
 }
 
+/// `static_dispatch_for(<Trait> as <Name>)`, as the user wrote it.
+#[derive(Debug, Clone)]
+pub(crate) struct DispatchSyntax {
+    pub(crate) trait_path: syn::Path,
+    pub(crate) name: syn::Ident,
+}
+
 /// A dispatched trait, apart from its items.
 #[derive(Debug, Clone)]
 pub(crate) struct TraitSyntax {
@@ -55,12 +63,14 @@ pub(crate) struct TraitSyntax {
     pub(crate) generics: syn::Generics,
 }
 
-pub(crate) type Declaration = ContainerDeclaration<ContainerSyntax, FieldSyntax>;
+pub(crate) type Declaration =
+    ContainerDeclaration<ContainerSyntax, FieldSyntax, DispatchSyntax, syn::Type>;
 pub(crate) type DispatchDeclaration =
     DispatchAttribute<TraitSyntax, syn::TraitItemFn, syn::TraitItemType>;
 pub(crate) type TraitPlan = DispatchPlan<TraitSyntax, syn::TraitItemFn, syn::TraitItemType>;
-pub(crate) type FieldDeclaration = DependencyDeclaration<FieldSyntax>;
-pub(crate) type Plan = ConstructionPlan<ContainerSyntax, FieldSyntax>;
+pub(crate) type FieldDeclaration = DependencyDeclaration<FieldSyntax, syn::Type>;
+pub(crate) type Plan = ConstructionPlan<ContainerSyntax, FieldSyntax, DispatchSyntax, syn::Type>;
+pub(crate) type DispatchedTypeSyntax = DispatchedTypePlan<DispatchSyntax, syn::Type>;
 
 /// The field attributes snapfit reads, and removes from the struct it writes.
 pub(crate) fn is_snapfit_attribute(attr: &syn::Attribute) -> bool {
@@ -71,7 +81,15 @@ pub(crate) fn is_snapfit_attribute(attr: &syn::Attribute) -> bool {
 
 /// An attribute snapfit writes back as the user wrote it.
 pub(crate) fn is_user_attribute(attr: &&syn::Attribute) -> bool {
-    !is_snapfit_attribute(attr) && !is_container_attribute(attr)
+    !is_snapfit_attribute(attr) && !is_container_attribute(attr) && !is_dispatch_attribute(attr)
+}
+
+/// `static_dispatch_for` or `extend_static_dispatch`, which `#[container]`
+/// reads and removes from the struct it writes.
+pub(crate) fn is_dispatch_attribute(attr: &syn::Attribute) -> bool {
+    ["static_dispatch_for", "extend_static_dispatch"]
+        .iter()
+        .any(|name| attr.path().is_ident(name))
 }
 
 /// `#[container]`, with or without settings.

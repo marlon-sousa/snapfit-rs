@@ -1,6 +1,6 @@
 //! Error: the sentences several errors build from lists of names.
 
-use crate::domain::names::DependencyName;
+use crate::domain::names::{DependencyName, Name, NameKind};
 
 /// "a depends on b, which depends on c, which depends on a", or "a depends
 /// on itself", so that no arrow has to be read aloud.
@@ -17,10 +17,10 @@ fn add_link(sentence: String, name: &DependencyName) -> String {
     format!("{sentence}, which depends on {name}")
 }
 
-pub(super) fn join_names(names: &[DependencyName]) -> String {
+pub(super) fn join_names<K: NameKind>(names: &[Name<K>]) -> String {
     names
         .iter()
-        .map(DependencyName::as_str)
+        .map(Name::as_str)
         .collect::<Vec<_>>()
         .join(", ")
 }

@@ -1,13 +1,14 @@
 //! Adapter: reads one field and its snapfit attributes into a dependency declaration.
 
+use quote::quote;
 use syn::ext::IdentExt;
 
 use super::darling_models::DependencyAttrMeta;
-use super::type_inspector::{dispatched_trait, parse_dispatch_attribute, type_shape};
+use super::type_inspector::{compact_type_tokens, type_shape, written_type};
 use crate::adapters::syntax::FieldDeclaration;
 use crate::domain::{
-    AttributeProblem, DependencyDeclaration, DependencyName, DomainError, DomainErrors,
-    EnumDispatch, Execution, Fallibility, Implementation, Lifecycle, TypeName,
+    DependencyDeclaration, DependencyName, DomainError, DomainErrors, Execution, Fallibility,
+    Implementation, Lifecycle, StaticDispatchProblem, TypeName, Variant,
 };
 
 mod deps;
@@ -21,7 +22,7 @@ mod written;
 
 use super::build_setting::WrittenBuild;
 use deps::Deps;
-use rules::{attribute_error, ensure_unconditional};
+use rules::ensure_unconditional;
 use settings::{read_settings, unreadable_field_attribute};
 use written::{WrittenField, field_syntax};
 
@@ -30,13 +31,11 @@ pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, Domain
     let (name, ident) = field_name(field)?;
     let unconditional = ensure_unconditional(field, &name).map_err(DomainErrors::from);
     let lifecycle = lifecycle_attr(&field.attrs, &name);
-    let dispatch = dispatch_attr(field, &name).map_err(DomainErrors::from);
-    let ((_, lifecycle), dispatch) =
-        DomainErrors::both(DomainErrors::both(unconditional, lifecycle), dispatch)?;
-    let (lifecycle, meta) = match (lifecycle, &dispatch) {
-        (Some(found), _) => found,
-        (None, Some(_)) => (Lifecycle::Singleton, DependencyAttrMeta::default()),
-        (None, None) => return Err(unannotated(&name).into()),
+    let old_dispatch = refuse_old_dispatch(field, &name).map_err(DomainErrors::from);
+    let ((_, lifecycle), _) =
+        DomainErrors::both(DomainErrors::both(unconditional, lifecycle), old_dispatch)?;
+    let Some((lifecycle, meta)) = lifecycle else {
+        return Err(unannotated(&name).into());
     };
     let is_async = meta.is_async;
     let (((build, deps), fallible), implementation) = read_settings(&name, meta)?;
@@ -58,10 +57,9 @@ pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, Domain
     } = deps;
 
     // The type is kept exactly when one is named: the generated code builds it.
-    let named = if implementation.is_some() {
-        Implementation::Named
-    } else {
-        Implementation::OfField
+    let named = match implementation.clone() {
+        Some(ty) => implementation_variant(ty)?,
+        None => Implementation::OfField,
     };
     let written = WrittenField {
         constructor,
@@ -82,9 +80,9 @@ pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, Domain
     dependency.implementation = named;
     dependency.construction = construction;
     dependency.shape = type_shape(&field.ty);
+    dependency.written_type = written_type(&field.ty);
     dependency.prerequisites = siblings;
     dependency.parent_prerequisites = parents;
-    dependency.dispatch = dispatch;
     Ok(dependency)
 }
 
@@ -132,37 +130,25 @@ fn lifecycle_attribute(attr: &syn::Attribute) -> Option<(Lifecycle, &syn::Attrib
     }
 }
 
-fn dispatch_attr(
-    field: &syn::Field,
-    name: &DependencyName,
-) -> Result<Option<EnumDispatch>, DomainError> {
-    let matched: Vec<_> = field
+/// `#[dispatch(...)]`, the syntax planned for static dispatch before
+/// `static_dispatch_for` replaced it, refused whatever it holds.
+fn refuse_old_dispatch(field: &syn::Field, name: &DependencyName) -> Result<(), DomainError> {
+    let marked = field
         .attrs
         .iter()
-        .filter(|attr| attr.path().is_ident("dispatch"))
-        .collect();
-    if matched.len() > 1 {
-        return Err(DomainError::MultipleDispatches {
-            dependency: name.clone(),
-        });
+        .any(|attr| attr.path().is_ident("dispatch"));
+    match marked {
+        true => Err(DomainError::StaticDispatch(
+            StaticDispatchProblem::OldAttribute {
+                dependency: name.clone(),
+            },
+        )),
+        false => Ok(()),
     }
-    matched
-        .first()
-        .map(|attr| {
-            enum_dispatch(attr, &field.ty).map_err(|problem| attribute_error(name, problem))
-        })
-        .transpose()
 }
 
-fn enum_dispatch(attr: &syn::Attribute, ty: &syn::Type) -> Result<EnumDispatch, AttributeProblem> {
-    let implementations = parse_dispatch_attribute(attr)?
-        .into_iter()
-        .map(type_name)
-        .collect::<Result<_, _>>()?;
-    let trait_name = type_name(dispatched_trait(ty)?)?;
-    Ok(EnumDispatch::new(trait_name, implementations))
-}
-
-fn type_name(text: String) -> Result<TypeName, AttributeProblem> {
-    TypeName::new(text).map_err(|_| AttributeProblem::BlankName)
+/// The type `implementation` names, by how it is written.
+fn implementation_variant(ty: syn::Type) -> Result<Implementation<syn::Type>, DomainError> {
+    let name = TypeName::new(compact_type_tokens(quote!(#ty)))?;
+    Ok(Implementation::Named(Variant::new(name, ty)))
 }

@@ -7,5 +7,5 @@ mod syntax;
 
 pub(crate) use inbound::{parse_attribute, read_dispatch_attribute};
 pub(crate) use outbound::{
-    Origins, TraitOrigins, emit_container, emit_dispatch_impls, fallback_struct,
+    Origins, TraitOrigins, emit_aliases, emit_container, emit_dispatch_impls, fallback_struct,
 };

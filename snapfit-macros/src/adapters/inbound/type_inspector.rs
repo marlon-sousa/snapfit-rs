@@ -1,13 +1,11 @@
 //! Adapter: what the field's syn type says about building it, as facts for the domain.
 
-use proc_macro2::TokenStream;
+use proc_macro2::{TokenStream, TokenTree};
 use quote::quote;
-use syn::parse::Parser;
-use syn::punctuated::Punctuated;
 
-use crate::domain::{AttributeProblem, TypeShape};
+use crate::domain::{TypeName, TypeShape, WrittenType};
 
-use trait_objects::{Depth, find_trait_object, trait_object_depth};
+use trait_objects::{Depth, trait_object_depth};
 
 mod trait_objects;
 
@@ -30,24 +28,6 @@ pub(super) fn compact_type_tokens(tokens: TokenStream) -> String {
         text = text.replace(" >", ">");
     }
     text.trim().to_string()
-}
-
-pub(super) fn parse_dispatch_attribute(
-    attr: &syn::Attribute,
-) -> Result<Vec<String>, AttributeProblem> {
-    let syn::Meta::List(list) = &attr.meta else {
-        return Err(AttributeProblem::DispatchWithoutList);
-    };
-    let parsed = Punctuated::<syn::Type, syn::Token![,]>::parse_terminated
-        .parse2(list.tokens.clone())
-        .map_err(|err| AttributeProblem::Unreadable(err.to_string()))?;
-    let impls: Vec<String> = parsed
-        .iter()
-        .map(|ty| compact_type_tokens(quote!(#ty)))
-        .collect();
-    (!impls.is_empty())
-        .then_some(impls)
-        .ok_or(AttributeProblem::DispatchWithoutImplementations)
 }
 
 /// What building a value of `ty` has to know: whether its value, once the
@@ -97,25 +77,61 @@ fn arc_path_inner_type(type_path: &syn::TypePath) -> Option<&syn::Type> {
     }
 }
 
-/// The trait a `#[dispatch(...)]` field's `dyn Trait` names, without its
-/// auto-trait bounds.
-pub(super) fn dispatched_trait(ty: &syn::Type) -> Result<String, AttributeProblem> {
-    find_trait_object(ty)
-        .ok_or(AttributeProblem::DispatchWithoutTraitObject)?
-        .bounds
-        .iter()
-        .find_map(extract_primary_trait_bound)
-        .ok_or(AttributeProblem::DispatchWithoutTrait)
+/// How the type of the field's value, once its own `Arc` is set aside, is
+/// written, also when a macro wraps it.
+pub(super) fn written_type(ty: &syn::Type) -> WrittenType {
+    written_value(arc_inner_type(ty).unwrap_or(ty))
 }
 
-fn extract_primary_trait_bound(bound: &syn::TypeParamBound) -> Option<String> {
-    let syn::TypeParamBound::Trait(trait_bound) = bound else {
-        return None;
-    };
-    if matches!(trait_bound.modifier, syn::TraitBoundModifier::Maybe(_)) {
-        return None;
+fn written_value(ty: &syn::Type) -> WrittenType {
+    match ty {
+        syn::Type::Path(type_path) => written_path(type_path),
+        syn::Type::Group(group) => written_value(&group.elem),
+        _ => WrittenType::Other,
     }
-    let path = &trait_bound.path;
-    let is_auto_marker = path.is_ident("Send") || path.is_ident("Sync") || path.is_ident("Unpin");
-    (!is_auto_marker).then(|| compact_type_tokens(quote!(#path)))
+}
+
+fn written_path(type_path: &syn::TypePath) -> WrittenType {
+    let path = &type_path.path;
+    let Some(last) = path.segments.last() else {
+        return WrittenType::Other;
+    };
+    if type_path.qself.is_some() || !last.arguments.is_none() {
+        return WrittenType::Other;
+    }
+    let Ok(name) = TypeName::new(last.ident.to_string()) else {
+        return WrittenType::Other;
+    };
+    if path.segments.len() == 1 && path.leading_colon.is_none() {
+        WrittenType::Name(name)
+    } else {
+        WrittenType::Path {
+            last: name,
+            written: compact_type_tokens(quote!(#path)),
+        }
+    }
+}
+
+/// A type the container can call a constructor of: not a trait object,
+/// and with no `impl Trait` or `_` anywhere in it, which generated code
+/// cannot name.
+pub(super) fn is_buildable(ty: &syn::Type) -> bool {
+    match ty {
+        syn::Type::Group(group) => is_buildable(&group.elem),
+        syn::Type::Paren(paren) => is_buildable(&paren.elem),
+        syn::Type::TraitObject(_) => false,
+        _ => names_every_type(quote!(#ty)),
+    }
+}
+
+fn names_every_type(tokens: TokenStream) -> bool {
+    tokens.into_iter().all(names_a_type)
+}
+
+fn names_a_type(tree: TokenTree) -> bool {
+    match tree {
+        TokenTree::Ident(word) => word != "impl" && word != "_",
+        TokenTree::Group(group) => names_every_type(group.stream()),
+        TokenTree::Punct(_) | TokenTree::Literal(_) => true,
+    }
 }

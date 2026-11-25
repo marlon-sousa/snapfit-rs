@@ -6,6 +6,7 @@ use derive_new::new;
 use strum::EnumIs;
 
 use crate::domain::declaration::{BuilderMethods, Constructor, Execution, Fallibility, Lifecycle};
+use crate::domain::dispatched_type::{Dispatch, DispatchedTypePlan};
 use crate::domain::names::DependencyName;
 
 #[cfg(test)]
@@ -16,6 +17,12 @@ pub(crate) enum Wrapping {
     None,
     /// The constructor builds `T`, and the field holds `Arc<T>`.
     Arc,
+    /// The constructor builds an implementation, and the field holds its
+    /// variant of the dispatched type.
+    Variant,
+    /// The constructor builds an implementation, and the field holds its
+    /// variant of the dispatched type in an `Arc`.
+    ArcOfVariant,
 }
 
 #[derive(EnumIs, Debug, Clone, PartialEq, Eq)]
@@ -41,12 +48,14 @@ pub(crate) struct Step<F> {
     pub(crate) execution: Execution,
     pub(crate) fallibility: Fallibility,
     pub(crate) call: Call,
+    #[new(default)]
+    pub(crate) dispatch: Dispatch,
     /// The steps whose values are passed to the call, in the order `deps` lists them.
     pub(crate) prerequisites: Vec<Rc<Step<F>>>,
 }
 
 #[derive(new, Debug, PartialEq, Eq)]
-pub(crate) struct ConstructionPlan<C, F> {
+pub(crate) struct ConstructionPlan<C, F, S = (), T = ()> {
     pub(crate) syntax: C,
     pub(crate) execution: Execution,
     /// Whether building the container can fail, which a fallible step makes it.
@@ -55,9 +64,11 @@ pub(crate) struct ConstructionPlan<C, F> {
     pub(crate) construction_order: Vec<Rc<Step<F>>>,
     /// The same steps, in the order the fields are declared.
     pub(crate) declaration_order: Vec<Rc<Step<F>>>,
+    /// In the order their `static_dispatch_for` are written.
+    pub(crate) dispatched_types: Vec<DispatchedTypePlan<S, T>>,
 }
 
-impl<C, F> ConstructionPlan<C, F> {
+impl<C, F, S, T> ConstructionPlan<C, F, S, T> {
     pub(crate) fn singletons(&self) -> impl Iterator<Item = &Step<F>> {
         self.construction_order
             .iter()

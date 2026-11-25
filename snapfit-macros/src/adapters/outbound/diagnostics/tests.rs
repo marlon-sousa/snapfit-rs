@@ -6,6 +6,8 @@ use super::*;
 fn item() -> syn::ItemStruct {
     parse_quote! {
         #[derive(Debug)]
+        #[static_dispatch_for(Store as Stores)]
+        #[extend_static_dispatch(Stores, [Mock])]
         pub struct App {
             /// Settings.
             #[singleton(deps = [missing])]
@@ -18,7 +20,7 @@ fn item() -> syn::ItemStruct {
 #[test]
 fn every_error_becomes_one_compile_error_in_order() {
     let item = item();
-    let origins = Origins::new(&item.ident, &item.fields);
+    let origins = Origins::new(&item);
     let first = DomainError::TupleStruct;
     let second = DomainError::MultipleContainerAttributes;
     let errors = DomainErrors::check(vec![first, second]).unwrap_err();

@@ -23,9 +23,9 @@ impl<F> Outcome<F> {
 }
 
 /// A declaration waiting to be built, and where its field is declared.
-pub(super) struct Declared<F> {
+pub(super) struct Declared<F, T> {
     pub(super) position: usize,
-    pub(super) declaration: DependencyDeclaration<F>,
+    pub(super) declaration: DependencyDeclaration<F, T>,
 }
 
 /// A dependency being built, which the one after it on the path needs.

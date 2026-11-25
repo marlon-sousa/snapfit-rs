@@ -1,8 +1,10 @@
-use quote::format_ident;
+use quote::{format_ident, quote};
 use syn::parse_quote;
 
 use super::*;
-use crate::domain::{Construction, Constructor, FunctionName, Prerequisite, TypeShape};
+use crate::domain::{
+    Construction, Constructor, FunctionName, Prerequisite, TypeShape, WrittenType,
+};
 use crate::test_support::{labelled, prerequisites};
 
 fn message(field: &syn::Field) -> String {
@@ -32,7 +34,10 @@ fn a_singleton_reads_its_prerequisites_execution_and_constructor() {
         )))
     );
     assert_eq!(dependency.shape, TypeShape::Arc);
-    assert_eq!(dependency.dispatch, None);
+    assert_eq!(
+        dependency.written_type,
+        WrittenType::Name(TypeName::new("Database").unwrap())
+    );
 }
 
 #[test]
@@ -64,25 +69,56 @@ fn a_raw_identifier_is_read_without_its_prefix() {
 }
 
 #[test]
-fn a_dispatch_field_is_a_singleton_naming_its_trait_and_implementations() {
+fn a_dispatch_field_is_refused_naming_static_dispatch_for() {
     let field: syn::Field = parse_quote! {
         #[dispatch(PostgresDb, MockDb)]
         db: Arc<dyn Send + Sync + Database>
     };
 
-    let dependency = parse_field(&field).unwrap();
+    let errors: Vec<_> = parse_field(&field).unwrap_err().into_iter().collect();
 
-    assert_eq!(dependency.lifecycle, Lifecycle::Singleton);
     assert_eq!(
-        dependency.dispatch,
-        Some(EnumDispatch::new(
-            TypeName::new("Database").unwrap(),
-            vec![
-                TypeName::new("PostgresDb").unwrap(),
-                TypeName::new("MockDb").unwrap()
-            ],
-        ))
+        errors,
+        [DomainError::StaticDispatch(
+            StaticDispatchProblem::OldAttribute {
+                dependency: DependencyName::new("db").unwrap(),
+            }
+        )]
     );
+}
+
+#[test]
+fn a_field_s_value_type_is_read_as_a_name_a_path_or_neither() {
+    let name = |text: &str| TypeName::new(text).unwrap();
+    let cases: [(syn::Type, WrittenType); 6] = [
+        (parse_quote!(Arc<Db>), WrittenType::Name(name("Db"))),
+        (parse_quote!(Db), WrittenType::Name(name("Db"))),
+        (
+            parse_quote!(::std::sync::Arc<Db>),
+            WrittenType::Name(name("Db")),
+        ),
+        (
+            parse_quote!(Arc<crate::shop::Db>),
+            WrittenType::Path {
+                last: name("Db"),
+                written: "crate::shop::Db".to_owned(),
+            },
+        ),
+        (parse_quote!(Arc<Cache<Db>>), WrittenType::Other),
+        (parse_quote!(Arc<dyn Db>), WrittenType::Other),
+    ];
+    for (ty, expected) in cases {
+        let field: syn::Field = parse_quote! {
+            #[singleton]
+            db: #ty
+        };
+        assert_eq!(
+            parse_field(&field).unwrap().written_type,
+            expected,
+            "{}",
+            quote!(#ty)
+        );
+    }
 }
 
 #[test]

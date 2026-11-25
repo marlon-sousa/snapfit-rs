@@ -1,7 +1,6 @@
 use super::*;
 use crate::domain::{
-    Construction, Constructor, EnumDispatch, Fallibility, FunctionName, Introspection, Lifecycle,
-    TypeName,
+    Construction, Constructor, Fallibility, FunctionName, Introspection, Lifecycle, TypeName,
 };
 use crate::test_support::{builder, container, dependency, prerequisites};
 
@@ -54,19 +53,15 @@ fn a_stable_build_reports_every_unstable_feature_in_declaration_order() {
 
 #[test]
 fn every_build_reports_every_planned_feature() {
-    let mut store = dependency("store", &[]);
-    let store_trait = TypeName::new("Store").unwrap();
-    store.dispatch = Some(EnumDispatch::new(store_trait.clone(), vec![store_trait]));
     let mut audit = dependency("audit", &[]);
     audit.parent_prerequisites = vec![DependencyName::new("db").unwrap()];
-    let mut planned_container = container(vec![store, audit]);
+    let mut planned_container = container(vec![audit]);
     planned_container.parent = Some(TypeName::new("Root").unwrap());
     planned_container.introspection = Introspection::On;
 
     let expected = [
         planned("#[container(parent = ...)]"),
         planned("#[container(introspection = true)]"),
-        planned("#[dispatch(...)] on dependency 'store'"),
         planned("parent dependency 'parent(db)' on dependency 'audit'"),
     ];
     assert_eq!(
