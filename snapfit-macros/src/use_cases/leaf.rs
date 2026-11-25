@@ -4,7 +4,7 @@ use crate::domain::DependencyDeclaration;
 
 /// A synchronous field with no `deps` and no `build` of its own: the
 /// function chosen for every leaf returns at once, so it cannot be awaited.
-pub(crate) fn is_leaf<F>(dependency: &DependencyDeclaration<F>) -> bool {
+pub(crate) fn is_leaf<F, T>(dependency: &DependencyDeclaration<F, T>) -> bool {
     dependency.construction.is_none()
         && dependency.prerequisites.is_empty()
         && dependency.parent_prerequisites.is_empty()

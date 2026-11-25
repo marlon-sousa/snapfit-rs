@@ -4,6 +4,7 @@
 
 mod call;
 mod cycle;
+mod refusals;
 mod resolved_steps;
 mod step;
 #[cfg(test)]
@@ -11,6 +12,7 @@ mod tests;
 mod walk;
 
 use super::repeats::repeats;
+use refusals::{duplicate, unknown_prerequisites};
 pub(crate) use resolved_steps::ResolvedSteps;
 use step::step_of;
 use walk::{Declared, OnPath, Outcome, Placed, is_unknown, name_of_outcome};
@@ -22,6 +24,7 @@ use crate::domain::{
     Constructor, ContainerDeclaration, DependencyDeclaration, DependencyName, DomainError,
     DomainErrors, Step,
 };
+use crate::use_cases::static_dispatch::{DispatchedNames, dispatch_of};
 
 /// Orders and links the steps, or reports every problem the graph of
 /// dependencies has.
@@ -29,16 +32,18 @@ use crate::domain::{
 /// Dependencies are visited in declaration order, each after its
 /// prerequisites, so the construction order follows the fields wherever the
 /// graph allows it.
-pub(crate) fn resolve<C, F>(
-    declaration: ContainerDeclaration<C, F>,
+pub(crate) fn resolve<C, F, S, T>(
+    declaration: ContainerDeclaration<C, F, S, T>,
 ) -> Result<ResolvedSteps<C, F>, DomainErrors> {
     let ContainerDeclaration {
         syntax,
         dependencies,
         leaf_constructor,
+        dispatched_types,
         ..
     } = declaration;
-    let mut resolver = Resolver::new(dependencies, leaf_constructor);
+    let declared = dispatched_types.into_iter().collect();
+    let mut resolver = Resolver::new(dependencies, leaf_constructor, declared);
     for name in resolver.declared.clone() {
         resolver.visit(&name);
     }
@@ -46,10 +51,10 @@ pub(crate) fn resolve<C, F>(
     Ok(ResolvedSteps::new(syntax, resolver.construction_order))
 }
 
-struct Resolver<F> {
+struct Resolver<F, T> {
     /// Field names in declaration order, the first of any duplicates only.
     declared: Vec<DependencyName>,
-    pending: HashMap<DependencyName, Declared<F>>,
+    pending: HashMap<DependencyName, Declared<F, T>>,
     /// The dependencies being built, each needed by the one before it.
     path: Vec<OnPath>,
     built: HashMap<DependencyName, Rc<Step<F>>>,
@@ -58,10 +63,16 @@ struct Resolver<F> {
     errors: Vec<DomainError>,
     /// How a field with no `deps` and no `build` of its own is built.
     leaf: Constructor,
+    /// The names the container's `static_dispatch_for` declare.
+    dispatched: DispatchedNames,
 }
 
-impl<F> Resolver<F> {
-    fn new(dependencies: Vec<DependencyDeclaration<F>>, leaf: Constructor) -> Self {
+impl<F, T> Resolver<F, T> {
+    fn new(
+        dependencies: Vec<DependencyDeclaration<F, T>>,
+        leaf: Constructor,
+        dispatched: DispatchedNames,
+    ) -> Self {
         let mut resolver = Self {
             declared: Vec::with_capacity(dependencies.len()),
             pending: HashMap::with_capacity(dependencies.len()),
@@ -71,6 +82,7 @@ impl<F> Resolver<F> {
             construction_order: Vec::with_capacity(dependencies.len()),
             errors: Vec::new(),
             leaf,
+            dispatched,
         };
         for dependency in dependencies {
             resolver.declare(dependency);
@@ -78,10 +90,9 @@ impl<F> Resolver<F> {
         resolver
     }
 
-    fn declare(&mut self, declaration: DependencyDeclaration<F>) {
+    fn declare(&mut self, declaration: DependencyDeclaration<F, T>) {
         if self.pending.contains_key(&declaration.name) {
-            self.errors
-                .push(DomainError::DuplicateDependency(declaration.name));
+            self.errors.push(duplicate(declaration.name));
             return;
         }
         let position = self.declared.len();
@@ -113,7 +124,7 @@ impl<F> Resolver<F> {
             .map_or(Outcome::Unknown, |declared| self.build(declared))
     }
 
-    fn build(&mut self, declared: Declared<F>) -> Outcome<F> {
+    fn build(&mut self, declared: Declared<F, T>) -> Outcome<F> {
         let Declared {
             position,
             declaration,
@@ -124,10 +135,12 @@ impl<F> Resolver<F> {
         });
         let prerequisites = self.prerequisites_of(&declaration);
         self.path.pop();
-        let call = call::call_for(&declaration, &self.leaf);
+        let dispatched = self.dispatched.held_by(&declaration);
+        let call = call::call_for(&declaration, &self.leaf, dispatched);
         match (prerequisites, call) {
             (Some(prerequisites), Ok(call)) => {
-                self.finish(position, Rc::new(step_of(declaration, call, prerequisites)))
+                let step = step_of(declaration, call, dispatch_of(dispatched), prerequisites);
+                self.finish(position, Rc::new(step))
             }
             (_, call) => {
                 self.errors.extend(call.err());
@@ -142,7 +155,7 @@ impl<F> Resolver<F> {
     /// could be wired.
     fn prerequisites_of(
         &mut self,
-        dependency: &DependencyDeclaration<F>,
+        dependency: &DependencyDeclaration<F, T>,
     ) -> Option<Vec<Rc<Step<F>>>> {
         let outcomes: Vec<_> = dependency
             .prerequisites
@@ -159,11 +172,9 @@ impl<F> Resolver<F> {
         )
         .distinct;
         if !missing.is_empty() {
-            self.errors.push(DomainError::UnknownPrerequisites {
-                available: self.others_than(&dependency.name),
-                dependency: dependency.name.clone(),
-                missing,
-            });
+            let available = self.others_than(&dependency.name);
+            let unknown = unknown_prerequisites(dependency.name.clone(), missing, available);
+            self.errors.push(unknown);
         }
         outcomes.into_iter().map(Outcome::into_step).collect()
     }

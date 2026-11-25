@@ -1,5 +1,5 @@
-//! Adapter: each `implementation` setting of a field attribute, read apart
-//! from the settings darling reads.
+//! Adapter: each `implementation` and `implementations` setting of a field
+//! attribute, read apart from the settings darling reads.
 
 use darling::ast::NestedMeta;
 use proc_macro2::{TokenStream, TokenTree};
@@ -7,11 +7,35 @@ use strum::{EnumIs, EnumTryAs};
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
 
-use super::super::type_inspector::compact_type_tokens;
+use super::super::type_inspector::{compact_type_tokens, is_buildable};
 
-/// One `implementation` setting, or the shape it was written in instead.
+/// One `implementation` or `implementations` setting: which of the two
+/// words, and its value.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(in crate::adapters::inbound) enum ImplementationMeta {
+pub(in crate::adapters::inbound) struct ImplementationMeta {
+    pub(in crate::adapters::inbound) key: ImplementationKey,
+    pub(in crate::adapters::inbound) value: ImplementationValue,
+}
+
+/// The word a setting is written with.
+#[derive(EnumIs, Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::adapters::inbound) enum ImplementationKey {
+    /// `implementation`, the one type the container builds.
+    One,
+    /// `implementations`, the types a factory may return.
+    Several,
+}
+
+/// A setting's value: a type, or a list of types in square brackets.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(in crate::adapters::inbound) enum ImplementationValue {
+    One(ImplementationEntry),
+    List(Vec<ImplementationEntry>),
+}
+
+/// One type an `implementation` setting names, or the shape it was written in instead.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(in crate::adapters::inbound) enum ImplementationEntry {
     Type(syn::Type),
     /// `implementation` with no type: bare, or with an empty value.
     Bare,
@@ -24,8 +48,8 @@ pub(in crate::adapters::inbound) enum ImplementationMeta {
 }
 
 /// The settings of a field attribute in the order written, with each
-/// `implementation` taken out of them, whose value, a type such as
-/// `Cache<Order>`, darling cannot read.
+/// `implementation` and `implementations` taken out of them, whose value,
+/// a type such as `Cache<Order>`, darling cannot read.
 pub(super) struct FieldSettings {
     pub(super) settings: Vec<NestedMeta>,
     pub(super) implementations: Vec<ImplementationMeta>,
@@ -58,44 +82,64 @@ impl Parse for FieldSettings {
 
 impl Parse for Setting {
     fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
-        if !starts_implementation(input) {
+        let Some(key) = implementation_key(input) else {
             return input.parse().map(Self::Other);
-        }
+        };
         input.parse::<syn::Ident>()?;
-        let meta = if input.peek(syn::token::Paren) {
+        let value = if input.peek(syn::token::Paren) {
             let inner;
             syn::parenthesized!(inner in input);
-            in_parentheses(inner.parse()?)
+            ImplementationValue::One(in_parentheses(inner.parse()?))
         } else if input.parse::<Option<syn::Token![=]>>()?.is_some() {
             implementation_value(input)?
         } else {
-            ImplementationMeta::Bare
+            ImplementationValue::One(ImplementationEntry::Bare)
         };
-        Ok(Self::Implementation(meta))
+        Ok(Self::Implementation(ImplementationMeta { key, value }))
     }
 }
 
-fn starts_implementation(input: ParseStream<'_>) -> bool {
-    input
-        .fork()
-        .parse::<syn::Ident>()
-        .is_ok_and(|word| word == "implementation")
+fn implementation_key(input: ParseStream<'_>) -> Option<ImplementationKey> {
+    let word = input.fork().parse::<syn::Ident>().ok()?;
+    match word.to_string().as_str() {
+        "implementation" => Some(ImplementationKey::One),
+        "implementations" => Some(ImplementationKey::Several),
+        _ => None,
+    }
 }
 
-fn in_parentheses(tokens: TokenStream) -> ImplementationMeta {
+fn in_parentheses(tokens: TokenStream) -> ImplementationEntry {
     if tokens.is_empty() {
-        ImplementationMeta::Bare
+        ImplementationEntry::Bare
     } else {
-        ImplementationMeta::InParentheses(compact_type_tokens(tokens))
+        ImplementationEntry::InParentheses(compact_type_tokens(tokens))
     }
 }
 
-/// The value after `implementation =`, up to the next setting.
-fn implementation_value(input: ParseStream<'_>) -> syn::Result<ImplementationMeta> {
+/// The value after `implementation =` or `implementations =`, up to the
+/// next setting: a list when it is one pair of square brackets, and one
+/// type otherwise.
+fn implementation_value(input: ParseStream<'_>) -> syn::Result<ImplementationValue> {
+    if !is_a_list(input) {
+        return entry_value(input).map(ImplementationValue::One);
+    }
+    let inner;
+    syn::bracketed!(inner in input);
+    let entries = inner.parse_terminated(entry_value, syn::Token![,])?;
+    Ok(ImplementationValue::List(entries.into_iter().collect()))
+}
+
+fn is_a_list(input: ParseStream<'_>) -> bool {
+    let fork = input.fork();
+    input.peek(syn::token::Bracket) && fork.parse::<TokenTree>().is_ok() && ends_setting(&fork)
+}
+
+/// One type, up to the next comma.
+fn entry_value(input: ParseStream<'_>) -> syn::Result<ImplementationEntry> {
     if let Some(quoted) = input.parse::<Option<syn::LitStr>>()? {
         return Ok(match quoted.value() {
-            text if text.trim().is_empty() => ImplementationMeta::Bare,
-            text => ImplementationMeta::Quoted(text),
+            text if text.trim().is_empty() => ImplementationEntry::Bare,
+            text => ImplementationEntry::Quoted(text),
         });
     }
     if reads_as_a_whole_type(input) {
@@ -111,48 +155,24 @@ fn reads_as_a_whole_type(input: ParseStream<'_>) -> bool {
     fork.parse::<syn::Type>().is_ok() && ends_setting(&fork)
 }
 
-fn buildable(ty: syn::Type) -> ImplementationMeta {
+fn buildable(ty: syn::Type) -> ImplementationEntry {
     if is_buildable(&ty) {
-        ImplementationMeta::Type(ty)
+        ImplementationEntry::Type(ty)
     } else {
         not_a_type(quote::quote!(#ty))
     }
 }
 
-fn not_a_type(written: TokenStream) -> ImplementationMeta {
+fn not_a_type(written: TokenStream) -> ImplementationEntry {
     if written.is_empty() {
-        ImplementationMeta::Bare
+        ImplementationEntry::Bare
     } else {
-        ImplementationMeta::NotAType(compact_type_tokens(written))
+        ImplementationEntry::NotAType(compact_type_tokens(written))
     }
 }
 
 fn ends_setting(input: ParseStream<'_>) -> bool {
     input.is_empty() || input.peek(syn::Token![,])
-}
-
-/// A type the container can call a constructor of: not a trait object,
-/// and with no `impl Trait` or `_` anywhere in it, which generated code
-/// cannot name.
-fn is_buildable(ty: &syn::Type) -> bool {
-    match ty {
-        syn::Type::Group(group) => is_buildable(&group.elem),
-        syn::Type::Paren(paren) => is_buildable(&paren.elem),
-        syn::Type::TraitObject(_) => false,
-        _ => names_every_type(quote::quote!(#ty)),
-    }
-}
-
-fn names_every_type(tokens: TokenStream) -> bool {
-    tokens.into_iter().all(names_a_type)
-}
-
-fn names_a_type(tree: TokenTree) -> bool {
-    match tree {
-        TokenTree::Ident(word) => word != "impl" && word != "_",
-        TokenTree::Group(group) => names_every_type(group.stream()),
-        TokenTree::Punct(_) | TokenTree::Literal(_) => true,
-    }
 }
 
 /// The tokens up to the next setting, as written.

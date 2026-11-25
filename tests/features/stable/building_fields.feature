@@ -56,7 +56,7 @@ Feature: Choosing how a field is built
     Then compilation should fail with "Unknown field: `bogus`. Available values: `introspection`, `leaf_build`, `mode`, `parent`"
     And compilation should fail with "invalid container mode 'threaded': write mode = "sync", or leave mode out"
     And compilation should fail with "leaf_build = frobnicate cannot build the container's fields that have no deps"
-    And compilation should fail with "field 'cache': Unknown field: `bogus`. Available values: `async`, `build`, `deps`, `fallible`, `implementation`"
+    And compilation should fail with "field 'cache': Unknown field: `bogus`. Available values: `async`, `build`, `deps`, `fallible`, `implementation`, `implementations`"
     And compilation should fail with "build = frobnicate on field 'cache' is not a way to build a field"
     And the compiler should report 5 errors
     And the error should point at line 8 of the fixture

@@ -94,7 +94,7 @@ The report reads from the replica too. Here is how.
 4. **The compiler checks the names.** A setter that doesn't exist, because a name or a label is misspelt, is a compile error with any builder. Naming the same setter twice in one `deps` list is refused by `snapfit` itself, at the field. And with bon, forgetting a setter is a compile error too. That last check comes from bon, whose builders are written as a typestate: the builder's type changes with every setter called, so `build()` only exists once every required setter has been called.
 5. **Other names for the ends.** If a builder starts with something other than `builder()`, or finishes with something other than `build()`, say so with `build = builder(start = make, finish = done)`. You can give either one, or both.
 
-You don't need bon, or any builder crate. The container only calls a starting function, the setters and a finishing function, so a builder you write by hand works just as well, as long as its finishing function returns the value itself, or a `Result` when the field says it can fail, as [Chapter 13](13-when-building-can-fail.md) shows. We still recommend a crate such as bon, for the same reason you'd use any well-tested crate instead of rewriting it: it is less code to maintain. Keep in mind that the missing-setter check comes from typestate builders such as bon's. A builder written by hand only has it if you write it as a typestate too.
+You don't need bon, or any builder crate. The container only calls a starting function, the setters and a finishing function, so a builder you write by hand works just as well, as long as its finishing function returns the value itself, or a `Result` when the field says it can fail, as [Chapter 15](15-when-building-can-fail.md) shows. We still recommend a crate such as bon, for the same reason you'd use any well-tested crate instead of rewriting it: it is less code to maintain. Keep in mind that the missing-setter check comes from typestate builders such as bon's. A builder written by hand only has it if you write it as a typestate too.
 
 ## Which one should I use?
 
@@ -113,7 +113,7 @@ There's a second question hidden in the first one: where should the code that bu
 
 Think of a restaurant. How a dish is cooked belongs to the chef's recipe, whichever restaurant serves it. Which supplier the vegetables come from belongs to the restaurant's manager. Keep each decision where it belongs, and both are easy to change.
 
-A factory builds one field from the inputs its `deps` list. When building it can fail, such as a connection that may be refused, the factory returns a `Result`, as we'll see in [Chapter 13](13-when-building-can-fail.md).
+A factory builds one field from the inputs its `deps` list. When building it can fail, such as a connection that may be refused, the factory returns a `Result`, as we'll see in [Chapter 15](15-when-building-can-fail.md).
 
 ## Every way to build a field
 
@@ -129,7 +129,7 @@ We have now met every way the container can build a field. Here they all are, in
 
 A field that has no `deps` and leaves `build` out is a leaf, and the container builds every leaf the same way. Out of the box, that is `new`, the first row. `#[container(leaf_build = default)]` makes `default` the way for every leaf instead, and `leaf_build = constructor(<fn>)` makes it a constructor of another name. Either way, it is only the default: a field that says `build` itself is built the way it says, as [Chapter 7](07-wiring-dependencies-and-constructors.md) showed.
 
-Two more settings work alongside these. On an `Arc<dyn Trait>` field, `implementation = <Type>` applies the first four rows to the type it names, as we'll see in [Chapter 11](11-choosing-an-implementation.md); a factory builds the field itself, so it can't sit beside `implementation`. And `fallible = true`, which we'll meet in [Chapter 13](13-when-building-can-fail.md), works with every row except two: `build = default`, because `Default::default()` can't fail, and a leaf built by a `leaf_build` other than `constructor(new)`, because the way chosen for every leaf can't fail either. Such a field says `build` itself.
+Two more settings work alongside these. On an `Arc<dyn Trait>` field, `implementation = <Type>` applies the first four rows to the type it names, as we'll see in [Chapter 11](11-choosing-an-implementation.md); a factory builds the field itself, so it can't sit beside `implementation`. And `fallible = true`, which we'll meet in [Chapter 15](15-when-building-can-fail.md), works with every row except two: `build = default`, because `Default::default()` can't fail, and a leaf built by a `leaf_build` other than `constructor(new)`, because the way chosen for every leaf can't fail either. Such a field says `build` itself.
 
 ## Which problem this solves
 

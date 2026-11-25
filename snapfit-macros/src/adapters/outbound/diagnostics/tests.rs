@@ -2,10 +2,13 @@ use quote::quote;
 use syn::parse_quote;
 
 use super::*;
+use crate::domain::DeclarationProblem;
 
 fn item() -> syn::ItemStruct {
     parse_quote! {
         #[derive(Debug)]
+        #[static_dispatch_for(Store as Stores)]
+        #[extend_static_dispatch(Stores, [Mock])]
         pub struct App {
             /// Settings.
             #[singleton(deps = [missing])]
@@ -18,9 +21,9 @@ fn item() -> syn::ItemStruct {
 #[test]
 fn every_error_becomes_one_compile_error_in_order() {
     let item = item();
-    let origins = Origins::new(&item.ident, &item.fields);
-    let first = DomainError::TupleStruct;
-    let second = DomainError::MultipleContainerAttributes;
+    let origins = Origins::new(&item);
+    let first = DomainError::Declaration(DeclarationProblem::TupleStruct);
+    let second = DomainError::Declaration(DeclarationProblem::MultipleContainerAttributes);
     let errors = DomainErrors::check(vec![first, second]).unwrap_err();
 
     let text = origins.compile_errors(&errors).to_string();

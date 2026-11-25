@@ -1,5 +1,8 @@
 use super::*;
-use crate::domain::{ConstructionPlan, Execution, Fallibility, Lifecycle, TypeShape};
+use crate::domain::{
+    ConstructionPlan, DeclarationProblem, Execution, Fallibility, GraphProblem, Lifecycle,
+    TypeShape,
+};
 use crate::test_support::{container, dependency_with, name, names};
 
 mod errors;
@@ -19,7 +22,7 @@ fn plan(
 ) -> ConstructionPlan<(), &'static str> {
     resolve(container)
         .unwrap()
-        .into_plan(execution, Fallibility::Infallible)
+        .into_plan(execution, Fallibility::Infallible, Vec::new())
 }
 
 fn errors_of(dependencies: Vec<DependencyDeclaration<&'static str>>) -> Vec<DomainError> {

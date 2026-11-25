@@ -15,6 +15,8 @@ pub(crate) enum TraitObjectProblem {
     /// the field's own `Arc`.
     ImplementationKeptInside,
     ImplementationWithFactory,
+    /// `implementations` on a field that holds no dispatched type.
+    ImplementationList,
 }
 
 impl TraitObjectProblem {
@@ -35,6 +37,7 @@ impl TraitObjectProblem {
             Self::ImplementationWithoutTraitObject => "names an implementation, but its type holds no trait object; write the trait object as the field's type, such as Arc<dyn PaymentGateway>, or remove implementation".to_owned(),
             Self::ImplementationOutsideArc => "names an implementation, but holds its trait object in something other than an Arc; write the field as an Arc of the trait object, such as Arc<dyn PaymentGateway>, or remove implementation and build the field with build = factory".to_owned(),
             Self::ImplementationKeptInside => "names an implementation, but keeps its trait object inside another type, whose own constructor takes it; give the trait object a field of its own, such as Arc<dyn PaymentGateway> with its implementation, and list that field in deps, or remove implementation".to_owned(),
+            Self::ImplementationList => "names implementations, which only a field of a dispatched type built by build = factory takes; name the one type the container builds with implementation, such as implementation = StripeGateway, or remove implementations".to_owned(),
             Self::ImplementationWithFactory => "names an implementation and is built with build = factory, which returns the field itself; remove implementation, or remove build = factory so that the container builds the implementation".to_owned(),
         }
     }

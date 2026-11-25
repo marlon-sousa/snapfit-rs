@@ -1,7 +1,13 @@
 //! Adapter: the user's own syntax, which the inbound adapter puts in the
 //! declaration and the outbound adapter writes back out.
 
-use crate::domain::{ConstructionPlan, ContainerDeclaration, DependencyDeclaration};
+use derive_new::new;
+
+use crate::domain::{
+    ConstructionPlan, ContainerDeclaration, DependencyDeclaration, DispatchAttribute,
+    DispatchExtension, DispatchPlan, DispatchedTypeDeclaration, DispatchedTypeFallback,
+    DispatchedTypePlan,
+};
 
 /// The container struct, apart from its fields.
 #[derive(Debug, Clone)]
@@ -46,9 +52,40 @@ pub(crate) struct BuilderSyntax {
     pub(crate) finish: syn::Ident,
 }
 
-pub(crate) type Declaration = ContainerDeclaration<ContainerSyntax, FieldSyntax>;
-pub(crate) type FieldDeclaration = DependencyDeclaration<FieldSyntax>;
-pub(crate) type Plan = ConstructionPlan<ContainerSyntax, FieldSyntax>;
+/// `static_dispatch_for(<Trait> as <Name>)`, as the user wrote it.
+#[derive(Debug, Clone)]
+pub(crate) struct DispatchSyntax {
+    pub(crate) trait_path: syn::Path,
+    pub(crate) name: syn::Ident,
+}
+
+/// A dispatched trait, apart from its items.
+#[derive(Debug, Clone)]
+pub(crate) struct TraitSyntax {
+    pub(crate) ident: syn::Ident,
+    pub(crate) generics: syn::Generics,
+}
+
+pub(crate) type Declaration =
+    ContainerDeclaration<ContainerSyntax, FieldSyntax, DispatchSyntax, syn::Type>;
+pub(crate) type DispatchDeclaration =
+    DispatchAttribute<TraitSyntax, syn::TraitItemFn, syn::TraitItemType>;
+pub(crate) type TraitPlan = DispatchPlan<TraitSyntax, syn::TraitItemFn, syn::TraitItemType>;
+pub(crate) type FieldDeclaration = DependencyDeclaration<FieldSyntax, syn::Type>;
+pub(crate) type Plan = ConstructionPlan<ContainerSyntax, FieldSyntax, DispatchSyntax, syn::Type>;
+pub(crate) type DispatchedTypeSyntax = DispatchedTypePlan<DispatchSyntax, syn::Type>;
+pub(crate) type DispatchedTypeFallbackSyntax = DispatchedTypeFallback<DispatchSyntax, syn::Type>;
+pub(crate) type DispatchedTypeDeclarationSyntax = DispatchedTypeDeclaration<DispatchSyntax>;
+pub(crate) type DispatchExtensionSyntax = DispatchExtension<syn::Type>;
+
+/// What of a struct can be read, each part on its own, for the aliases a
+/// refused container still writes.
+#[derive(new, Debug)]
+pub(crate) struct ReadableParts {
+    pub(crate) declarations: Vec<DispatchedTypeDeclarationSyntax>,
+    pub(crate) extensions: Vec<DispatchExtensionSyntax>,
+    pub(crate) fields: Vec<FieldDeclaration>,
+}
 
 /// The field attributes snapfit reads, and removes from the struct it writes.
 pub(crate) fn is_snapfit_attribute(attr: &syn::Attribute) -> bool {
@@ -59,10 +96,24 @@ pub(crate) fn is_snapfit_attribute(attr: &syn::Attribute) -> bool {
 
 /// An attribute snapfit writes back as the user wrote it.
 pub(crate) fn is_user_attribute(attr: &&syn::Attribute) -> bool {
-    !is_snapfit_attribute(attr) && !is_container_attribute(attr)
+    !is_snapfit_attribute(attr) && !is_container_attribute(attr) && !is_dispatch_attribute(attr)
+}
+
+/// `static_dispatch_for` or `extend_static_dispatch`, which `#[container]`
+/// reads and removes from the struct it writes.
+pub(crate) fn is_dispatch_attribute(attr: &syn::Attribute) -> bool {
+    ["static_dispatch_for", "extend_static_dispatch"]
+        .iter()
+        .any(|name| attr.path().is_ident(name))
 }
 
 /// `#[container]`, with or without settings.
 pub(crate) fn is_container_attribute(attr: &syn::Attribute) -> bool {
     attr.path().is_ident("container")
+}
+
+/// `#[cfg(...)]`, which a forwarding item keeps so that it exists exactly
+/// when the trait's own item does.
+pub(crate) fn is_cfg(attr: &&syn::Attribute) -> bool {
+    attr.path().is_ident("cfg")
 }

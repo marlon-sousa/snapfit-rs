@@ -1,5 +1,7 @@
 use super::*;
-use crate::domain::{DomainError, Execution, Lifecycle, TypeShape};
+use crate::domain::{
+    AsyncProblem, DomainError, Execution, FeatureProblem, GraphProblem, Lifecycle, TypeShape,
+};
 use crate::test_support::{container, dependency};
 
 #[test]
@@ -47,17 +49,26 @@ fn refusals_mode_errors_and_graph_errors_are_reported_together() {
         .into_iter()
         .collect();
 
-    assert!(matches!(errors[0], DomainError::RequiresUnstable { .. }));
-    assert!(matches!(errors[1], DomainError::RequiresUnstable { .. }));
+    assert!(matches!(
+        errors[0],
+        DomainError::Feature(FeatureProblem::RequiresUnstable(_))
+    ));
+    assert!(matches!(
+        errors[1],
+        DomainError::Feature(FeatureProblem::RequiresUnstable(_))
+    ));
     assert!(matches!(
         errors[2],
-        DomainError::AsyncDependencyInSyncContainer { .. }
+        DomainError::Async(AsyncProblem::InSyncContainer(_))
     ));
     assert!(matches!(
         errors[3],
-        DomainError::UnknownPrerequisites { .. }
+        DomainError::Graph(GraphProblem::UnknownPrerequisites { .. })
     ));
-    assert!(matches!(errors[4], DomainError::DependencyCycle { .. }));
+    assert!(matches!(
+        errors[4],
+        DomainError::Graph(GraphProblem::Cycle { .. })
+    ));
     assert_eq!(errors.len(), 5);
 }
 

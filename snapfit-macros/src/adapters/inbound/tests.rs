@@ -3,13 +3,16 @@ use syn::parse_quote;
 
 use super::*;
 use crate::domain::{
-    Construction, Constructor, EnumDispatch, Execution, FunctionName, Lifecycle, TypeShape,
+    AttributePosition, Construction, Constructor, Execution, FunctionName, Lifecycle, TypeShape,
+    WrittenType,
 };
 use crate::test_support::{names, prerequisites};
 
 #[test]
 fn every_setting_and_field_is_read_into_the_declaration() {
     let input: syn::ItemStruct = parse_quote! {
+        #[static_dispatch_for(DataStore as Stores)]
+        #[extend_static_dispatch(Stores, [FakeDb])]
         pub struct AppContainer {
             #[singleton]
             config: Arc<Config>,
@@ -23,8 +26,8 @@ fn every_setting_and_field_is_read_into_the_declaration() {
             #[transient(deps = [db])]
             controller: UserController,
 
-            #[dispatch(PostgresDb, MockDb)]
-            store: Arc<dyn DataStore>,
+            #[singleton(implementation = PostgresDb)]
+            store: Arc<Stores>,
         }
     };
 
@@ -65,17 +68,25 @@ fn every_setting_and_field_is_read_into_the_declaration() {
     assert_eq!(controller.lifecycle, Lifecycle::Transient);
     assert_eq!(controller.shape, TypeShape::Value);
 
-    assert_eq!(store.shape, TypeShape::ArcTraitObject);
+    assert_eq!(store.shape, TypeShape::Arc);
     assert_eq!(
-        store.dispatch,
-        Some(EnumDispatch::new(
-            TypeName::new("DataStore").unwrap(),
-            vec![
-                TypeName::new("PostgresDb").unwrap(),
-                TypeName::new("MockDb").unwrap()
-            ],
-        ))
+        store.written_type,
+        WrittenType::Name(TypeName::new("Stores").unwrap())
     );
+    assert!(store.implementation.is_named());
+
+    let [stores] = container.dispatched_types.as_slice() else {
+        panic!("one dispatched type");
+    };
+    assert_eq!(stores.name.as_str(), "Stores");
+    assert_eq!(stores.position, AttributePosition(0));
+    assert_eq!(stores.syntax.name, "Stores");
+    let [extension] = container.extensions.as_slice() else {
+        panic!("one extension");
+    };
+    assert_eq!(extension.name.as_str(), "Stores");
+    assert_eq!(extension.position, AttributePosition(1));
+    assert_eq!(extension.variants.len(), 1);
 }
 
 #[test]

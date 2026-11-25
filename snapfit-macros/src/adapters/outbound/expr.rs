@@ -72,6 +72,14 @@ pub(super) fn construct(step: &Step<FieldSyntax>, site: Site<'_>) -> TokenStream
             })
         }
         (Wrapping::Arc, None) => quote!(::std::sync::Arc::new(#value)),
+        (Wrapping::ArcOfVariant, _) => {
+            let dispatched = &field.arc_inner;
+            quote!(::std::sync::Arc::new(<#dispatched>::of(#value)))
+        }
+        (Wrapping::Variant, _) => {
+            let dispatched = &field.ty;
+            quote!(<#dispatched>::of(#value))
+        }
         (Wrapping::None, _) => value,
     }
 }
@@ -111,12 +119,13 @@ fn factory_call(
 }
 
 /// The type whose function builds the value: the type `implementation`
-/// names, or `T` when the field holds `Arc<T>`.
+/// names, or `T` when the field holds `Arc<T>`. A variant is built only
+/// from the implementation a field names.
 fn target(field: &FieldSyntax, wrapping: Wrapping) -> &syn::Type {
     match (&field.implementation, wrapping) {
         (Some(implementation), _) => implementation,
-        (None, Wrapping::Arc) => &field.arc_inner,
-        (None, Wrapping::None) => &field.ty,
+        (None, Wrapping::Arc | Wrapping::ArcOfVariant) => &field.arc_inner,
+        (None, Wrapping::None | Wrapping::Variant) => &field.ty,
     }
 }
 

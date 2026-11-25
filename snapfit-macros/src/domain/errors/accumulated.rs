@@ -70,10 +70,10 @@ impl IntoIterator for DomainErrors {
     }
 }
 
-impl From<DomainError> for DomainErrors {
-    fn from(first: DomainError) -> Self {
+impl<E: Into<DomainError>> From<E> for DomainErrors {
+    fn from(first: E) -> Self {
         Self {
-            first,
+            first: first.into(),
             rest: Vec::new(),
         }
     }

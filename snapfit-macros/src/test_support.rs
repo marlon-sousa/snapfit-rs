@@ -1,8 +1,18 @@
 //! Test support: the names and declarations that the tests of several modules build.
 
+mod dispatched_types;
+
+pub(crate) use dispatched_types::{
+    declared, dispatched_field, dispatching_container, extended, listing_field, type_name, variant,
+    written_name,
+};
+
 use crate::domain::{
-    BuilderMethods, Construction, ContainerDeclaration, ContainerName, DependencyDeclaration,
-    DependencyName, DomainError, FunctionName, Prerequisite, SetterName,
+    Annotated, BuilderMethods, Construction, ContainerDeclaration, ContainerName,
+    DependencyDeclaration, DependencyName, DispatchArguments, DispatchAttribute, DomainError,
+    Execution, FunctionName, GraphProblem, ItemPosition, MethodName, MethodShape, PlacedItem,
+    Prerequisite, Receiver, ReturnShape, Safety, SelfBound, SelfUse, SetterName, TraitDeclaration,
+    TraitItemDeclaration, TraitName,
 };
 
 pub(crate) fn name(text: &str) -> DependencyName {
@@ -11,10 +21,10 @@ pub(crate) fn name(text: &str) -> DependencyName {
 
 /// A cycle from `start` through `through`, back to `start`.
 pub(crate) fn cycle(start: &str, through: &[&str]) -> DomainError {
-    DomainError::DependencyCycle {
+    DomainError::Graph(GraphProblem::Cycle {
         start: name(start),
         through: names(through),
-    }
+    })
 }
 
 pub(crate) fn names(texts: &[&str]) -> Vec<DependencyName> {
@@ -69,6 +79,70 @@ pub(crate) fn container<F>(
     let mut container = ContainerDeclaration::new(ContainerName::new("App").unwrap(), ());
     container.dependencies = dependencies;
     container
+}
+
+/// A method named `name` of the shape given, synchronous and safe, bounding
+/// `Self` by nothing, whose syntax is its name.
+pub(crate) fn method(
+    name: &str,
+    receiver: Receiver,
+    self_use: SelfUse,
+    returns: ReturnShape,
+) -> TraitItemDeclaration<&str, &str> {
+    TraitItemDeclaration::Method {
+        name: MethodName::new(name).unwrap(),
+        syntax: name,
+        shape: MethodShape::new(
+            receiver,
+            self_use,
+            SelfBound::Sized,
+            returns,
+            Execution::Sync,
+            Safety::Safe,
+        ),
+    }
+}
+
+/// A method taking `&self` that returns a plain type, which forwards as written.
+pub(crate) fn forwardable_method(name: &str) -> TraitItemDeclaration<&str, &str> {
+    method(
+        name,
+        Receiver::Reference,
+        SelfUse::Forwardable,
+        ReturnShape::Plain,
+    )
+}
+
+/// `declaration` as the first item of its trait.
+pub(crate) fn first<'a>(
+    declaration: TraitItemDeclaration<&'a str, &'a str>,
+) -> PlacedItem<&'a str, &'a str> {
+    PlacedItem::new(ItemPosition::new(0), declaration)
+}
+
+/// `#[snapfit::static_dispatch]` with no arguments on a trait named
+/// `Database` holding `items`.
+pub(crate) fn dispatch_attribute<'a>(
+    items: Vec<TraitItemDeclaration<&'a str, &'a str>>,
+) -> DispatchAttribute<(), &'a str, &'a str> {
+    DispatchAttribute::new(
+        DispatchArguments::None,
+        Annotated::Trait(dispatched_trait(items)),
+    )
+}
+
+/// A safe trait named `Database` holding `items`, in order.
+pub(crate) fn dispatched_trait<'a>(
+    items: Vec<TraitItemDeclaration<&'a str, &'a str>>,
+) -> TraitDeclaration<(), &'a str, &'a str> {
+    let items = items.into_iter().enumerate().map(placed).collect();
+    TraitDeclaration::new(TraitName::new("Database").unwrap(), (), Safety::Safe, items)
+}
+
+fn placed<'a>(
+    (position, declaration): (usize, TraitItemDeclaration<&'a str, &'a str>),
+) -> PlacedItem<&'a str, &'a str> {
+    PlacedItem::new(ItemPosition::new(position), declaration)
 }
 
 /// What a `macro_rules!` passes for `$e:expr`: the expression in an invisible group.

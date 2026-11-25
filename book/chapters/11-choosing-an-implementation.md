@@ -102,7 +102,7 @@ Here is what `implementation = StripeGateway` changes, and what it doesn't:
 1. **The container builds the type it names.** It calls `StripeGateway::new()`, wraps the result in an `Arc`, and Rust converts it to `Arc<dyn PaymentGateway>`. `build = constructor(...)`, `build = default` and `build = builder` work as they would for an `Arc<StripeGateway>` field, on `StripeGateway`.
 2. **Everyone else sees the trait.** The field, its getter, and every field that depends on it get `Arc<dyn PaymentGateway>`, the inputs struct of a factory included. Swapping the provider is the word after `implementation`.
 3. **The type must implement the trait.** If it doesn't, the program doesn't compile, and the error points at the type you named.
-4. **The field must be an `Arc` of a trait object.** On any other field, `implementation` is refused at the field, and the message says why.
+4. **The field must be an `Arc` of a trait object.** On any other field, `implementation` is refused at the field, and the message says why. The one other kind of field that takes it is a type the container dispatches statically, which [Chapter 13](13-static-dispatch.md) introduces.
 
 This is the ride app of Chapter 2 again, seen from the rider's phone. The app promises a car, not which model, so you can't ask for the heated seats one model happens to have. That's exactly what lets the company change its fleet without a single rider noticing.
 
@@ -163,6 +163,8 @@ Think of a theatre with an understudy. The play is the same every night, and the
 1. **Name the concrete type in the field when the choice is fixed, and no code outside the container reads the field's getter.** The container needs no code, and a second container covers tests. That's `ShopContainer` and `TestShopContainer` at the start of the chapter.
 2. **Type the field as the trait and name its `implementation` when the choice is fixed, and code that reads the container should see only the trait.** The getter promises only the trait, and a swap is one word.
 3. **Use a factory when the choice is made while the program starts**, typically from configuration. The field is `Arc<dyn PaymentGateway>`, so its getter returns the trait object too.
+
+Every way in this chapter hands the services a trait object. For a closed list of implementations of your own trait, called so often that following the trait object's pointer starts to show, there is one more way, static dispatch, which [Chapter 13](13-static-dispatch.md) teaches and [Chapter 14](14-choosing-static-or-dynamic-dispatch.md) compares with this one.
 
 ## Which problem this solves
 

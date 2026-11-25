@@ -120,7 +120,7 @@ fn every_bad_container_setting_is_reported_beside_one_that_does_not_read() {
             "leaf_build = frobnicate cannot build the container's fields that have no deps; write leaf_build = default, or leaf_build = constructor with the function's name in brackets, such as leaf_build = constructor(open)",
             "invalid container mode 'threaded': write mode = \"sync\", or leave mode out",
             "a type name cannot be blank",
-            "field 'config': Unknown field: `bogus`. Available values: `async`, `build`, `deps`, `fallible`, `implementation`",
+            "field 'config': Unknown field: `bogus`. Available values: `async`, `build`, `deps`, `fallible`, `implementation`, `implementations`",
             "build = frobnicate on field 'config' is not a way to build a field; write build = default, build = factory, build = builder, or build = constructor(frobnicate) to call a function of that name",
         ]
     );

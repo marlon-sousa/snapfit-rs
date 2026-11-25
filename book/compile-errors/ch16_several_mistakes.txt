@@ -1,0 +1,11 @@
+error: unknown dependency 'confg' on field 'db'. You must choose between the dependencies the container can wire: [config, orders, stock]
+  --> book/compile-errors/ch16_several_mistakes.rs:14:5
+   |
+14 |     #[singleton(deps = [confg])]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: dependency cycle: orders depends on stock, which depends on orders
+  --> book/compile-errors/ch16_several_mistakes.rs:17:5
+   |
+17 |     #[singleton(deps = [stock])]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^

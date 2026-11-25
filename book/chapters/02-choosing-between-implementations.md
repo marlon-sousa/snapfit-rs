@@ -15,7 +15,7 @@ name: ch02_choosing_between_implementations
 region: gateways
 ```
 
-Now, how does `OrderService` get one? There are three common ways, and each one teaches us something.
+Now, how does `OrderService` get one? There are four common ways, and each one teaches us something.
 
 ## First try: a list of options
 
@@ -56,7 +56,20 @@ region: trait_object
 
 There is a small price. Calling through a trait object means following one more pointer on each call, and the compiler usually can't inline the call. For a service that talks to a database or a payment provider, that cost is tiny next to the call itself. A good rule of thumb: use a type parameter where every nanosecond counts, and a trait object where it keeps the code simpler.
 
-## All three, side by side
+## Fourth try: an enum that forwards
+
+Can we have both: one type that doesn't spread, and calls the compiler can see through? We can, if we know every gateway in advance. Let's write an enum with one variant per gateway, and implement the trait for the enum itself. Each method looks at which variant it holds, and calls that gateway:
+
+```example
+name: ch02_choosing_between_implementations
+region: enum
+```
+
+`OrderServiceWithEnum` holds a `Gateway`, so its type never changes, and nothing above it needs a parameter. Whoever builds the service chooses the variant, so the choice is out of the service, as with the last two tries. And a call is a `match` over two cases that the compiler can see in full, so it can inline the gateway's code, as it does for a type parameter.
+
+The list is closed again, but it lives in one place now, outside the service: adding PayPal means a new variant, not a change to `OrderServiceWithEnum`. What we pay is the `match` itself. Our trait has one method and two gateways, so we wrote two arms. A trait with five methods and four implementations needs twenty arms, each of which does nothing but pass the call along, and every new implementation adds an arm to every method. It's like a switchboard operator who connects each call by hand: quick, as long as the board is small, and every new line means rewiring the board.
+
+## All four, side by side
 
 ```example
 name: ch02_choosing_between_implementations
@@ -71,7 +84,7 @@ name: ch02_choosing_between_implementations
 
 ## The choice didn't go away
 
-With the type parameter and with the trait object, the service receives its gateway instead of building it. That already fixes two problems from the last chapter: the service is no longer coupled to Stripe, and a test can hand it the fake.
+With the type parameter, the trait object and the enum, the service receives its gateway instead of building it. That already fixes two problems from the last chapter: the service is no longer coupled to Stripe, and a test can hand it the fake.
 
 But look at `main`. Somebody still writes `StripeGateway`, builds it, and passes it in. We moved the decision out of the service; we didn't make it disappear. And as the shop grows, whoever makes these decisions has more and more to build. The next chapter looks at who that is.
 
@@ -79,4 +92,5 @@ But look at `main`. Somebody still writes `StripeGateway`, builds it, and passes
 
 1. **A closed list.** A service that picks from a list of implementations can be tested, but it still knows every implementation, and adding one means editing it.
 2. **Spreading type parameters.** A type parameter costs nothing when the program runs, but it spreads to every type that holds the service.
-3. **Someone still has to choose.** A service that receives its dependencies no longer decides which ones it gets, so something else has to build them and pass them in.
+3. **Forwarding by hand.** An enum that implements the trait keeps the list in one place, outside the service, and its calls can be inlined like a type parameter's, but every method passes every call along by hand, and every new implementation adds an arm to each of them.
+4. **Someone still has to choose.** A service that receives its dependencies no longer decides which ones it gets, so something else has to build them and pass them in.

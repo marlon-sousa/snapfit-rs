@@ -7,7 +7,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 
 use super::type_inspector::compact_type_tokens;
-use crate::domain::AttributeProblem;
+use crate::domain::ArgumentProblem;
 
 mod build_meta;
 mod expressions;
@@ -22,7 +22,9 @@ pub(super) use expressions::single_word;
 use expressions::ungrouped;
 pub(super) use fallible_meta::FallibleMeta;
 use implementation_meta::FieldSettings;
-pub(super) use implementation_meta::ImplementationMeta;
+pub(super) use implementation_meta::{
+    ImplementationEntry, ImplementationKey, ImplementationMeta, ImplementationValue,
+};
 pub(super) use prerequisites::{PrerequisiteEntry, PrerequisiteList, PrerequisiteMeta};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, FromMeta)]
@@ -84,6 +86,9 @@ pub(super) struct DependencyAttrMeta {
     /// `implementation` out of the settings it offers.
     #[darling(default, rename = "implementation")]
     implementation_name: Option<darling::util::Ignored>,
+    /// Never filled, as `implementation_name`.
+    #[darling(default, rename = "implementations")]
+    implementations_name: Option<darling::util::Ignored>,
 }
 
 impl DependencyAttrMeta {
@@ -91,7 +96,7 @@ impl DependencyAttrMeta {
         match &attr.meta {
             syn::Meta::Path(_) => Ok(Self::default()),
             syn::Meta::List(list) => Self::from_tokens(list.tokens.clone()),
-            syn::Meta::NameValue(_) => Err(UnreadableAttribute::new(AttributeProblem::Assigned)),
+            syn::Meta::NameValue(_) => Err(UnreadableAttribute::new(ArgumentProblem::Assigned)),
         }
     }
 
@@ -126,7 +131,7 @@ impl DependencyAttrMeta {
 /// its own, whose problems darling's problem with the rest leaves out.
 #[derive(new, Debug)]
 pub(super) struct UnreadableAttribute<Settings> {
-    pub(super) problem: AttributeProblem,
+    pub(super) problem: ArgumentProblem,
     /// One value per readable setting, holding that setting alone, in the order written.
     #[new(default)]
     pub(super) settings: Vec<Settings>,
@@ -157,6 +162,6 @@ fn read_alone<Settings: FromMeta>(setting: &NestedMeta) -> Option<Settings> {
     Settings::from_list(std::slice::from_ref(setting)).ok()
 }
 
-fn unreadable(err: impl std::fmt::Display) -> AttributeProblem {
-    AttributeProblem::Unreadable(err.to_string())
+fn unreadable(err: impl std::fmt::Display) -> ArgumentProblem {
+    ArgumentProblem::Unreadable(err.to_string())
 }

@@ -1,7 +1,7 @@
 //! Policy: how a cycle found by the walk is told.
 
 use super::walk::OnPath;
-use crate::domain::DomainError;
+use crate::domain::{DomainError, GraphProblem};
 
 /// `members` each need the next, and the last needs the first. The cycle is
 /// told from its member declared first, wherever the walk entered it.
@@ -19,8 +19,11 @@ pub(super) fn cycle_through<'a>(members: impl Iterator<Item = &'a OnPath>) -> Op
         .take(members.len())
         .map(|member| member.name.clone());
     let start = cycle.next()?;
-    Some(DomainError::DependencyCycle {
-        start,
-        through: cycle.collect(),
-    })
+    Some(
+        GraphProblem::Cycle {
+            start,
+            through: cycle.collect(),
+        }
+        .into(),
+    )
 }

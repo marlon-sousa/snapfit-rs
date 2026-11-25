@@ -1,7 +1,11 @@
-//! Adapter: reads the user's struct, through syn and darling, into a container declaration.
+//! Adapter: reads the user's struct, through syn and darling, into a container
+//! declaration, and the item `#[snapfit::static_dispatch]` is on into a
+//! dispatch attribute.
 
 mod build_setting;
 mod darling_models;
+mod dispatch_declarations;
+mod dispatched_trait;
 mod field_parser;
 mod type_inspector;
 
@@ -10,14 +14,19 @@ mod tests;
 
 use proc_macro2::TokenStream;
 
+pub(crate) use dispatched_trait::read_dispatch_attribute;
+
 use crate::adapters::syntax::{
-    ContainerSyntax, Declaration, FieldDeclaration, is_container_attribute, is_user_attribute,
+    ContainerSyntax, Declaration, FieldDeclaration, ReadableParts, is_container_attribute,
+    is_user_attribute,
 };
 use crate::domain::{
-    AttributeProblem, Constructor, ContainerDeclaration, ContainerName, DomainError, DomainErrors,
-    Execution, Introspection, TypeName, TypeParameters,
+    ArgumentProblem, AttributeProblem, Constructor, ContainerDeclaration, ContainerName,
+    DeclarationProblem, DomainError, DomainErrors, Execution, Introspection, TypeName,
+    TypeParameters,
 };
 use darling_models::{ContainerAttrMeta, UnreadableAttribute};
+use dispatch_declarations::{read_dispatch_declarations, read_readable_dispatch_declarations};
 
 /// `#[container(args)]` on `item`.
 pub(crate) fn parse_attribute(
@@ -25,9 +34,26 @@ pub(crate) fn parse_attribute(
     item: &syn::ItemStruct,
 ) -> Result<Declaration, DomainErrors> {
     let header = container_meta(args, &item.attrs).and_then(|meta| container_header(item, meta));
-    let (mut container, dependencies) = DomainErrors::both(header, parse_fields(&item.fields))?;
+    let dispatch = read_dispatch_declarations(&item.attrs);
+    let fields = parse_fields(&item.fields);
+    let ((mut container, (dispatched_types, extensions)), dependencies) =
+        DomainErrors::both(DomainErrors::both(header, dispatch), fields)?;
     container.dependencies = dependencies;
+    container.dispatched_types = dispatched_types;
+    container.extensions = extensions;
     Ok(container)
+}
+
+/// The [`ReadableParts`] of `item`.
+pub(crate) fn read_readable_parts(item: &syn::ItemStruct) -> ReadableParts {
+    let (declarations, extensions) = read_readable_dispatch_declarations(&item.attrs);
+    let fields = item
+        .fields
+        .iter()
+        .map(field_parser::parse_field)
+        .filter_map(Result::ok)
+        .collect();
+    ReadableParts::new(declarations, extensions, fields)
 }
 
 /// The container's name and settings, or every setting that cannot be read.
@@ -118,9 +144,10 @@ fn execution_of(mode: &str) -> Result<Execution, DomainError> {
     match mode {
         "sync" => Ok(Execution::Sync),
         "async" => Ok(Execution::Async),
-        other => Err(DomainError::ContainerAttribute {
-            problem: AttributeProblem::InvalidMode(other.to_string()),
-        }),
+        other => Err(AttributeProblem::Container {
+            problem: ArgumentProblem::InvalidMode(other.to_string()),
+        }
+        .into()),
     }
 }
 
@@ -131,7 +158,7 @@ fn container_meta(
     attrs: &[syn::Attribute],
 ) -> Result<ContainerAttrMeta, DomainErrors> {
     if attrs.iter().any(is_container_attribute) {
-        return Err(DomainError::MultipleContainerAttributes.into());
+        Err(DeclarationProblem::MultipleContainerAttributes)?;
     }
     ContainerAttrMeta::from_tokens(args).map_err(unreadable_container_attribute)
 }
@@ -143,7 +170,10 @@ fn unreadable_container_attribute(
     let UnreadableAttribute { problem, settings } = unreadable;
     let found = settings.into_iter().map(container_settings);
     let rest = found.filter_map(Result::err).flatten();
-    DomainErrors::new(DomainError::ContainerAttribute { problem }, rest.collect())
+    DomainErrors::new(
+        AttributeProblem::Container { problem }.into(),
+        rest.collect(),
+    )
 }
 
 fn parse_fields(fields: &syn::Fields) -> Result<Vec<FieldDeclaration>, DomainErrors> {
@@ -152,6 +182,6 @@ fn parse_fields(fields: &syn::Fields) -> Result<Vec<FieldDeclaration>, DomainErr
             DomainErrors::collect(named.named.iter().map(field_parser::parse_field))
         }
         syn::Fields::Unit => Ok(Vec::new()),
-        syn::Fields::Unnamed(_) => Err(DomainError::TupleStruct.into()),
+        syn::Fields::Unnamed(_) => Err(DeclarationProblem::TupleStruct)?,
     }
 }

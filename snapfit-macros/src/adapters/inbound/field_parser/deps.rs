@@ -7,7 +7,7 @@ use syn::ext::IdentExt;
 use super::super::darling_models::{PrerequisiteEntry, PrerequisiteList, PrerequisiteMeta};
 use super::rules::attribute_error;
 use crate::domain::{
-    AttributeProblem, DependencyName, DomainError, DomainErrors, Prerequisite, SetterName,
+    ArgumentProblem, DependencyName, DomainError, DomainErrors, Prerequisite, SetterName,
 };
 
 #[cfg(test)]
@@ -60,7 +60,7 @@ fn read_entry(name: &DependencyName, entry: PrerequisiteEntry) -> Result<Read, D
         .map_err(|problem| attribute_error(name, problem).into())
 }
 
-fn read_meta(entry: PrerequisiteMeta) -> Result<Read, AttributeProblem> {
+fn read_meta(entry: PrerequisiteMeta) -> Result<Read, ArgumentProblem> {
     match entry {
         PrerequisiteMeta::Parent(parent) => dependency_name(parent).map(Read::Parent),
         sibling => prerequisite(sibling).map(Read::Sibling),
@@ -79,7 +79,7 @@ fn setter(entry: &PrerequisiteMeta) -> Option<syn::Ident> {
     }
 }
 
-fn prerequisite(entry: PrerequisiteMeta) -> Result<Prerequisite, AttributeProblem> {
+fn prerequisite(entry: PrerequisiteMeta) -> Result<Prerequisite, ArgumentProblem> {
     match entry {
         PrerequisiteMeta::Labelled { label, name } => Ok(Prerequisite {
             field: dependency_name(name)?,
@@ -89,10 +89,10 @@ fn prerequisite(entry: PrerequisiteMeta) -> Result<Prerequisite, AttributeProble
     }
 }
 
-fn dependency_name(text: String) -> Result<DependencyName, AttributeProblem> {
+fn dependency_name(text: String) -> Result<DependencyName, ArgumentProblem> {
     DependencyName::new(text).map_err(blank)
 }
 
-fn blank(_: DomainError) -> AttributeProblem {
-    AttributeProblem::BlankName
+fn blank(_: DomainError) -> ArgumentProblem {
+    ArgumentProblem::BlankName
 }

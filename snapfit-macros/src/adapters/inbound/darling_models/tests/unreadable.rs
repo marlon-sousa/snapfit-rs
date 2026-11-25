@@ -16,15 +16,12 @@ fn each_setting_that_reads_alone_is_kept_when_another_does_not_read() {
     )]);
     let unreadable = DependencyAttrMeta::from_attribute(&attr).unwrap_err();
 
-    assert!(matches!(
-        unreadable.problem,
-        AttributeProblem::Unreadable(_)
-    ));
+    assert!(matches!(unreadable.problem, ArgumentProblem::Unreadable(_)));
     let kept = unreadable.settings;
     assert_eq!(kept.len(), 4, "{kept:?}");
     assert_eq!(
         kept[0].deps.0,
-        [Err(AttributeProblem::NotAField("config + 1".to_string()))]
+        [Err(ArgumentProblem::NotAField("config + 1".to_string()))]
     );
     assert_eq!(
         kept[1].build,
@@ -36,9 +33,7 @@ fn each_setting_that_reads_alone_is_kept_when_another_does_not_read() {
     );
     assert_eq!(
         kept[3].deps.0,
-        [Err(AttributeProblem::NotALabel(
-            "a::b = config".to_string()
-        ))]
+        [Err(ArgumentProblem::NotALabel("a::b = config".to_string()))]
     );
 }
 
@@ -62,10 +57,7 @@ fn each_container_setting_that_reads_alone_is_kept_when_another_does_not_read() 
         ContainerAttrMeta::from_tokens(quote!(leaf_build = frobnicate, bogus, mode = "turbo"))
             .unwrap_err();
 
-    assert!(matches!(
-        unreadable.problem,
-        AttributeProblem::Unreadable(_)
-    ));
+    assert!(matches!(unreadable.problem, ArgumentProblem::Unreadable(_)));
     assert_eq!(
         unreadable.settings,
         [

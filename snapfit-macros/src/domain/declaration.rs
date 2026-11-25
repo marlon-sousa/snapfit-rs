@@ -7,10 +7,14 @@
 use derive_new::new;
 use strum::EnumIs;
 
+use crate::domain::dispatched_type::{DispatchExtension, DispatchedTypeDeclaration, WrittenType};
 use crate::domain::names::{ContainerName, DependencyName, FunctionName, SetterName, TypeName};
 
+mod field_type;
 #[cfg(test)]
 mod tests;
+
+pub(crate) use field_type::{Implementation, TypeShape};
 
 #[derive(EnumIs, Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub(crate) enum Lifecycle {
@@ -25,7 +29,7 @@ pub(crate) enum Lifecycle {
 pub(crate) enum Execution {
     #[default]
     Sync,
-    /// Awaited, and its error returned from the container's `init`.
+    /// Awaited; for a dependency, its error is returned from the container's `init`.
     Async,
 }
 
@@ -95,37 +99,6 @@ impl Constructor {
     }
 }
 
-/// What the field's type is, as far as building it goes.
-#[derive(EnumIs, Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub(crate) enum TypeShape {
-    #[default]
-    Value,
-    /// `Arc<T>`, whose `T` is the type the constructor belongs to.
-    Arc,
-    /// `Arc<dyn Trait>`, which holds the value of the implementation the
-    /// field names.
-    ArcTraitObject,
-    /// Any other type whose value is a trait object, which has no
-    /// constructor of its own.
-    TraitObject,
-    /// A value that keeps a trait object deeper in its type arguments, such
-    /// as behind a pointer of its own, which its constructor takes.
-    KeepsTraitObject,
-    /// `Arc<T>` whose `T` keeps a trait object deeper in its type arguments.
-    ArcKeepsTraitObject,
-}
-
-/// Which type the container builds a field's value as.
-#[derive(EnumIs, Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub(crate) enum Implementation {
-    /// The field's own type, or `T` when the field holds `Arc<T>`.
-    #[default]
-    OfField,
-    /// The type of `implementation = ...`, whose value the field's trait
-    /// object holds.
-    Named,
-}
-
 /// Whether the container struct declares type or lifetime parameters.
 #[derive(EnumIs, Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub(crate) enum TypeParameters {
@@ -141,15 +114,8 @@ pub(crate) enum Introspection {
     On,
 }
 
-/// `#[dispatch(...)]`: the implementations an enum would dispatch to.
 #[derive(new, Debug, Clone, PartialEq, Eq)]
-pub(crate) struct EnumDispatch {
-    pub(crate) trait_name: TypeName,
-    pub(crate) implementations: Vec<TypeName>,
-}
-
-#[derive(new, Debug, Clone, PartialEq, Eq)]
-pub(crate) struct DependencyDeclaration<F> {
+pub(crate) struct DependencyDeclaration<F, T = ()> {
     pub(crate) name: DependencyName,
     pub(crate) syntax: F,
     #[new(default)]
@@ -164,7 +130,9 @@ pub(crate) struct DependencyDeclaration<F> {
     #[new(default)]
     pub(crate) shape: TypeShape,
     #[new(default)]
-    pub(crate) implementation: Implementation,
+    pub(crate) written_type: WrittenType,
+    #[new(default)]
+    pub(crate) implementation: Implementation<T>,
     /// The siblings the field is built from: passed to a constructor in order,
     /// by name to a factory, and each to its own setter of a builder.
     #[new(default)]
@@ -172,12 +140,10 @@ pub(crate) struct DependencyDeclaration<F> {
     /// `parent(name)` entries of `deps`, which name a parent container's dependency.
     #[new(default)]
     pub(crate) parent_prerequisites: Vec<DependencyName>,
-    #[new(default)]
-    pub(crate) dispatch: Option<EnumDispatch>,
 }
 
 #[derive(new, Debug, Clone, PartialEq, Eq)]
-pub(crate) struct ContainerDeclaration<C, F> {
+pub(crate) struct ContainerDeclaration<C, F, S = (), T = ()> {
     pub(crate) name: ContainerName,
     pub(crate) syntax: C,
     #[new(default)]
@@ -194,5 +160,11 @@ pub(crate) struct ContainerDeclaration<C, F> {
     pub(crate) leaf_constructor: Constructor,
     /// In the order the fields are declared.
     #[new(default)]
-    pub(crate) dependencies: Vec<DependencyDeclaration<F>>,
+    pub(crate) dependencies: Vec<DependencyDeclaration<F, T>>,
+    /// Each `static_dispatch_for`, in the order written.
+    #[new(default)]
+    pub(crate) dispatched_types: Vec<DispatchedTypeDeclaration<S>>,
+    /// Each `extend_static_dispatch` present in the build, in the order written.
+    #[new(default)]
+    pub(crate) extensions: Vec<DispatchExtension<T>>,
 }

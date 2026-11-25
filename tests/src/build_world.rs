@@ -2,6 +2,7 @@
 
 use crate::build_containers::{archive, generated, leaves, named};
 use crate::builder_containers::{catalog, handmade, site};
+use crate::dispatch_world::DispatchRuns;
 use crate::factory_containers::{orders, payments};
 use crate::fallible_world::FallibleRuns;
 use crate::swap_world::SwapRuns;
@@ -18,6 +19,7 @@ pub struct BuildContainers {
     reports: Option<handmade::Reports>,
     office: Option<generated::Office>,
     front_desk: Option<generated::FrontDesk>,
+    pub dispatch: DispatchRuns,
     pub fallible: FallibleRuns,
     pub swaps: SwapRuns,
 }

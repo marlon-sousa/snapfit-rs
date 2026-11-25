@@ -1,14 +1,24 @@
 # Cheat sheet
 
-Every container attribute and field attribute in `snapfit` `0.2`, with a link to the chapter that teaches it.
+Every container attribute and field attribute in `snapfit` `0.3`, with a link to the chapter that teaches it.
 
 ## Container attributes (`#[container(...)]`)
 
 | Declaration | What it does | Taught in |
 | :--- | :--- | :--- |
-| `#[container]` | Keeps the struct as written (attributes, docs, visibility), builds each field after the fields it needs, and generates `new()`, `Default`, `Container`, and `get_<name>()` methods; with a fallible field, `try_new()` and `FallibleContainer` instead of `new()`, `Default` and `Container`. | [Chapter 5](05-installing-and-first-singleton.md), [Chapter 13](13-when-building-can-fail.md) |
-| `#[container(leaf_build = default)]` | Builds every field with no `deps` and no `build` of its own with `Default`; a field's own `build` always wins. Without it, such fields call `new()`. A fallible field can't be one of them: give it a `build` of its own. | [Chapter 7](07-wiring-dependencies-and-constructors.md), [Chapter 13](13-when-building-can-fail.md) |
+| `#[container]` | Keeps the struct as written (attributes, docs, visibility), builds each field after the fields it needs, and generates `new()`, `Default`, `Container`, and `get_<name>()` methods; with a fallible field, `try_new()` and `FallibleContainer` instead of `new()`, `Default` and `Container`. | [Chapter 5](05-installing-and-first-singleton.md), [Chapter 15](15-when-building-can-fail.md) |
+| `#[container(leaf_build = default)]` | Builds every field with no `deps` and no `build` of its own with `Default`; a field's own `build` always wins. Without it, such fields call `new()`. A fallible field can't be one of them: give it a `build` of its own. | [Chapter 7](07-wiring-dependencies-and-constructors.md), [Chapter 15](15-when-building-can-fail.md) |
 | `#[container(leaf_build = constructor(<fn>))]` | Builds those same fields with `<Type>::<fn>()`; `constructor(new)` is what a container does without `leaf_build`. Unless `<fn>` is `new`, a fallible field can't be one of them. | [Chapter 7](07-wiring-dependencies-and-constructors.md) |
+
+## Static dispatch
+
+| Declaration | What it does | Taught in |
+| :--- | :--- | :--- |
+| `#[snapfit::static_dispatch]` on a trait | Implements the trait for `snapfit`'s dispatch types, in the trait's module, forwarding every method through a `match`. Written once, where the trait is defined; the trait must be of your own crate. | [Chapter 13](13-static-dispatch.md) |
+| `#[static_dispatch_for(PriceRule as Prices)]` under `#[container]` | Declares `Prices`, a type alias with the container's visibility, for the implementations that the `implementation` of the fields typed `Prices` or `Arc<Prices>` name. | [Chapter 13](13-static-dispatch.md) |
+| `#[singleton(deps = [config], build = factory, implementations = [ListPrice, SalePrice])]` on a field typed `Arc<Prices>` | Lists the implementations the field's factory may return, always in square brackets, even one, and adds them to the list of `Prices`. | [Chapter 13](13-static-dispatch.md) |
+| `#[cfg_attr(test, extend_static_dispatch(Prices, [FixedPrice]))]` | Adds implementations where the condition holds, such as test stand-ins; written without `cfg_attr`, adds them to every build. Extensions only add. | [Chapter 13](13-static-dispatch.md) |
+| `Prices::of(value)` | Puts an implementation in its variant; a type not on the list doesn't compile. | [Chapter 13](13-static-dispatch.md) |
 
 ## Ways to build a field (`build = ...`)
 
@@ -30,8 +40,9 @@ A leaf is a field with no `deps` and no `build` of its own. `leaf_build` sets ho
 | `#[singleton(deps = [a, b])]` | Stored in container; cloned on `get_<name>()`. | `<Type>::new(a.clone(), b.clone())`. | [Chapter 7](07-wiring-dependencies-and-constructors.md) |
 | `#[singleton(build = default)]` | Stored in container; cloned on `get_<name>()`. | `<Type>::default()`; no `deps` allowed. | [Chapter 7](07-wiring-dependencies-and-constructors.md) |
 | `#[singleton(deps = [a], build = constructor(from_a))]` | Stored in container; cloned on `get_<name>()`. | `<Type>::from_a(a.clone())`. | [Chapter 7](07-wiring-dependencies-and-constructors.md) |
-| `#[singleton(deps = [a, b], build = factory)]` | Stored in container; cloned on `get_<name>()`. | `<Container>Factories::build_<name>(<Container><Name>Inputs { a: a.clone(), b: b.clone() })`, which you implement; the field may be a trait object. | [Chapter 10](10-passing-dependencies-by-name.md), [Chapter 11](11-choosing-an-implementation.md) |
+| `#[singleton(deps = [a, b], build = factory)]` | Stored in container; cloned on `get_<name>()`. | `<Container>Factories::build_<name>(<Container><Name>Inputs { a: a.clone(), b: b.clone() })`, which you implement; the field may be a trait object or a statically dispatched type. | [Chapter 10](10-passing-dependencies-by-name.md), [Chapter 11](11-choosing-an-implementation.md), [Chapter 13](13-static-dispatch.md) |
 | `#[singleton(deps = [a], implementation = StripeGateway)]` on `Arc<dyn Trait>` | Stored in container as declared; cloned on `get_<name>()`. | `Arc::new(<StripeGateway>::new(a.clone()))`, converted to the trait object; `build = constructor(...)`, `default` and `builder` work on `StripeGateway`. The getter and every dependent see `Arc<dyn Trait>`. | [Chapter 11](11-choosing-an-implementation.md) |
+| `#[singleton(deps = [a], implementation = MemberPrice)]` on `Arc<Prices>` or `Prices` | Stored in container as declared; cloned on `get_<name>()`. | `Arc::new(Prices::of(<MemberPrice>::new(a.clone())))`, without `Arc::new` on a `Prices` field; `build = constructor(...)`, `default` and `builder` work on `MemberPrice`. The getter and every dependent see the field's type. | [Chapter 13](13-static-dispatch.md) |
 | `#[singleton(deps = [a, label = b], build = builder)]` | Stored in container; cloned on `get_<name>()`. | `<Type>::builder().a(a.clone()).label(b.clone()).build()`. | [Chapter 10](10-passing-dependencies-by-name.md) |
 | `#[singleton(deps = [a], build = builder(start = make, finish = done))]` | Stored in container; cloned on `get_<name>()`. | `<Type>::make().a(a.clone()).done()`. | [Chapter 10](10-passing-dependencies-by-name.md) |
-| `#[singleton(deps = [a], fallible = true, build = constructor(connect))]` | Stored in container; cloned on `get_<name>()`. | `<Type>::connect(a.clone())`, which returns a `Result`; its error becomes the `snapfit::BuildError` that `try_new()` returns. Works with `new`, a named constructor, a builder and a factory, whose `build_<name>` then returns `Result<FieldType, Box<dyn Error + Send + Sync>>`. | [Chapter 13](13-when-building-can-fail.md) |
+| `#[singleton(deps = [a], fallible = true, build = constructor(connect))]` | Stored in container; cloned on `get_<name>()`. | `<Type>::connect(a.clone())`, which returns a `Result`; its error becomes the `snapfit::BuildError` that `try_new()` returns. Works with `new`, a named constructor, a builder and a factory, whose `build_<name>` then returns `Result<FieldType, Box<dyn Error + Send + Sync>>`. | [Chapter 15](15-when-building-can-fail.md) |

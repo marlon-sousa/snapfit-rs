@@ -2,7 +2,7 @@
 
 use crate::domain::{
     Construction, ContainerDeclaration, DependencyDeclaration, DependencyName, DomainError,
-    Execution, Feature, FeatureGate,
+    Execution, Feature, FeatureGate, FeatureProblem,
 };
 
 #[cfg(test)]
@@ -13,7 +13,10 @@ impl FeatureGate {
     /// Planned features, with no code generation yet, are refused by every
     /// build. Features whose API is not settled for 0.1.0 are accepted only by
     /// a build with the `unstable` Cargo feature.
-    pub(crate) fn refusals<C, F>(self, container: &ContainerDeclaration<C, F>) -> Vec<DomainError> {
+    pub(crate) fn refusals<C, F, S, T>(
+        self,
+        container: &ContainerDeclaration<C, F, S, T>,
+    ) -> Vec<DomainError> {
         let planned = planned_features(container).map(not_yet_implemented);
         let unstable = match self {
             Self::Stable => unstable_features(container),
@@ -25,8 +28,8 @@ impl FeatureGate {
     }
 }
 
-fn planned_features<C, F>(
-    container: &ContainerDeclaration<C, F>,
+fn planned_features<C, F, S, T>(
+    container: &ContainerDeclaration<C, F, S, T>,
 ) -> impl Iterator<Item = Feature> + '_ {
     let generic = container
         .type_parameters
@@ -47,11 +50,8 @@ fn planned_features<C, F>(
         .chain(container.dependencies.iter().flat_map(planned_features_of))
 }
 
-fn planned_features_of<F>(dependency: &DependencyDeclaration<F>) -> Vec<Feature> {
+fn planned_features_of<F, T>(dependency: &DependencyDeclaration<F, T>) -> Vec<Feature> {
     let name = dependency.name.clone();
-    let dispatch = dependency.dispatch.is_some().then_some(Feature::Dispatch {
-        dependency: name.clone(),
-    });
     let async_build = match (&dependency.construction, dependency.execution) {
         (Some(Construction::Factory), Execution::Async) => Some(Feature::AsyncFactory {
             dependency: name.clone(),
@@ -68,22 +68,24 @@ fn planned_features_of<F>(dependency: &DependencyDeclaration<F>) -> Vec<Feature>
         .parent_prerequisites
         .iter()
         .map(|parent| parent_dependency(parent, dependency));
-    dispatch
+    async_build
         .into_iter()
-        .chain(async_build)
         .chain(fallible_transient)
         .chain(parents)
         .collect()
 }
 
-fn parent_dependency<F>(parent: &DependencyName, dependency: &DependencyDeclaration<F>) -> Feature {
+fn parent_dependency<F, T>(
+    parent: &DependencyName,
+    dependency: &DependencyDeclaration<F, T>,
+) -> Feature {
     Feature::ParentDependency {
         parent: parent.clone(),
         dependency: dependency.name.clone(),
     }
 }
 
-fn unstable_features<C, F>(container: &ContainerDeclaration<C, F>) -> Vec<Feature> {
+fn unstable_features<C, F, S, T>(container: &ContainerDeclaration<C, F, S, T>) -> Vec<Feature> {
     let async_mode = (container.mode == Some(Execution::Async)).then_some(Feature::AsyncMode);
     async_mode
         .into_iter()
@@ -91,7 +93,7 @@ fn unstable_features<C, F>(container: &ContainerDeclaration<C, F>) -> Vec<Featur
         .collect()
 }
 
-fn unstable_features_of<F>(dependency: &DependencyDeclaration<F>) -> Vec<Feature> {
+fn unstable_features_of<F, T>(dependency: &DependencyDeclaration<F, T>) -> Vec<Feature> {
     let name = &dependency.name;
     let is_async = dependency
         .execution
@@ -101,7 +103,7 @@ fn unstable_features_of<F>(dependency: &DependencyDeclaration<F>) -> Vec<Feature
     [is_async, is_transient].into_iter().flatten().collect()
 }
 
-fn generic_container<C, F>(container: &ContainerDeclaration<C, F>) -> Feature {
+fn generic_container<C, F, S, T>(container: &ContainerDeclaration<C, F, S, T>) -> Feature {
     Feature::GenericContainer {
         container: container.name.clone(),
     }
@@ -120,9 +122,9 @@ fn transient(dependency: &DependencyName) -> Feature {
 }
 
 fn not_yet_implemented(feature: Feature) -> DomainError {
-    DomainError::NotYetImplemented { feature }
+    FeatureProblem::NotYetImplemented(feature).into()
 }
 
 fn requires_unstable(feature: Feature) -> DomainError {
-    DomainError::RequiresUnstable { feature }
+    FeatureProblem::RequiresUnstable(feature).into()
 }

@@ -35,7 +35,7 @@ Stacks 1 to 4 built the core of `v0.1.0`:
 3. Inbound and outbound adapters.
 4. Walking skeleton, with the first Gherkin scenario green: `v0.1.0`. The Snapfit Book and its site follow it.
 
-What comes after it, such as async containers, transients, enum dispatch, test overrides and child containers, is planned in the [open issues labelled `feature`](https://github.com/marlon-sousa/snapfit-rs/issues?q=is%3Aissue%20is%3Aopen%20label%3Afeature), as section 10 says.
+What comes after it, such as async containers, transients, static dispatch, test overrides and child containers, is planned in the [open issues labelled `feature`](https://github.com/marlon-sousa/snapfit-rs/issues?q=is%3Aissue%20is%3Aopen%20label%3Afeature), as section 10 says.
 
 ### 0.1.0 scope
 
@@ -72,7 +72,7 @@ Rather than waiting until the end to write integration tests, `snapfit` uses an 
 
 1. **Executable Specifications Upfront:** We write the Gherkin `.feature` acceptance scenarios in `tests/features/` early.
 2. **The Walking Skeleton (Stack 4):** As soon as Stack 4 lands (minimal end-to-end derive pipeline), we wire up `cucumber-rs`.
-3. **Feature-by-Feature BDD:** Every subsequent capability (Async boot, Overrides, Enum Dispatch, Introspection) is delivered with its own Gherkin scenario that turns GREEN in that exact PR stack.
+3. **Feature-by-Feature BDD:** Every subsequent capability (Async boot, Overrides, Static Dispatch, Introspection) is delivered with its own Gherkin scenario that turns GREEN in that exact PR stack.
 
 ---
 

@@ -2,7 +2,7 @@
 
 use super::super::darling_models::FallibleMeta;
 use super::rules::attribute_error;
-use crate::domain::{AttributeProblem, DependencyName, DomainError};
+use crate::domain::{ArgumentProblem, DependencyName, DomainError};
 
 #[cfg(test)]
 mod tests;
@@ -16,9 +16,9 @@ pub(super) fn read_fallible(
     let problem = match fallible {
         Some(FallibleMeta::True(word)) => return Ok(Some(word)),
         None | Some(FallibleMeta::False) => return Ok(None),
-        Some(FallibleMeta::Bare) => AttributeProblem::BareFallible,
-        Some(FallibleMeta::InParentheses) => AttributeProblem::FallibleInParentheses,
-        Some(FallibleMeta::NotABoolean(written)) => AttributeProblem::NotAFallibleValue(written),
+        Some(FallibleMeta::Bare) => ArgumentProblem::BareFallible,
+        Some(FallibleMeta::InParentheses) => ArgumentProblem::FallibleInParentheses,
+        Some(FallibleMeta::NotABoolean(written)) => ArgumentProblem::NotAFallibleValue(written),
     };
     Err(attribute_error(name, problem))
 }

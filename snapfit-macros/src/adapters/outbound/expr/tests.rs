@@ -4,6 +4,7 @@ use super::*;
 use crate::adapters::outbound::test_support::{plan_for, step};
 use crate::test_support::compact;
 
+mod dispatched;
 mod fallible;
 mod implementation;
 

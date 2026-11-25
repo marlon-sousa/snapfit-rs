@@ -23,7 +23,7 @@ pub(super) fn trait_object_depth(ty: &syn::Type) -> Depth {
 
 /// The first `dyn Trait` in `ty`, itself or at any depth of its type
 /// arguments.
-pub(super) fn find_trait_object(ty: &syn::Type) -> Option<&syn::TypeTraitObject> {
+fn find_trait_object(ty: &syn::Type) -> Option<&syn::TypeTraitObject> {
     match ty {
         syn::Type::TraitObject(trait_object) => Some(trait_object),
         syn::Type::Group(group) => find_trait_object(&group.elem),

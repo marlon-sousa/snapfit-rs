@@ -1,0 +1,5 @@
+error: method 'standard' in trait 'PriceRule' has no receiver, so a dispatched value has no implementation to call it on; take self, &self or &mut self, or move the function out of the trait
+ --> book/compile-errors/ch13_rule_without_receiver.rs:3:5
+  |
+3 |     fn standard() -> Self;
+  |     ^^^^^^^^^^^^^^^^^^^^^

@@ -3,14 +3,15 @@ use crate::test_support::labelled;
 
 #[test]
 fn a_declared_dependency_starts_as_a_synchronous_singleton_with_no_build_of_its_own() {
-    let dependency = DependencyDeclaration::new(DependencyName::new("db").unwrap(), ());
+    let dependency: DependencyDeclaration<()> =
+        DependencyDeclaration::new(DependencyName::new("db").unwrap(), ());
 
     assert_eq!(dependency.lifecycle, Lifecycle::Singleton);
     assert_eq!(dependency.execution, Execution::Sync);
     assert_eq!(dependency.construction, None);
     assert_eq!(dependency.shape, TypeShape::Value);
     assert!(dependency.prerequisites.is_empty());
-    assert!(dependency.dispatch.is_none());
+    assert!(dependency.written_type.is_other());
 }
 
 #[test]

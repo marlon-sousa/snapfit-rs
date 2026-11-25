@@ -1,0 +1,4 @@
+Stripe charged 3900 cents
+total: 3900 cents
+TOTAL: 3900 CENTS!
+lamp: 1000 cents

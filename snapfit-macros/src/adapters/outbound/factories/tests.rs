@@ -107,3 +107,66 @@ fn a_fallible_factory_returns_a_result_of_its_field_s_type_with_a_boxed_error() 
         "fnbuild_gateway(inputs:ShopGatewayInputs)->::std::result::Result<Arc<dynGateway>,::std::boxed::Box<dyn::std::error::Error+::std::marker::Send+::std::marker::Sync>,>;"
     ));
 }
+
+#[test]
+fn only_an_input_of_a_dispatched_type_allows_a_more_private_implementation() {
+    let plan = plan_for(parse_quote! {
+        #[static_dispatch_for(Database as Db)]
+        pub struct Shop {
+            #[singleton]
+            config: Arc<Config>,
+            #[singleton(implementation = MySql)]
+            db: Arc<Db>,
+            #[singleton(deps = [config, db], build = factory)]
+            orders: Arc<Orders>,
+        }
+    });
+
+    let code = compact(emit_factories(&plan));
+
+    assert!(code.contains("pubconfig:Arc<Config>,"), "{code}");
+    assert!(
+        !code.contains("#[allow(private_interfaces)]pubconfig"),
+        "{code}"
+    );
+    assert!(
+        code.contains("#[allow(private_interfaces)]pubdb:Arc<Db>,"),
+        "{code}"
+    );
+}
+
+#[test]
+fn only_the_build_method_of_a_dispatched_field_allows_a_more_private_implementation() {
+    let plan = plan_for(parse_quote! {
+        #[static_dispatch_for(Database as Db)]
+        pub struct Shop {
+            #[singleton(build = factory, implementations = [MySql])]
+            shared: Arc<Db>,
+            #[singleton(build = factory)]
+            owned: Db,
+            #[singleton(build = factory)]
+            orders: Arc<Orders>,
+        }
+    });
+
+    let code = compact(emit_factories(&plan));
+
+    assert!(
+        code.contains(
+            "#[allow(private_interfaces)]fnbuild_shared(inputs:ShopSharedInputs)->Arc<Db>;"
+        ),
+        "{code}"
+    );
+    assert!(
+        code.contains("#[allow(private_interfaces)]fnbuild_owned(inputs:ShopOwnedInputs)->Db;"),
+        "{code}"
+    );
+    assert!(
+        code.contains("fnbuild_orders(inputs:ShopOrdersInputs)->Arc<Orders>;"),
+        "{code}"
+    );
+    assert!(
+        !code.contains("#[allow(private_interfaces)]fnbuild_orders"),
+        "{code}"
+    );
+}

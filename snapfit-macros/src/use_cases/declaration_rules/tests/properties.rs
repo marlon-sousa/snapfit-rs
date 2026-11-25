@@ -93,7 +93,9 @@ fn repeated_fields(errors: &[DomainError]) -> Vec<String> {
 
 fn repeated_field(error: &DomainError) -> Option<String> {
     match error {
-        DomainError::RepeatedPrerequisite { prerequisite, .. } => Some(prerequisite.to_string()),
+        DomainError::Graph(GraphProblem::RepeatedPrerequisite { prerequisite, .. }) => {
+            Some(prerequisite.to_string())
+        }
         _ => None,
     }
 }
@@ -104,7 +106,9 @@ fn setters_refused(errors: &[DomainError]) -> Vec<String> {
 
 fn setter_refused(error: &DomainError) -> Option<String> {
     match error {
-        DomainError::DuplicateSetter { setter, .. } => Some(setter.to_string()),
+        DomainError::Builder(BuilderProblem::DuplicateSetter { setter, .. }) => {
+            Some(setter.to_string())
+        }
         _ => None,
     }
 }

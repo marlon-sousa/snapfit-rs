@@ -5,7 +5,8 @@ use quote::ToTokens;
 use super::darling_models::{BuildMeta, BuildWord, FunctionNameMeta};
 use crate::adapters::syntax::BuilderSyntax;
 use crate::domain::{
-    BuilderMethods, Construction, Constructor, DependencyName, DomainError, FunctionName,
+    BuildProblem, BuilderMethods, Construction, Constructor, DependencyName, DomainError,
+    FunctionName,
 };
 
 mod builder;
@@ -53,24 +54,27 @@ pub(super) fn field_construction(
     match build {
         None => Ok(WrittenBuild::default()),
         Some(BuildMeta::Word { word, written }) => mode(dependency, word, &written),
-        Some(BuildMeta::UnknownWord(word)) => Err(DomainError::UnknownBuild {
+        Some(BuildMeta::UnknownWord(word)) => Err(BuildProblem::Unknown {
             dependency: name,
             written: word.to_string(),
-        }),
+        }
+        .into()),
         Some(BuildMeta::Builder { word, settings }) => {
             builder::methods(dependency, &word, &settings).map(WrittenBuild::builder)
         }
         Some(BuildMeta::Constructor(function)) => {
             function_name(dependency, function).map(WrittenBuild::named_constructor)
         }
-        Some(BuildMeta::Quoted(written)) => Err(DomainError::QuotedBuild {
+        Some(BuildMeta::Quoted(written)) => Err(BuildProblem::Quoted {
             dependency: name,
             written,
-        }),
-        Some(BuildMeta::Invalid(written)) => Err(DomainError::NotABuild {
+        }
+        .into()),
+        Some(BuildMeta::Invalid(written)) => Err(BuildProblem::NotABuild {
             dependency: name,
             written,
-        }),
+        }
+        .into()),
     }
 }
 
@@ -87,9 +91,10 @@ fn mode(
         ))),
         BuildWord::Factory => Ok(WrittenBuild::of(Construction::Factory)),
         BuildWord::Builder => builder::methods(dependency, written, &[]).map(WrittenBuild::builder),
-        BuildWord::Constructor => Err(DomainError::ConstructorWithoutName {
+        BuildWord::Constructor => Err(BuildProblem::ConstructorWithoutName {
             dependency: dependency.clone(),
-        }),
+        }
+        .into()),
     }
 }
 
@@ -103,16 +108,18 @@ fn function_name(
             FunctionName::new(ident.to_string()).map(|name| (name, ident))
         }
         FunctionNameMeta::Quoted(written) if syn::parse_str::<syn::Ident>(&written).is_ok() => {
-            Err(DomainError::QuotedFunctionName {
+            Err(BuildProblem::QuotedFunctionName {
                 dependency,
                 written,
-            })
+            }
+            .into())
         }
         FunctionNameMeta::Quoted(written) | FunctionNameMeta::Invalid(written) => {
-            Err(DomainError::NotAFunctionName {
+            Err(BuildProblem::NotAFunctionName {
                 dependency,
                 written,
-            })
+            }
+            .into())
         }
     }
 }
@@ -132,9 +139,10 @@ pub(super) fn leaf_constructor(
         Some(BuildMeta::Constructor(FunctionNameMeta::Bare(ident))) => {
             FunctionName::new(ident.to_string()).map(|name| (Constructor::Named(name), Some(ident)))
         }
-        Some(other) => Err(DomainError::InvalidLeafBuild {
+        Some(other) => Err(BuildProblem::InvalidLeafBuild {
             written: written(&other),
-        }),
+        }
+        .into()),
     }
 }
 

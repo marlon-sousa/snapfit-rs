@@ -13,7 +13,7 @@ fn messages(settings: proc_macro2::TokenStream) -> Vec<String> {
         .collect()
 }
 
-const UNKNOWN_BOGUS: &str = "field 'cache': Unknown field: `bogus`. Available values: `async`, `build`, `deps`, `fallible`, `implementation`";
+const UNKNOWN_BOGUS: &str = "field 'cache': Unknown field: `bogus`. Available values: `async`, `build`, `deps`, `fallible`, `implementation`, `implementations`";
 
 fn unknown_build(word: &str) -> String {
     format!(
@@ -62,7 +62,7 @@ fn every_bad_setting_is_reported_beside_several_that_do_not_read() {
             other
         )),
         [
-            "field 'cache': Multiple errors: (Unknown field: `bogus`. Available values: `async`, `build`, `deps`, `fallible`, `implementation`, Unknown field: `other`. Available values: `async`, `build`, `deps`, `fallible`, `implementation`)",
+            "field 'cache': Multiple errors: (Unknown field: `bogus`. Available values: `async`, `build`, `deps`, `fallible`, `implementation`, `implementations`, Unknown field: `other`. Available values: `async`, `build`, `deps`, `fallible`, `implementation`, `implementations`)",
             "build \"default\" on field 'cache' must be written without quotes: build = default",
             "field 'cache': fallible needs a value; write fallible = true to have the container return the field's error, or leave fallible out",
             "field 'cache': the deps entry 'a + 1' is not the name of a field; write another field's name, such as config",
