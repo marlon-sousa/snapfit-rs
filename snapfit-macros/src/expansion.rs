@@ -7,9 +7,9 @@ use quote::quote;
 
 use crate::adapters::{
     Origins, emit_container, emit_fallback_aliases, fallback_struct, parse_attribute,
-    read_readable_dispatch,
+    read_readable_parts,
 };
-use crate::domain::{DependencyDeclaration, DomainErrors, FeatureGate};
+use crate::domain::{DomainErrors, FeatureGate};
 use crate::use_cases::{fallback_dispatched_types, plan_container};
 
 mod static_dispatch;
@@ -35,31 +35,22 @@ fn expand_attribute(args: TokenStream, input: TokenStream, gate: FeatureGate) ->
         Err(error) => return error.to_compile_error(),
     };
     match parse_attribute(args, &item) {
-        Ok(declaration) => {
-            let aliases = fallback_aliases(&item, &declaration.dependencies);
-            plan_container(declaration, gate).map_or_else(
-                |errors| refused(&item, &errors, aliases),
-                |plan| emit_container(&plan),
-            )
-        }
-        Err(errors) => refused(&item, &errors, fallback_aliases::<()>(&item, &[])),
+        Ok(declaration) => plan_container(declaration, gate).map_or_else(
+            |errors| refused(&item, &errors),
+            |plan| emit_container(&plan),
+        ),
+        Err(errors) => refused(&item, &errors),
     }
 }
 
-/// The aliases of the types the struct's readable dispatch attributes
-/// declare, holding what the fields that could be read name.
-fn fallback_aliases<F>(
-    item: &syn::ItemStruct,
-    dependencies: &[DependencyDeclaration<F, syn::Type>],
-) -> TokenStream {
-    let (declarations, extensions) = read_readable_dispatch(item);
-    let types = fallback_dispatched_types(&declarations, &extensions, dependencies);
-    emit_fallback_aliases(&types, &item.vis)
-}
-
-/// Every error, the struct as written, and the aliases its fields name.
-fn refused(item: &syn::ItemStruct, errors: &DomainErrors, aliases: TokenStream) -> TokenStream {
+/// Every error, the struct as written, and the alias of each type its
+/// readable dispatch attributes declare, holding what the parts that read
+/// give it, so that the fields that name it raise no error of their own.
+fn refused(item: &syn::ItemStruct, errors: &DomainErrors) -> TokenStream {
     let errors = Origins::new(item).compile_errors(errors);
     let fallback = fallback_struct(item);
+    let parts = read_readable_parts(item);
+    let types = fallback_dispatched_types(&parts.declarations, &parts.extensions, &parts.fields);
+    let aliases = emit_fallback_aliases(&types, &item.vis);
     quote!(#errors #fallback #aliases)
 }

@@ -60,7 +60,7 @@ Feature: Refusing a static dispatch declaration that cannot be followed
       | static_dispatch_for_written_by_a_macro  | 21   | field 'replica' holds the dispatched type Db, whose implementations the container cannot choose between                                                                                                                                              |
 
   @v0_3_0
-  Scenario Outline: A refused container still declares its dispatched types, so that its fields raise no error of their own
+  Scenario Outline: A refused container still declares its dispatched types, so that its fields and the code that uses them raise no error of their own
     Given an invalid container fixture "<fixture>"
     When the fixture is compiled
     Then compilation should fail with "<message>"
@@ -69,6 +69,7 @@ Feature: Refusing a static dispatch declaration that cannot be followed
 
     Examples:
       | fixture                                      | line | count | message                                                                                    |
+      | static_dispatch_for_unreadable_extra_beside_its_fields | 14 | 1 | static_dispatch_for takes its implementations in square brackets, not MySql |
       | dispatched_field_beside_an_unannotated_field | 19   | 1     | field 'plain' has no snapfit attribute; add #[singleton] to have the container build it    |
       | dispatched_type_held_by_no_field             | 14   | 2     | the dispatched type 'Db' holds no implementation in this build                             |
       | dispatched_type_held_by_no_field             | 16   | 2     | field 'replica' holds the dispatched type Db, whose implementations the container cannot choose between |

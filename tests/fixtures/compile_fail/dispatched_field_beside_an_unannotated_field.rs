@@ -18,3 +18,11 @@ pub struct Shop {
 
     plain: Arc<MySql>,
 }
+
+pub fn source(db: &Db) -> &'static str {
+    db.source()
+}
+
+pub fn wrapped() -> Db {
+    Db::of(MySql)
+}

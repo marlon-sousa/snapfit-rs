@@ -39,7 +39,6 @@ fn emit_fallback_alias(
     match fallback {
         DispatchedTypeFallback::Planned(planned) => emit_alias(planned, vis),
         DispatchedTypeFallback::Unplanned(DispatchSyntax { name, .. }) => quote! {
-            #[allow(private_interfaces)]
             #vis type #name = ();
         },
     }

@@ -1,74 +1,9 @@
-use super::*;
 use std::iter;
 
-use crate::domain::{
-    AttributePosition, ContainerName, DependencyName, DomainError, StaticDispatchProblem,
+use super::*;
+use crate::test_support::dispatched_types::{
+    declared, dispatched_field, dispatching_container, extended, type_name, variant, written_name,
 };
-
-type Container = ContainerDeclaration<(), (), &'static str, &'static str>;
-
-mod violations;
-
-fn type_name(text: &str) -> TypeName {
-    TypeName::new(text).unwrap()
-}
-
-fn variant(text: &'static str) -> Variant<&'static str> {
-    Variant::new(type_name(text), text)
-}
-
-fn declared(
-    name: &'static str,
-    position: usize,
-    extra: &[&'static str],
-) -> DispatchedTypeDeclaration<&'static str, &'static str> {
-    let mut declaration =
-        DispatchedTypeDeclaration::new(type_name(name), AttributePosition(position), name);
-    declaration.extra = extra.iter().copied().map(variant).collect();
-    declaration
-}
-
-fn extended(
-    name: &str,
-    position: usize,
-    variants: &[&'static str],
-) -> DispatchExtension<&'static str> {
-    DispatchExtension::new(
-        type_name(name),
-        AttributePosition(position),
-        variants.iter().copied().map(variant).collect(),
-    )
-}
-
-/// A field named `field` whose value is written `written`, naming `implementation` if any.
-fn field(
-    field: &str,
-    written: WrittenType,
-    implementation: Option<&'static str>,
-) -> DependencyDeclaration<(), &'static str> {
-    let mut dependency = DependencyDeclaration::new(DependencyName::new(field).unwrap(), ());
-    dependency.written_type = written;
-    dependency.implementation = implementation.map_or(Implementation::OfField, |text| {
-        Implementation::Named(variant(text))
-    });
-    dependency
-}
-
-fn container(
-    dependencies: Vec<DependencyDeclaration<(), &'static str>>,
-    dispatched_types: Vec<DispatchedTypeDeclaration<&'static str, &'static str>>,
-    extensions: Vec<DispatchExtension<&'static str>>,
-) -> Container {
-    let mut container = ContainerDeclaration::new(ContainerName::new("App").unwrap(), ());
-    container.dependencies = dependencies;
-    container.dispatched_types = dispatched_types;
-    container.extensions = extensions;
-    container
-}
-
-fn named(text: &str) -> WrittenType {
-    WrittenType::Name(type_name(text))
-}
 
 fn plan_names(plan: &DispatchedTypePlan<&'static str, &'static str>) -> Vec<&'static str> {
     iter::once(&plan.first)
@@ -79,12 +14,12 @@ fn plan_names(plan: &DispatchedTypePlan<&'static str, &'static str>) -> Vec<&'st
 
 #[test]
 fn a_dispatched_type_holds_its_fields_then_its_extra_then_its_extensions_each_once() {
-    let container = container(
+    let container = dispatching_container(
         vec![
-            field("main", named("Db"), Some("MySql")),
-            field("other", named("Cache"), Some("Redis")),
-            field("backup", named("Db"), Some("Sqlite")),
-            field("again", named("Db"), Some("MySql")),
+            dispatched_field("main", written_name("Db"), Some("MySql")),
+            dispatched_field("other", written_name("Cache"), Some("Redis")),
+            dispatched_field("backup", written_name("Db"), Some("Sqlite")),
+            dispatched_field("again", written_name("Db"), Some("MySql")),
         ],
         vec![declared("Db", 0, &["Fake", "Sqlite"])],
         vec![
@@ -102,7 +37,7 @@ fn a_dispatched_type_holds_its_fields_then_its_extra_then_its_extensions_each_on
 
 #[test]
 fn a_repeated_declaration_is_planned_once_under_the_first() {
-    let container = container(
+    let container = dispatching_container(
         Vec::new(),
         vec![
             declared("Db", 0, &["MySql"]),
@@ -126,15 +61,21 @@ fn a_field_holds_a_declared_name_written_alone_or_through_a_path() {
     };
 
     assert_eq!(
-        names.held_by(&field("a", named("Db"), None)),
+        names.held_by(&dispatched_field("a", written_name("Db"), None)),
         Some(&type_name("Db"))
     );
     assert_eq!(
-        names.held_by(&field("b", path, None)),
+        names.held_by(&dispatched_field("b", path, None)),
         Some(&type_name("Db"))
     );
-    assert_eq!(names.held_by(&field("c", named("Cache"), None)), None);
-    assert_eq!(names.held_by(&field("d", WrittenType::Other, None)), None);
+    assert_eq!(
+        names.held_by(&dispatched_field("c", written_name("Cache"), None)),
+        None
+    );
+    assert_eq!(
+        names.held_by(&dispatched_field("d", WrittenType::Other, None)),
+        None
+    );
     assert_eq!(dispatch_of(Some(&type_name("Db"))), Dispatch::Static);
     assert_eq!(dispatch_of(None), Dispatch::None);
 }
@@ -148,7 +89,7 @@ fn a_refused_container_falls_back_to_what_its_readable_parts_give_each_type() {
             declared("Db", 2, &[]),
         ],
         &[extended("Db", 3, &["Mock"])],
-        &[field("main", named("Db"), Some("MySql"))],
+        &[dispatched_field("main", written_name("Db"), Some("MySql"))],
     );
 
     assert_eq!(

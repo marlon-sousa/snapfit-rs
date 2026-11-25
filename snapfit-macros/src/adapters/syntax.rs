@@ -1,6 +1,8 @@
 //! Adapter: the user's own syntax, which the inbound adapter puts in the
 //! declaration and the outbound adapter writes back out.
 
+use derive_new::new;
+
 use crate::domain::{
     ConstructionPlan, ContainerDeclaration, DependencyDeclaration, DispatchAttribute,
     DispatchExtension, DispatchPlan, DispatchedTypeDeclaration, DispatchedTypeFallback,
@@ -76,6 +78,15 @@ pub(crate) type DispatchedTypeFallbackSyntax = DispatchedTypeFallback<DispatchSy
 pub(crate) type DispatchedTypeDeclarationSyntax =
     DispatchedTypeDeclaration<DispatchSyntax, syn::Type>;
 pub(crate) type DispatchExtensionSyntax = DispatchExtension<syn::Type>;
+
+/// What of a struct can be read, each part on its own, for the aliases a
+/// refused container still writes.
+#[derive(new, Debug)]
+pub(crate) struct ReadableParts {
+    pub(crate) declarations: Vec<DispatchedTypeDeclarationSyntax>,
+    pub(crate) extensions: Vec<DispatchExtensionSyntax>,
+    pub(crate) fields: Vec<FieldDeclaration>,
+}
 
 /// The field attributes snapfit reads, and removes from the struct it writes.
 pub(crate) fn is_snapfit_attribute(attr: &syn::Attribute) -> bool {

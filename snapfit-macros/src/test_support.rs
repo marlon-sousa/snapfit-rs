@@ -1,5 +1,7 @@
 //! Test support: the names and declarations that the tests of several modules build.
 
+pub(crate) mod dispatched_types;
+
 use crate::domain::{
     Annotated, BuilderMethods, Construction, ContainerDeclaration, ContainerName,
     DependencyDeclaration, DependencyName, DispatchArguments, DispatchAttribute, DomainError,

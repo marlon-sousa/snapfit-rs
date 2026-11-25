@@ -33,8 +33,9 @@ pub(super) fn read_dispatch_declarations(
     )
 }
 
-/// Each `static_dispatch_for` and each `extend_static_dispatch` that can be
-/// read, leaving out those that cannot.
+/// Each `static_dispatch_for` whose trait and name can be read, with its
+/// `extra` when that reads too, and each `extend_static_dispatch` that can
+/// be read, leaving out the others.
 pub(super) fn read_readable_dispatch_declarations(
     attrs: &[syn::Attribute],
 ) -> (Vec<Declaration>, Vec<Extension>) {
@@ -42,8 +43,7 @@ pub(super) fn read_readable_dispatch_declarations(
     (
         declarations
             .into_iter()
-            .map(read_declaration)
-            .filter_map(Result::ok)
+            .filter_map(readable_declaration)
             .collect(),
         extensions
             .into_iter()
@@ -73,6 +73,19 @@ fn read_declaration((index, attr): Placed<'_>) -> Result<Declaration, DomainErro
     let site = Site::new(AttributePosition(index), DispatchAttributeKind::Declaration);
     let (first, rest) = split(site, attr)?;
     declaration(site, first, &rest)
+}
+
+fn readable_declaration(placed: Placed<'_>) -> Option<Declaration> {
+    read_declaration(placed)
+        .ok()
+        .or_else(|| read_head(placed).ok())
+}
+
+/// The trait and the name alone, without the settings.
+fn read_head((index, attr): Placed<'_>) -> Result<Declaration, DomainErrors> {
+    let site = Site::new(AttributePosition(index), DispatchAttributeKind::Declaration);
+    let (first, _) = split(site, attr)?;
+    head(site, first)
 }
 
 fn read_extension((index, attr): Placed<'_>) -> Result<Extension, DomainErrors> {
@@ -106,19 +119,25 @@ fn declaration(
     first: TokenStream,
     rest: &[TokenStream],
 ) -> Result<Declaration, DomainErrors> {
-    let head = syn::parse2::<Head>(first)
-        .map_err(|error| site.syn_error(&error))
-        .and_then(|head| site.named(head));
-    let extra = extra(site, rest);
-    let ((trait_path, name), extra) = DomainErrors::both(head, extra)?;
-    let type_name = TypeName::new(name.unraw().to_string())?;
-    let mut declaration = Declaration::new(
+    let (mut declaration, extra) = DomainErrors::both(head(site, first), extra(site, rest))?;
+    declaration.extra = extra;
+    Ok(declaration)
+}
+
+/// `<Trait> as <Name>`.
+fn head(site: Site, first: TokenStream) -> Result<Declaration, DomainErrors> {
+    let head = syn::parse2::<Head>(first).map_err(|error| site.syn_error(&error))?;
+    let (trait_path, name) = site.named(head)?;
+    let type_name = type_name_of(&name)?;
+    Ok(Declaration::new(
         type_name,
         site.position,
         DispatchSyntax { trait_path, name },
-    );
-    declaration.extra = extra;
-    Ok(declaration)
+    ))
+}
+
+fn type_name_of(ident: &syn::Ident) -> Result<TypeName, DomainErrors> {
+    Ok(TypeName::new(ident.unraw().to_string())?)
 }
 
 /// Every type of `extra = [...]`; any other setting, and a second `extra`, are refused.
@@ -155,7 +174,7 @@ fn extension(
     let name = syn::parse2::<syn::Path>(first)
         .map_err(|error| site.syn_error(&error))
         .and_then(|path| site.single_name(&path));
-    let type_name = name.and_then(|ident| Ok(TypeName::new(ident.unraw().to_string())?));
+    let type_name = name.and_then(|ident| type_name_of(&ident));
     let list = match rest {
         [] => Ok(None),
         [list] => site.type_list(list.clone()).map(Some),

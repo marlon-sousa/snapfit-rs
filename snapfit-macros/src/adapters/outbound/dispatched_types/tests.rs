@@ -44,7 +44,6 @@ fn each_alias_nests_its_implementations_once_with_the_container_s_visibility_or_
             >;
             #[allow(private_interfaces)]
             pub(crate) type Orders = ::snapfit::__private::Only<Cache<Order> >;
-            #[allow(private_interfaces)]
             pub(crate) type Clocks = ();
         })
     );

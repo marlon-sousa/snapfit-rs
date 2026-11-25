@@ -45,7 +45,7 @@ fn a_refused_container_keeps_its_alias_so_that_its_fields_still_name_a_type() {
 }
 
 #[test]
-fn a_container_whose_fields_cannot_be_read_still_writes_each_readable_alias() {
+fn a_container_whose_fields_cannot_be_read_still_writes_each_alias_with_what_reads() {
     let input = quote! {
         #[static_dispatch_for(Ledger as Ledgers, extra = [Fake])]
         #[static_dispatch_for(Clock as Clocks)]
@@ -53,6 +53,8 @@ fn a_container_whose_fields_cannot_be_read_still_writes_each_readable_alias() {
         pub struct Accounts {
             #[singleton(bogus)]
             main: Arc<Ledgers>,
+            #[singleton(implementation = Disk)]
+            backup: Arc<Ledgers>,
             clock: Arc<Clocks>,
         }
     };
@@ -66,7 +68,9 @@ fn a_container_whose_fields_cannot_be_read_still_writes_each_readable_alias() {
         "{:?}",
         compile_errors(&tokens)
     );
-    assert!(code.contains("pubtypeLedgers=::snapfit::__private::Only<Fake>;"));
+    assert!(code.contains(
+        "pubtypeLedgers=::snapfit::__private::Either<Disk,::snapfit::__private::Only<Fake>>;"
+    ));
     assert!(code.contains("pubtypeClocks=();"));
-    assert!(!code.contains("typeStores"));
+    assert!(code.contains("pubtypeStores=();"));
 }

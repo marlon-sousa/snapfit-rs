@@ -86,3 +86,6 @@ fn through_path<F, T>(
             written: written.clone(),
         })
 }
+
+#[cfg(test)]
+mod tests;

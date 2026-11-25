@@ -129,10 +129,10 @@ impl<F, T: Clone> Held<'_, F, T> {
         &self,
         declaration: &DispatchedTypeDeclaration<S, T>,
     ) -> DispatchedTypeFallback<S, T> {
-        self.planned(declaration).map_or_else(
-            || DispatchedTypeFallback::Unplanned(declaration.syntax.clone()),
-            DispatchedTypeFallback::Planned,
-        )
+        match self.planned(declaration) {
+            Some(planned) => DispatchedTypeFallback::Planned(planned),
+            None => DispatchedTypeFallback::Unplanned(declaration.syntax.clone()),
+        }
     }
 
     /// The implementations a declared type holds, in order, each once by how it is written.

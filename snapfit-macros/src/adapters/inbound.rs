@@ -17,8 +17,8 @@ use proc_macro2::TokenStream;
 pub(crate) use dispatched_trait::read_dispatch_attribute;
 
 use crate::adapters::syntax::{
-    ContainerSyntax, Declaration, DispatchExtensionSyntax, DispatchedTypeDeclarationSyntax,
-    FieldDeclaration, is_container_attribute, is_user_attribute,
+    ContainerSyntax, Declaration, FieldDeclaration, ReadableParts, is_container_attribute,
+    is_user_attribute,
 };
 use crate::domain::{
     AttributeProblem, Constructor, ContainerDeclaration, ContainerName, DomainError, DomainErrors,
@@ -43,15 +43,17 @@ pub(crate) fn parse_attribute(
     Ok(container)
 }
 
-/// Each `static_dispatch_for` and `extend_static_dispatch` on `item` that
-/// can be read, for the aliases a refused container still writes.
-pub(crate) fn read_readable_dispatch(
-    item: &syn::ItemStruct,
-) -> (
-    Vec<DispatchedTypeDeclarationSyntax>,
-    Vec<DispatchExtensionSyntax>,
-) {
-    read_readable_dispatch_declarations(&item.attrs)
+/// What of `item` can be read, each part on its own, for the aliases a
+/// refused container still writes.
+pub(crate) fn read_readable_parts(item: &syn::ItemStruct) -> ReadableParts {
+    let (declarations, extensions) = read_readable_dispatch_declarations(&item.attrs);
+    let fields = item
+        .fields
+        .iter()
+        .map(field_parser::parse_field)
+        .filter_map(Result::ok)
+        .collect();
+    ReadableParts::new(declarations, extensions, fields)
 }
 
 /// The container's name and settings, or every setting that cannot be read.

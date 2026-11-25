@@ -1,8 +1,14 @@
 use super::*;
+use crate::domain::WrittenType;
+use crate::domain::{AttributePosition, DependencyName, DomainError, StaticDispatchProblem};
+use crate::test_support::dispatched_types::{
+    declared, dispatched_field, dispatching_container, extended, type_name,
+};
+use crate::use_cases::static_dispatch::dispatched_types;
 
 #[test]
 fn a_dispatched_type_without_implementations_is_not_planned_and_is_refused() {
-    let container = container(Vec::new(), vec![declared("Db", 3, &[])], Vec::new());
+    let container = dispatching_container(Vec::new(), vec![declared("Db", 3, &[])], Vec::new());
 
     assert!(dispatched_types(&container).is_empty());
     assert_eq!(
@@ -18,8 +24,8 @@ fn a_dispatched_type_without_implementations_is_not_planned_and_is_refused() {
 
 #[test]
 fn every_problem_of_the_declarations_is_reported_together() {
-    let container = container(
-        vec![field(
+    let container = dispatching_container(
+        vec![dispatched_field(
             "main",
             WrittenType::Path {
                 last: type_name("Db"),

@@ -80,7 +80,7 @@ fn a_comma_between_angle_brackets_belongs_to_its_type() {
 }
 
 #[test]
-fn only_the_attributes_that_read_are_kept_for_a_refused_container() {
+fn only_what_reads_is_kept_for_a_refused_container_a_declaration_s_name_without_its_bad_settings() {
     let (declarations, extensions) = read_readable_dispatch_declarations(&[
         parse_quote!(#[static_dispatch_for(Database as Db, extra = MySql)]),
         parse_quote!(#[static_dispatch_for(Clock as Clocks)]),
@@ -92,7 +92,8 @@ fn only_the_attributes_that_read_are_kept_for_a_refused_container() {
         .iter()
         .map(|declaration| declaration.name.as_str())
         .collect();
-    assert_eq!(names, ["Clocks"]);
+    assert_eq!(names, ["Db", "Clocks"]);
+    assert!(declarations[0].extra.is_empty());
     let [extension] = extensions.as_slice() else {
         panic!("one extension");
     };
