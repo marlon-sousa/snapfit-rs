@@ -39,3 +39,39 @@ fn a_dispatched_field_without_an_implementation_or_a_factory_is_refused() {
         Ok(Call::Factory)
     );
 }
+
+#[test]
+fn a_dispatched_factory_field_may_name_the_variants_it_returns_one_or_a_list() {
+    let db = TypeName::new("Db").unwrap();
+    let implementations = [
+        Implementation::Named(variant("MySql")),
+        Implementation::Listed(vec![variant("MySql"), variant("Sqlite")]),
+    ];
+
+    for implementation in implementations {
+        let mut factory = dependency(TypeShape::Arc, Some(Construction::Factory));
+        factory.implementation = implementation;
+        let call = call_for(&factory, &Constructor::New, Some(&db));
+        assert_eq!(call, Ok(Call::Factory), "{:?}", factory.implementation);
+    }
+}
+
+#[test]
+fn a_dispatched_field_listing_implementations_without_a_factory_is_refused() {
+    let db = TypeName::new("Db").unwrap();
+    for shape in [TypeShape::Arc, TypeShape::Value] {
+        let mut listing = dependency(shape, None);
+        listing.implementation = Implementation::Listed(vec![variant("MySql")]);
+        let call = call_for(&listing, &Constructor::New, Some(&db));
+        assert_eq!(
+            call,
+            Err(DomainError::StaticDispatch(
+                StaticDispatchProblem::ListWithoutFactory {
+                    dependency: store(),
+                    name: db.clone(),
+                }
+            )),
+            "{shape:?}"
+        );
+    }
+}

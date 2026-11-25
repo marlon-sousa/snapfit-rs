@@ -14,7 +14,8 @@ pub struct Csv;
 impl Csv { pub fn new() -> Self { Self } }
 
 #[container]
-#[static_dispatch_for(Database as Db, extra = [Csv])]
+#[static_dispatch_for(Database as Db)]
+#[extend_static_dispatch(Db, [Csv])]
 pub struct Shop {
     #[singleton(implementation = MySql)]
     db: Arc<Db>,

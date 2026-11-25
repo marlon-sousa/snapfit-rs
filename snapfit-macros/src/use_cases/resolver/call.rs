@@ -10,20 +10,15 @@ use crate::use_cases::leaf::is_leaf;
 /// when the field holds `Arc<T>`, whose value is then wrapped, or to the
 /// implementation the field names for its `Arc<dyn Trait>` or for the type
 /// `dispatched` it holds, whose variant then holds the value. Any other value
-/// that is a trait object needs a factory.
+/// that is a trait object needs a factory, which a dispatched field may name
+/// the variants of.
 pub(super) fn call_for<F, T>(
     dependency: &DependencyDeclaration<F, T>,
     leaf: &Constructor,
     dispatched: Option<&TypeName>,
 ) -> Result<Call, DomainError> {
     Ok(match construction_of(dependency, leaf) {
-        Construction::Factory if dependency.implementation.is_named() => {
-            return Err(trait_object(
-                dependency,
-                TraitObjectProblem::ImplementationWithFactory,
-            ));
-        }
-        Construction::Factory => Call::Factory,
+        Construction::Factory => factory_call(dependency, dispatched)?,
         Construction::Builder(methods) => Call::Builder {
             methods,
             wrapping: wrapping_of(dependency, dispatched)?,
@@ -35,6 +30,20 @@ pub(super) fn call_for<F, T>(
     })
 }
 
+/// A factory returns the field itself: the implementations a dispatched
+/// field names are the variants it may return, and any other field names none.
+fn factory_call<F, T>(
+    dependency: &DependencyDeclaration<F, T>,
+    dispatched: Option<&TypeName>,
+) -> Result<Call, DomainError> {
+    let problem = match (&dependency.implementation, dispatched) {
+        (Implementation::OfField, _) | (_, Some(_)) => return Ok(Call::Factory),
+        (Implementation::Named(_), None) => TraitObjectProblem::ImplementationWithFactory,
+        (Implementation::Listed(_), None) => TraitObjectProblem::ImplementationList,
+    };
+    Err(trait_object(dependency, problem))
+}
+
 fn wrapping_of<F, T>(
     dependency: &DependencyDeclaration<F, T>,
     dispatched: Option<&TypeName>,
@@ -43,6 +52,7 @@ fn wrapping_of<F, T>(
         return variant_wrapping(dependency, name);
     }
     let problem = match (dependency.shape, &dependency.implementation) {
+        (_, Implementation::Listed(_)) => TraitObjectProblem::ImplementationList,
         (TypeShape::Value | TypeShape::KeepsTraitObject, Implementation::OfField) => {
             return Ok(Wrapping::None);
         }
@@ -75,6 +85,11 @@ fn variant_wrapping<F, T>(
     match (dependency.shape, &dependency.implementation) {
         (TypeShape::Arc, Implementation::Named(_)) => Ok(Wrapping::ArcOfVariant),
         (_, Implementation::Named(_)) => Ok(Wrapping::Variant),
+        (_, Implementation::Listed(_)) => Err(StaticDispatchProblem::ListWithoutFactory {
+            dependency: dependency.name.clone(),
+            name: name.clone(),
+        }
+        .into()),
         (_, Implementation::OfField) => Err(StaticDispatchProblem::WithoutImplementation {
             dependency: dependency.name.clone(),
             name: name.clone(),

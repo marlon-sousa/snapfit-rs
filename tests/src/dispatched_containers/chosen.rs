@@ -86,7 +86,7 @@ impl Ledger for Scratch {
 }
 
 #[container]
-#[static_dispatch_for(Ledger as Chosen, extra = [Archive, Mirror, Scratch])]
+#[static_dispatch_for(Ledger as Chosen)]
 pub struct ChosenAccounts {
     #[singleton]
     setting: Arc<Setting>,
@@ -97,10 +97,10 @@ pub struct ChosenAccounts {
     #[singleton]
     config: Arc<Config>,
 
-    #[singleton(deps = [setting, folder, config], build = factory)]
+    #[singleton(deps = [setting, folder, config], build = factory, implementation = [Archive, Mirror])]
     shared: Arc<Chosen>,
 
-    #[singleton(deps = [setting, folder, config], build = factory)]
+    #[singleton(deps = [setting, folder, config], build = factory, implementation = Scratch)]
     owned: Chosen,
 }
 

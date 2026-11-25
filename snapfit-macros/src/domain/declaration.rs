@@ -163,7 +163,7 @@ pub(crate) struct ContainerDeclaration<C, F, S = (), T = ()> {
     pub(crate) dependencies: Vec<DependencyDeclaration<F, T>>,
     /// Each `static_dispatch_for`, in the order written.
     #[new(default)]
-    pub(crate) dispatched_types: Vec<DispatchedTypeDeclaration<S, T>>,
+    pub(crate) dispatched_types: Vec<DispatchedTypeDeclaration<S>>,
     /// Each `extend_static_dispatch` present in the build, in the order written.
     #[new(default)]
     pub(crate) extensions: Vec<DispatchExtension<T>>,

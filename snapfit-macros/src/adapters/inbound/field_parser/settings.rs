@@ -4,7 +4,7 @@ use super::super::build_setting::{WrittenBuild, field_construction};
 use super::super::darling_models::{DependencyAttrMeta, UnreadableAttribute};
 use super::deps::{Deps, read_deps};
 use super::fallible::read_fallible;
-use super::implementation::read_implementation;
+use super::implementation::{WrittenImplementation, read_implementation};
 use super::rules::attribute_error;
 use crate::domain::{DependencyName, DomainErrors};
 
@@ -15,7 +15,7 @@ mod tests;
 /// named implementation.
 type Settings = (
     ((WrittenBuild, Deps), Option<syn::Ident>),
-    Option<syn::Type>,
+    Option<WrittenImplementation>,
 );
 
 /// The field's `build`, `deps`, `fallible` and `implementation`, or every problem they have.

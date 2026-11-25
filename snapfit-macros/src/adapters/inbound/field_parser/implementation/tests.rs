@@ -6,6 +6,8 @@ use super::super::parse_field;
 use crate::domain::TypeShape;
 use crate::test_support::through_a_macro;
 
+mod lists;
+
 /// The field `reader` with `settings` in its `#[singleton(...)]`.
 fn field(settings: TokenStream) -> syn::Field {
     parse_quote!(#[singleton(#settings)] reader: Arc<dyn Reader>)

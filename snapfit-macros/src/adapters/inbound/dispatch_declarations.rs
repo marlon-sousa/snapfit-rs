@@ -13,7 +13,7 @@ use crate::adapters::syntax::{
     DispatchExtensionSyntax, DispatchSyntax, DispatchedTypeDeclarationSyntax, is_dispatch_attribute,
 };
 use crate::domain::{
-    AttributePosition, DispatchAttributeKind, DomainErrors, TypeName, Unreadability, Variant,
+    AttributePosition, DispatchAttributeKind, DomainErrors, TypeName, Unreadability,
 };
 use site::Site;
 use tokens::{Head, chunks, setting_name};
@@ -33,8 +33,7 @@ pub(super) fn read_dispatch_declarations(
     )
 }
 
-/// Each `static_dispatch_for` whose trait and name can be read, with its
-/// `extra` when that reads too, and each `extend_static_dispatch` that can
+/// Each `static_dispatch_for` whose trait and name can be read, and each `extend_static_dispatch` that can
 /// be read, leaving out the others.
 pub(super) fn read_readable_dispatch_declarations(
     attrs: &[syn::Attribute],
@@ -113,14 +112,14 @@ fn arguments(site: Site, attr: &syn::Attribute) -> Result<TokenStream, DomainErr
     }
 }
 
-/// `<Trait> as <Name>`, then each setting.
+/// `<Trait> as <Name>`, with nothing after it.
 fn declaration(
     site: Site,
     first: TokenStream,
     rest: &[TokenStream],
 ) -> Result<Declaration, DomainErrors> {
-    let (mut declaration, extra) = DomainErrors::both(head(site, first), extra(site, rest))?;
-    declaration.extra = extra;
+    let settings = DomainErrors::collect(rest.iter().map(|setting| unknown_setting(site, setting)));
+    let (declaration, _) = DomainErrors::both(head(site, first), settings)?;
     Ok(declaration)
 }
 
@@ -140,29 +139,12 @@ fn type_name_of(ident: &syn::Ident) -> Result<TypeName, DomainErrors> {
     Ok(TypeName::new(ident.unraw().to_string())?)
 }
 
-/// Every type of `extra = [...]`; any other setting, and a second `extra`, are refused.
-fn extra(site: Site, settings: &[TokenStream]) -> Result<Vec<Variant<syn::Type>>, DomainErrors> {
-    let lists = DomainErrors::collect(settings.iter().map(|setting| extra_list(site, setting)));
-    let extras = settings.iter().filter(|setting| is_extra(setting)).count();
-    let once = if extras > 1 {
-        Err(site.repeated_extra())
-    } else {
-        Ok(())
-    };
-    let (lists, ()) = DomainErrors::both(lists, once)?;
-    Ok(lists.into_iter().flatten().collect())
-}
-
-fn is_extra(setting: &TokenStream) -> bool {
-    setting_name(setting).is_some_and(|(name, _)| name == "extra")
-}
-
-fn extra_list(site: Site, setting: &TokenStream) -> Result<Vec<Variant<syn::Type>>, DomainErrors> {
-    match setting_name(setting) {
-        Some((name, value)) if name == "extra" => site.type_list(value),
-        Some((name, _)) => Err(site.unknown_setting(name.to_string())),
-        None => Err(site.unknown_setting(compact_type_tokens(setting.clone()))),
-    }
+/// A setting after the name, which `static_dispatch_for` takes none of.
+fn unknown_setting(site: Site, setting: &TokenStream) -> Result<(), DomainErrors> {
+    Err(match setting_name(setting) {
+        Some((name, _)) => site.unknown_setting(name.to_string()),
+        None => site.unknown_setting(compact_type_tokens(setting.clone())),
+    })
 }
 
 /// `<Name>, [...]`.
@@ -175,15 +157,14 @@ fn extension(
         .map_err(|error| site.syn_error(&error))
         .and_then(|path| site.single_name(&path));
     let type_name = name.and_then(|ident| type_name_of(&ident));
-    let list = match rest {
-        [] => Ok(None),
-        [list] => site.type_list(list.clone()).map(Some),
-        [_, extra, ..] => Err(
-            site.unreadable(Unreadability::SecondList(compact_type_tokens(
-                extra.clone(),
+    let list =
+        match rest {
+            [] => Ok(None),
+            [list] => site.type_list(list.clone()).map(Some),
+            [_, second, ..] => Err(site.unreadable(Unreadability::SecondList(
+                compact_type_tokens(second.clone()),
             ))),
-        ),
-    };
+        };
     let (type_name, list) = DomainErrors::both(type_name, list)?;
     let variants = list.ok_or_else(|| site.without_list(&type_name))?;
     Ok(Extension::new(type_name, site.position, variants))

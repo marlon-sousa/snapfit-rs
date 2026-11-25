@@ -9,9 +9,16 @@ use syn::punctuated::Punctuated;
 
 use super::super::type_inspector::{compact_type_tokens, is_buildable};
 
-/// One `implementation` setting, or the shape it was written in instead.
+/// One `implementation` setting: a type, or a list of types in square brackets.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::adapters::inbound) enum ImplementationMeta {
+    One(ImplementationEntry),
+    List(Vec<ImplementationEntry>),
+}
+
+/// One type an `implementation` setting names, or the shape it was written in instead.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(in crate::adapters::inbound) enum ImplementationEntry {
     Type(syn::Type),
     /// `implementation` with no type: bare, or with an empty value.
     Bare,
@@ -65,11 +72,11 @@ impl Parse for Setting {
         let meta = if input.peek(syn::token::Paren) {
             let inner;
             syn::parenthesized!(inner in input);
-            in_parentheses(inner.parse()?)
+            ImplementationMeta::One(in_parentheses(inner.parse()?))
         } else if input.parse::<Option<syn::Token![=]>>()?.is_some() {
             implementation_value(input)?
         } else {
-            ImplementationMeta::Bare
+            ImplementationMeta::One(ImplementationEntry::Bare)
         };
         Ok(Self::Implementation(meta))
     }
@@ -82,20 +89,54 @@ fn starts_implementation(input: ParseStream<'_>) -> bool {
         .is_ok_and(|word| word == "implementation")
 }
 
-fn in_parentheses(tokens: TokenStream) -> ImplementationMeta {
+fn in_parentheses(tokens: TokenStream) -> ImplementationEntry {
     if tokens.is_empty() {
-        ImplementationMeta::Bare
+        ImplementationEntry::Bare
     } else {
-        ImplementationMeta::InParentheses(compact_type_tokens(tokens))
+        ImplementationEntry::InParentheses(compact_type_tokens(tokens))
     }
 }
 
-/// The value after `implementation =`, up to the next setting.
+/// The value after `implementation =`, up to the next setting: a list when
+/// it is one pair of square brackets, and one type otherwise.
 fn implementation_value(input: ParseStream<'_>) -> syn::Result<ImplementationMeta> {
+    if !is_a_list(input) {
+        return entry_value(input).map(ImplementationMeta::One);
+    }
+    let inner;
+    syn::bracketed!(inner in input);
+    let entries = Punctuated::<Entry, syn::Token![,]>::parse_terminated(&inner)?;
+    Ok(ImplementationMeta::List(
+        entries.into_iter().map(Entry::into_inner).collect(),
+    ))
+}
+
+fn is_a_list(input: ParseStream<'_>) -> bool {
+    let fork = input.fork();
+    input.peek(syn::token::Bracket) && fork.parse::<TokenTree>().is_ok() && ends_setting(&fork)
+}
+
+/// One type of a list, up to the next comma.
+struct Entry(ImplementationEntry);
+
+impl Entry {
+    fn into_inner(self) -> ImplementationEntry {
+        self.0
+    }
+}
+
+impl Parse for Entry {
+    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
+        entry_value(input).map(Self)
+    }
+}
+
+/// One type, up to the next comma.
+fn entry_value(input: ParseStream<'_>) -> syn::Result<ImplementationEntry> {
     if let Some(quoted) = input.parse::<Option<syn::LitStr>>()? {
         return Ok(match quoted.value() {
-            text if text.trim().is_empty() => ImplementationMeta::Bare,
-            text => ImplementationMeta::Quoted(text),
+            text if text.trim().is_empty() => ImplementationEntry::Bare,
+            text => ImplementationEntry::Quoted(text),
         });
     }
     if reads_as_a_whole_type(input) {
@@ -111,19 +152,19 @@ fn reads_as_a_whole_type(input: ParseStream<'_>) -> bool {
     fork.parse::<syn::Type>().is_ok() && ends_setting(&fork)
 }
 
-fn buildable(ty: syn::Type) -> ImplementationMeta {
+fn buildable(ty: syn::Type) -> ImplementationEntry {
     if is_buildable(&ty) {
-        ImplementationMeta::Type(ty)
+        ImplementationEntry::Type(ty)
     } else {
         not_a_type(quote::quote!(#ty))
     }
 }
 
-fn not_a_type(written: TokenStream) -> ImplementationMeta {
+fn not_a_type(written: TokenStream) -> ImplementationEntry {
     if written.is_empty() {
-        ImplementationMeta::Bare
+        ImplementationEntry::Bare
     } else {
-        ImplementationMeta::NotAType(compact_type_tokens(written))
+        ImplementationEntry::NotAType(compact_type_tokens(written))
     }
 }
 

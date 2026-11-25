@@ -23,14 +23,12 @@ pub(crate) struct Variant<T> {
     pub(crate) syntax: T,
 }
 
-/// `static_dispatch_for(<Trait> as <Name>, extra = [...])`.
+/// `static_dispatch_for(<Trait> as <Name>)`.
 #[derive(new, Debug, Clone, PartialEq, Eq)]
-pub(crate) struct DispatchedTypeDeclaration<S, T> {
+pub(crate) struct DispatchedTypeDeclaration<S> {
     pub(crate) name: TypeName,
     pub(crate) position: AttributePosition,
     pub(crate) syntax: S,
-    #[new(default)]
-    pub(crate) extra: Vec<Variant<T>>,
 }
 
 /// `extend_static_dispatch(<Name>, [...])`.

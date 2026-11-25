@@ -55,7 +55,7 @@ impl Remote {
 #[derive(Default)]
 pub struct Memory;
 
-/// Built by no field, only by a test, through `extra`.
+/// Built by no field, only by a test, added by an extension with no condition.
 pub struct Fake;
 
 impl Ledger for Disk {

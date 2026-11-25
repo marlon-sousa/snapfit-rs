@@ -6,7 +6,7 @@ use crate::use_cases::static_dispatch::dispatched_types;
 
 #[test]
 fn a_dispatched_type_without_implementations_is_not_planned_and_is_refused() {
-    let container = dispatching_container(Vec::new(), vec![declared("Db", 3, &[])], Vec::new());
+    let container = dispatching_container(Vec::new(), vec![declared("Db", 3)], Vec::new());
 
     assert!(dispatched_types(&container).is_empty());
     assert_eq!(
@@ -31,12 +31,11 @@ fn every_problem_of_the_declarations_is_reported_together() {
             },
             Some("MySql"),
         )],
+        vec![declared("Db", 0), declared("Db", 1), declared("Cache", 2)],
         vec![
-            declared("Db", 0, &["MySql"]),
-            declared("Db", 1, &["Sqlite"]),
-            declared("Cache", 2, &[]),
+            extended("Queue", 3, &["Kafka"]),
+            extended("Db", 4, &["MySql"]),
         ],
-        vec![extended("Queue", 3, &["Kafka"])],
     );
 
     assert_eq!(

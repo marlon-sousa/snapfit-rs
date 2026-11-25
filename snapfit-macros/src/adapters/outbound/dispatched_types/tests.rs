@@ -6,7 +6,7 @@ use crate::test_support::compact;
 
 fn shop() -> syn::ItemStruct {
     parse_quote! {
-        #[static_dispatch_for(Database as Db, extra = [Sqlite])]
+        #[static_dispatch_for(Database as Db)]
         #[static_dispatch_for(Store<Order> as Orders)]
         #[extend_static_dispatch(Db, [Mock, MySql])]
         pub(crate) struct Shop {
@@ -14,6 +14,8 @@ fn shop() -> syn::ItemStruct {
             orders_db: Arc<Db>,
             #[singleton(implementation = Cache<Order>)]
             orders: Arc<Orders>,
+            #[singleton(build = factory, implementation = [Sqlite, MySql])]
+            reports_db: Arc<Db>,
         }
     }
 }

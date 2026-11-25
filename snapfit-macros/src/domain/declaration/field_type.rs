@@ -34,4 +34,18 @@ pub(crate) enum Implementation<T> {
     /// The type of `implementation = ...`, whose value the field's trait
     /// object, or its dispatched type, holds.
     Named(Variant<T>),
+    /// The types of `implementation = [...]`, which a factory may return as
+    /// the field's dispatched type; never empty.
+    Listed(Vec<Variant<T>>),
+}
+
+impl<T> Implementation<T> {
+    /// The types the field names, which its dispatched type holds.
+    pub(crate) fn variants(&self) -> &[Variant<T>] {
+        match self {
+            Self::OfField => &[],
+            Self::Named(variant) => std::slice::from_ref(variant),
+            Self::Listed(variants) => variants,
+        }
+    }
 }

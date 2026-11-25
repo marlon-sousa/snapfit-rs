@@ -4,7 +4,7 @@ use super::*;
 
 #[test]
 fn each_attribute_that_cannot_be_read_is_refused_with_what_it_lacks() {
-    let cases: [(syn::Attribute, &str); 12] = [
+    let cases: [(syn::Attribute, &str); 13] = [
         (
             parse_quote!(#[static_dispatch_for]),
             "static_dispatch_for cannot be read: it needs its settings in parentheses",
@@ -23,27 +23,31 @@ fn each_attribute_that_cannot_be_read_is_refused_with_what_it_lacks() {
         ),
         (
             parse_quote!(#[static_dispatch_for(Database as Db Extra)]),
-            "static_dispatch_for cannot be read: it found Extra after the name, where only a comma and the settings may follow",
+            "static_dispatch_for cannot be read: it found Extra after the name, where nothing may follow",
         ),
         (
             parse_quote!(#[static_dispatch_for(Database as shop::Db)]),
             "static_dispatch_for names the dispatched type through the path shop::Db",
         ),
         (
-            parse_quote!(#[static_dispatch_for(Database as Db, extras = [A])]),
-            "not extras; write extra = [Sqlite]",
+            parse_quote!(#[static_dispatch_for(Database as Db, extra = [A])]),
+            "static_dispatch_for takes the trait and its name and nothing else, not extra; remove extra",
         ),
         (
             parse_quote!(#[static_dispatch_for(Database as Db, Sqlite)]),
-            "not Sqlite; write extra = [Sqlite]",
+            "nothing else, not Sqlite; remove Sqlite",
         ),
         (
-            parse_quote!(#[static_dispatch_for(Database as Db, extra = (A))]),
-            "takes its implementations in square brackets, not (A)",
+            parse_quote!(#[extend_static_dispatch(Db, (A))]),
+            "extend_static_dispatch takes its implementations in square brackets, not (A)",
         ),
         (
-            parse_quote!(#[static_dispatch_for(Database as Db, extra = [_])]),
-            "_ in static_dispatch_for is not a type the container can name",
+            parse_quote!(#[extend_static_dispatch(Db, [_])]),
+            "_ in extend_static_dispatch is not a type the container can name",
+        ),
+        (
+            parse_quote!(#[extend_static_dispatch(shop::Db, [A])]),
+            "extend_static_dispatch names the dispatched type through the path shop::Db",
         ),
         (
             parse_quote!(#[extend_static_dispatch(Db)]),
@@ -69,7 +73,7 @@ fn each_attribute_that_cannot_be_read_is_refused_with_what_it_lacks() {
 #[test]
 fn every_problem_of_every_attribute_is_reported_at_its_own_position() {
     let errors: Vec<_> = read(vec![
-        parse_quote!(#[static_dispatch_for(Database, extras = [A], extra = [B], extra = [C])]),
+        parse_quote!(#[static_dispatch_for(Database, extras = [A], extra = [B])]),
         parse_quote!(#[extend_static_dispatch(shop::Db, [impl Database])]),
     ])
     .unwrap_err()
@@ -86,7 +90,7 @@ fn every_problem_of_every_attribute_is_reported_at_its_own_position() {
         [
             DomainError::StaticDispatch(StaticDispatchProblem::WithoutName { .. }),
             DomainError::StaticDispatch(StaticDispatchProblem::UnknownSetting { .. }),
-            DomainError::StaticDispatch(StaticDispatchProblem::RepeatedExtra { .. }),
+            DomainError::StaticDispatch(StaticDispatchProblem::UnknownSetting { .. }),
             DomainError::StaticDispatch(StaticDispatchProblem::NameAsPath { .. }),
             DomainError::StaticDispatch(StaticDispatchProblem::NotAType { .. }),
         ]

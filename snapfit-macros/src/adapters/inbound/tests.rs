@@ -11,7 +11,7 @@ use crate::test_support::{names, prerequisites};
 #[test]
 fn every_setting_and_field_is_read_into_the_declaration() {
     let input: syn::ItemStruct = parse_quote! {
-        #[static_dispatch_for(DataStore as Stores, extra = [MockDb])]
+        #[static_dispatch_for(DataStore as Stores)]
         #[extend_static_dispatch(Stores, [FakeDb])]
         pub struct AppContainer {
             #[singleton]
@@ -81,7 +81,6 @@ fn every_setting_and_field_is_read_into_the_declaration() {
     assert_eq!(stores.name.as_str(), "Stores");
     assert_eq!(stores.position, AttributePosition(0));
     assert_eq!(stores.syntax.name, "Stores");
-    assert_eq!(stores.extra.len(), 1);
     let [extension] = container.extensions.as_slice() else {
         panic!("one extension");
     };

@@ -23,6 +23,7 @@ mod written;
 
 use super::build_setting::WrittenBuild;
 use deps::Deps;
+use implementation::WrittenImplementation;
 use rules::ensure_unconditional;
 use settings::{read_settings, unreadable_field_attribute};
 use written::{WrittenField, field_syntax};
@@ -58,9 +59,13 @@ pub(super) fn parse_field(field: &syn::Field) -> Result<FieldDeclaration, Domain
     } = deps;
 
     // The type is kept exactly when one is named: the generated code builds it.
-    let named = match implementation.clone() {
-        Some(ty) => implementation_variant(ty)?,
-        None => Implementation::OfField,
+    let (named, implementation) = match implementation {
+        Some(WrittenImplementation::One(ty)) => (
+            Implementation::Named(implementation_variant(ty.clone())?),
+            Some(ty),
+        ),
+        Some(WrittenImplementation::List(types)) => (implementation_list(types)?, None),
+        None => (Implementation::OfField, None),
     };
     let written = WrittenField {
         constructor,
@@ -148,8 +153,16 @@ fn refuse_old_dispatch(field: &syn::Field, name: &DependencyName) -> Result<(), 
     }
 }
 
-/// The type `implementation` names, by how it is written.
-fn implementation_variant(ty: syn::Type) -> Result<Implementation<syn::Type>, DomainError> {
+/// A type `implementation` names, by how it is written.
+fn implementation_variant(ty: syn::Type) -> Result<Variant<syn::Type>, DomainError> {
     let name = TypeName::new(compact_type_tokens(quote!(#ty)))?;
-    Ok(Implementation::Named(Variant::new(name, ty)))
+    Ok(Variant::new(name, ty))
+}
+
+fn implementation_list(types: Vec<syn::Type>) -> Result<Implementation<syn::Type>, DomainError> {
+    let variants = types
+        .into_iter()
+        .map(implementation_variant)
+        .collect::<Result<_, _>>();
+    Ok(Implementation::Listed(variants?))
 }

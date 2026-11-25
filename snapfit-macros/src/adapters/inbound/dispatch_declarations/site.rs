@@ -104,12 +104,6 @@ impl Site {
         })
     }
 
-    pub(super) fn repeated_extra(self) -> DomainErrors {
-        self.error(StaticDispatchProblem::RepeatedExtra {
-            position: self.position,
-        })
-    }
-
     pub(super) fn without_list(self, name: &TypeName) -> DomainErrors {
         self.error(StaticDispatchProblem::WithoutList {
             position: self.position,

@@ -22,7 +22,7 @@ pub(super) use expressions::single_word;
 use expressions::ungrouped;
 pub(super) use fallible_meta::FallibleMeta;
 use implementation_meta::FieldSettings;
-pub(super) use implementation_meta::ImplementationMeta;
+pub(super) use implementation_meta::{ImplementationEntry, ImplementationMeta};
 pub(super) use prerequisites::{PrerequisiteEntry, PrerequisiteList, PrerequisiteMeta};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, FromMeta)]

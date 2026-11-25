@@ -36,17 +36,17 @@ Feature: Dispatching a container's fields statically
     Then its dynamic ledger should answer from "disk"
 
   @v0_3_0
-  Scenario Outline: A test builds an implementation no field injects, from extra or from an extension whose condition holds
+  Scenario Outline: A test builds an implementation no field injects, from an extension with no condition or one whose condition holds
     Given a container whose fields hold a statically dispatched ledger
-    Then a ledger built from <list> should answer from "<source>"
+    Then a ledger built from <list> extension should answer from "<source>"
 
     Examples:
-      | list          | source |
-      | extra         | fake   |
-      | the extension | spare  |
+      | list              | source |
+      | the unconditional | fake   |
+      | the conditional   | spare  |
 
   @v0_3_0
-  Scenario Outline: A factory chooses the variant its field holds from a setting, building it from the inputs of every variant
+  Scenario Outline: A factory chooses the variant its field holds from a setting, among the variants its factory fields list, building it from the inputs of every variant
     Given a container whose factories choose its ledgers from the setting <backend>
     Then its shared and its owned ledger should both answer from "<source>"
 
@@ -62,7 +62,7 @@ Feature: Dispatching a container's fields statically
 
   @v0_3_0
   Scenario: A container that a macro_rules! writes dispatches the types the macro passes
-    Then a container a macro_rules! writes should answer from "disk", and its extra from "fake"
+    Then a container a macro_rules! writes should answer from "disk", and its factory field from "fake"
 
   @v0_3_0
   Scenario: Neither rustc nor clippy warns about the code snapfit writes for a dispatched type, however private its implementations are

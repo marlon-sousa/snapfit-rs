@@ -11,9 +11,10 @@ impl MySql { pub fn new() -> Self { Self } }
 impl Database for MySql { fn source(&self) -> &'static str { "mysql" } }
 
 macro_rules! shop {
-    ($field:ty, $extra:ty) => {
+    ($field:ty, $extended:ty) => {
         #[container]
-        #[static_dispatch_for(Database as Db, extra = [$extra])]
+        #[static_dispatch_for(Database as Db)]
+        #[extend_static_dispatch(Db, [$extended])]
         pub struct Shop {
             #[singleton(implementation = MySql)]
             db: Arc<Db>,

@@ -33,7 +33,7 @@ pub struct There<I>(PhantomData<I>);
 #[diagnostic::on_unimplemented(
     message = "`{T}` is not one of the implementations this dispatched type holds",
     label = "not on the list of implementations",
-    note = "the dispatched type holds the implementations its container's fields, `extra` list and `extend_static_dispatch` lists name"
+    note = "the dispatched type holds the implementations its container's fields and `extend_static_dispatch` lists name"
 )]
 pub trait Holds<T, I> {
     fn hold(value: T) -> Self;
@@ -65,7 +65,7 @@ impl<Last> Holds<Last, Here> for Only<Last> {
 #[diagnostic::on_unimplemented(
     message = "`{Self}` is not one of the implementations this dispatched type holds",
     label = "not on the list of implementations",
-    note = "the dispatched type holds the implementations its container's fields, `extra` list and `extend_static_dispatch` lists name"
+    note = "the dispatched type holds the implementations its container's fields and `extend_static_dispatch` lists name"
 )]
 pub trait NotOnTheList {
     /// Whatever a value of such a type is asked to become, since there is

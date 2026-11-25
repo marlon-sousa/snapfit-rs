@@ -1,7 +1,8 @@
 //! A container whose fields hold one dispatched type, each built from the
 //! implementation it names, beside a field that dispatches the same trait
-//! dynamically. An extension whose condition holds adds `Spare`, and one
-//! whose condition is false names a type that does not exist.
+//! dynamically. An extension with no condition adds `Fake`, one whose
+//! condition holds adds `Spare`, and one whose condition is false names a
+//! type that does not exist.
 
 use std::sync::Arc;
 
@@ -10,7 +11,8 @@ use snapfit::container;
 use super::ledgers::{Books, Config, Disk, Fake, Ledger, Memory, Remote};
 
 #[container]
-#[static_dispatch_for(Ledger as Ledgers, extra = [Fake])]
+#[static_dispatch_for(Ledger as Ledgers)]
+#[extend_static_dispatch(Ledgers, [Fake])]
 #[cfg_attr(all(), extend_static_dispatch(Ledgers, [Spare]))]
 #[cfg_attr(any(), extend_static_dispatch(Ledgers, [Missing]))]
 pub struct Accounts {

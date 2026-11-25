@@ -66,3 +66,28 @@ fn an_implementation_is_refused_where_it_cannot_be_built() {
         assert_eq!(call, Err(refusal(problem)), "{shape:?}");
     }
 }
+
+#[test]
+fn a_list_of_implementations_is_refused_on_every_field_that_holds_no_dispatched_type() {
+    let shapes = [
+        TypeShape::Value,
+        TypeShape::Arc,
+        TypeShape::ArcTraitObject,
+        TypeShape::TraitObject,
+        TypeShape::KeepsTraitObject,
+        TypeShape::ArcKeepsTraitObject,
+    ];
+
+    for shape in shapes {
+        for construction in [None, Some(Construction::Factory)] {
+            let mut listing = dependency(shape, construction.clone());
+            listing.implementation = Implementation::Listed(vec![variant("Stripe")]);
+            let call = undispatched(&listing, &Constructor::New);
+            assert_eq!(
+                call,
+                Err(refusal(TraitObjectProblem::ImplementationList)),
+                "{shape:?} {construction:?}"
+            );
+        }
+    }
+}

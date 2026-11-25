@@ -4,7 +4,8 @@ use super::*;
 
 fn accounts(field_key: TokenStream) -> TokenStream {
     quote! {
-        #[static_dispatch_for(Ledger as Ledgers, extra = [Fake])]
+        #[static_dispatch_for(Ledger as Ledgers)]
+        #[extend_static_dispatch(Ledgers, [Fake])]
         #[extend_static_dispatch(Ledgers, [Spare])]
         pub struct Accounts {
             #[singleton(#field_key)]
@@ -47,14 +48,16 @@ fn a_refused_container_keeps_its_alias_so_that_its_fields_still_name_a_type() {
 #[test]
 fn a_container_whose_fields_cannot_be_read_still_writes_each_alias_with_what_reads() {
     let input = quote! {
-        #[static_dispatch_for(Ledger as Ledgers, extra = [Fake])]
+        #[static_dispatch_for(Ledger as Ledgers)]
         #[static_dispatch_for(Clock as Clocks)]
-        #[static_dispatch_for(Store as Stores, extra = Memory)]
+        #[static_dispatch_for(Store as Stores, extra = [Memory])]
         pub struct Accounts {
             #[singleton(bogus)]
             main: Arc<Ledgers>,
             #[singleton(implementation = Disk)]
             backup: Arc<Ledgers>,
+            #[singleton(build = factory, implementation = [Fake])]
+            chosen: Arc<Ledgers>,
             clock: Arc<Clocks>,
         }
     };

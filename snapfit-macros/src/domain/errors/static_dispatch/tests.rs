@@ -37,7 +37,7 @@ fn an_unreadable_attribute_names_its_kind_and_shows_how_that_kind_is_written() {
 
     assert_eq!(
         unreadable(DispatchAttributeKind::Declaration).to_string(),
-        "static_dispatch_for cannot be read: expected `as`; write it as static_dispatch_for(Database as Db, extra = [Sqlite])"
+        "static_dispatch_for cannot be read: expected `as`; write it as static_dispatch_for(Database as Db)"
     );
     assert_eq!(
         unreadable(DispatchAttributeKind::Extension).to_string(),

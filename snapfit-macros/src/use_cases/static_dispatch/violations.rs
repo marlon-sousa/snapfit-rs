@@ -44,7 +44,7 @@ pub(crate) fn dispatch_violations<C, F, S, T: Clone>(
         .collect()
 }
 
-fn repeated_name<S, T>(declaration: &DispatchedTypeDeclaration<S, T>) -> StaticDispatchProblem {
+fn repeated_name<S>(declaration: &DispatchedTypeDeclaration<S>) -> StaticDispatchProblem {
     StaticDispatchProblem::RepeatedName {
         position: declaration.position,
         name: declaration.name.clone(),
@@ -63,9 +63,7 @@ fn undeclared<T>(extension: &DispatchExtension<T>, declared: &[TypeName]) -> Sta
     }
 }
 
-fn without_implementations<S, T>(
-    declaration: &DispatchedTypeDeclaration<S, T>,
-) -> StaticDispatchProblem {
+fn without_implementations<S>(declaration: &DispatchedTypeDeclaration<S>) -> StaticDispatchProblem {
     StaticDispatchProblem::WithoutImplementations {
         position: declaration.position,
         name: declaration.name.clone(),

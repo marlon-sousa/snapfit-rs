@@ -3,7 +3,8 @@
 mod dispatched_types;
 
 pub(crate) use dispatched_types::{
-    declared, dispatched_field, dispatching_container, extended, type_name, variant, written_name,
+    declared, dispatched_field, dispatching_container, extended, listing_field, type_name, variant,
+    written_name,
 };
 
 use crate::domain::{

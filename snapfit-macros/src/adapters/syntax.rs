@@ -75,8 +75,7 @@ pub(crate) type FieldDeclaration = DependencyDeclaration<FieldSyntax, syn::Type>
 pub(crate) type Plan = ConstructionPlan<ContainerSyntax, FieldSyntax, DispatchSyntax, syn::Type>;
 pub(crate) type DispatchedTypeSyntax = DispatchedTypePlan<DispatchSyntax, syn::Type>;
 pub(crate) type DispatchedTypeFallbackSyntax = DispatchedTypeFallback<DispatchSyntax, syn::Type>;
-pub(crate) type DispatchedTypeDeclarationSyntax =
-    DispatchedTypeDeclaration<DispatchSyntax, syn::Type>;
+pub(crate) type DispatchedTypeDeclarationSyntax = DispatchedTypeDeclaration<DispatchSyntax>;
 pub(crate) type DispatchExtensionSyntax = DispatchExtension<syn::Type>;
 
 /// What of a struct can be read, each part on its own, for the aliases a

@@ -11,7 +11,7 @@ impl MySql { pub fn new() -> Self { Self } }
 impl Database for MySql { fn source(&self) -> &'static str { "mysql" } }
 
 #[container]
-#[static_dispatch_for(Database as Db, extra = MySql)]
+#[static_dispatch_for(Database as Db, extra = [MySql])]
 pub struct Shop {
     #[singleton(implementation = MySql)]
     db: Arc<Db>,

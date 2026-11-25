@@ -48,16 +48,12 @@ pub(crate) enum StaticDispatchProblem {
     },
     /// The setting as written, up to its value.
     #[display(
-        "static_dispatch_for takes extra and nothing else after the trait and its name, not {written}; write extra = [Sqlite] to add implementations, or remove {written}"
+        "static_dispatch_for takes the trait and its name and nothing else, not {written}; remove {written}, and add implementations with implementation on a field or with extend_static_dispatch, such as extend_static_dispatch(Db, [Sqlite])"
     )]
     UnknownSetting {
         position: AttributePosition,
         written: String,
     },
-    #[display(
-        "static_dispatch_for gives extra more than once; list every extra implementation in one extra = [...]"
-    )]
-    RepeatedExtra { position: AttributePosition },
     /// The value as written.
     #[display(
         "{kind} takes its implementations in square brackets, not {written}; write them as {}",
@@ -99,7 +95,7 @@ pub(crate) enum StaticDispatchProblem {
         declared: Vec<TypeName>,
     },
     #[display(
-        "the dispatched type '{name}' holds no implementation in this build; name one with implementation on a field of type Arc<{name}>, or list it in extra = [...]"
+        "the dispatched type '{name}' holds no implementation in this build; name one with implementation on a field of type Arc<{name}>, list those a factory returns with implementation = [...] beside build = factory, or add one with extend_static_dispatch({name}, [...])"
     )]
     WithoutImplementations {
         position: AttributePosition,
@@ -110,6 +106,14 @@ pub(crate) enum StaticDispatchProblem {
         dependency.without_raw_prefix()
     )]
     WithoutImplementation {
+        dependency: DependencyName,
+        name: TypeName,
+    },
+    #[display(
+        "field '{dependency}' lists implementations of the dispatched type {name} in square brackets, which only a factory can choose between; add build = factory to the field and return one of them from the build_{} method of the container's factories trait, or name the one it builds, such as implementation = MySql",
+        dependency.without_raw_prefix()
+    )]
+    ListWithoutFactory {
         dependency: DependencyName,
         name: TypeName,
     },
@@ -132,13 +136,13 @@ impl StaticDispatchProblem {
     pub(crate) fn subject(&self) -> Option<&DependencyName> {
         match self {
             Self::WithoutImplementation { dependency, .. }
+            | Self::ListWithoutFactory { dependency, .. }
             | Self::ThroughPath { dependency, .. }
             | Self::OldAttribute { dependency } => Some(dependency),
             Self::Unreadable { .. }
             | Self::WithoutName { .. }
             | Self::NameAsPath { .. }
             | Self::UnknownSetting { .. }
-            | Self::RepeatedExtra { .. }
             | Self::NotAList { .. }
             | Self::NotAType { .. }
             | Self::WithoutList { .. }
@@ -154,7 +158,6 @@ impl StaticDispatchProblem {
             | Self::WithoutName { position }
             | Self::NameAsPath { position, .. }
             | Self::UnknownSetting { position, .. }
-            | Self::RepeatedExtra { position }
             | Self::NotAList { position, .. }
             | Self::NotAType { position, .. }
             | Self::WithoutList { position, .. }
@@ -162,6 +165,7 @@ impl StaticDispatchProblem {
             | Self::Undeclared { position, .. }
             | Self::WithoutImplementations { position, .. } => Some(*position),
             Self::WithoutImplementation { .. }
+            | Self::ListWithoutFactory { .. }
             | Self::ThroughPath { .. }
             | Self::OldAttribute { .. } => None,
         }
@@ -170,9 +174,7 @@ impl StaticDispatchProblem {
 
 fn example(kind: DispatchAttributeKind) -> &'static str {
     match kind {
-        DispatchAttributeKind::Declaration => {
-            "static_dispatch_for(Database as Db, extra = [Sqlite])"
-        }
+        DispatchAttributeKind::Declaration => "static_dispatch_for(Database as Db)",
         DispatchAttributeKind::Extension => "extend_static_dispatch(Db, [Mock])",
     }
 }

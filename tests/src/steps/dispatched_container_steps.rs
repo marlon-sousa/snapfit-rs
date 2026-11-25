@@ -5,7 +5,7 @@ use crate::dispatched_containers::checked::CheckedAccounts;
 use crate::dispatched_containers::chosen::{self, Backend};
 use crate::dispatched_containers::conversions::{Conversions, Convert};
 use crate::dispatched_containers::ledgers::{Fake, Ledger};
-use crate::dispatched_containers::written_by_a_macro::{Passed, PassedAccounts};
+use crate::dispatched_containers::written_by_a_macro::PassedAccounts;
 use crate::world::ContainerWorld;
 
 #[given("a container whose fields hold a statically dispatched ledger")]
@@ -34,11 +34,13 @@ fn then_books_read_from(world: &mut ContainerWorld, expected: String) {
     );
 }
 
-#[then(regex = r#"^a ledger built from (extra|the extension) should answer from "(.*)"$"#)]
+#[then(
+    regex = r#"^a ledger built from (the unconditional|the conditional) extension should answer from "(.*)"$"#
+)]
 fn then_built_ledger_answers(_world: &mut ContainerWorld, built: String, expected: String) {
     let ledger = match built.as_str() {
-        "extra" => Ledgers::of(Fake),
-        "the extension" => Ledgers::of(Spare),
+        "the unconditional" => Ledgers::of(Fake),
+        "the conditional" => Ledgers::of(Spare),
         other => panic!("no ledger is built from '{other}'"),
     };
     assert_eq!(ledger.source(), expected);
@@ -53,11 +55,12 @@ fn then_checked_fails(_world: &mut ContainerWorld, expected: String) {
 }
 
 #[then(
-    expr = "a container a macro_rules! writes should answer from {string}, and its extra from {string}"
+    expr = "a container a macro_rules! writes should answer from {string}, and its factory field from {string}"
 )]
-fn then_passed_answers(_world: &mut ContainerWorld, main: String, extra: String) {
-    assert_eq!(PassedAccounts::new().get_main().source(), main);
-    assert_eq!(Passed::of(Fake).source(), extra);
+fn then_passed_answers(_world: &mut ContainerWorld, main: String, chosen: String) {
+    let accounts = PassedAccounts::new();
+    assert_eq!(accounts.get_main().source(), main);
+    assert_eq!(accounts.get_chosen().source(), chosen);
 }
 
 #[given("a container whose converters a trait with two type arguments dispatches")]

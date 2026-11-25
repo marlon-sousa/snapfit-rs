@@ -1,7 +1,7 @@
 use syn::parse_quote;
 
 use super::*;
-use crate::domain::{DomainError, StaticDispatchProblem};
+use crate::domain::{DomainError, StaticDispatchProblem, Variant};
 
 mod refusals;
 
@@ -25,10 +25,10 @@ fn problems(attrs: Vec<syn::Attribute>) -> Vec<String> {
 }
 
 #[test]
-fn a_declaration_reads_its_trait_its_name_and_its_extra_implementations() {
+fn a_declaration_reads_its_trait_and_its_name() {
     let (declarations, extensions) = read(vec![
         parse_quote!(#[derive(Debug)]),
-        parse_quote!(#[static_dispatch_for(shop::Store<Order> as Orders, extra = [Sqlite, Cache<Order>],)]),
+        parse_quote!(#[static_dispatch_for(shop::Store<Order> as Orders,)]),
         parse_quote!(#[extend_static_dispatch(Orders, [Mock])]),
         parse_quote!(#[static_dispatch_for(Database as Db)]),
     ])
@@ -44,9 +44,7 @@ fn a_declaration_reads_its_trait_its_name_and_its_extra_implementations() {
         compact_type_tokens(quote::quote!(#trait_path)),
         "shop::Store<Order>"
     );
-    assert_eq!(names(&orders.extra), ["Sqlite", "Cache<Order>"]);
     assert_eq!(db.position, AttributePosition(2));
-    assert!(db.extra.is_empty());
 
     let [extension] = extensions.as_slice() else {
         panic!("one extension");
@@ -59,7 +57,7 @@ fn a_declaration_reads_its_trait_its_name_and_its_extra_implementations() {
 #[test]
 fn a_comma_between_angle_brackets_belongs_to_its_type() {
     let (declarations, extensions) = read(vec![
-        parse_quote!(#[static_dispatch_for(Store<u8, u16> as Pair, extra = [Cache<u8, u16>])]),
+        parse_quote!(#[static_dispatch_for(Store<u8, u16> as Pair)]),
         parse_quote!(#[extend_static_dispatch(Pair, [Boxed<dyn Fn(u8) -> u16, u8>])]),
     ])
     .unwrap();
@@ -72,7 +70,6 @@ fn a_comma_between_angle_brackets_belongs_to_its_type() {
         compact_type_tokens(quote::quote!(#trait_path)),
         "Store<u8, u16>"
     );
-    assert_eq!(names(&pair.extra), ["Cache<u8, u16>"]);
     assert_eq!(
         names(&extensions[0].variants),
         ["Boxed<dyn Fn(u8) -> u16, u8>"]
@@ -80,9 +77,9 @@ fn a_comma_between_angle_brackets_belongs_to_its_type() {
 }
 
 #[test]
-fn only_what_reads_is_kept_for_a_refused_container_a_declaration_s_name_without_its_bad_settings() {
+fn only_what_reads_is_kept_for_a_refused_container_a_declaration_s_name_without_its_settings() {
     let (declarations, extensions) = read_readable_dispatch_declarations(&[
-        parse_quote!(#[static_dispatch_for(Database as Db, extra = MySql)]),
+        parse_quote!(#[static_dispatch_for(Database as Db, extra = [MySql])]),
         parse_quote!(#[static_dispatch_for(Clock as Clocks)]),
         parse_quote!(#[extend_static_dispatch(Clocks)]),
         parse_quote!(#[extend_static_dispatch(Clocks, [Fixed])]),
@@ -93,7 +90,6 @@ fn only_what_reads_is_kept_for_a_refused_container_a_declaration_s_name_without_
         .map(|declaration| declaration.name.as_str())
         .collect();
     assert_eq!(names, ["Db", "Clocks"]);
-    assert!(declarations[0].extra.is_empty());
     let [extension] = extensions.as_slice() else {
         panic!("one extension");
     };

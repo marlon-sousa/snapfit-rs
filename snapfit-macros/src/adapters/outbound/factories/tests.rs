@@ -138,9 +138,9 @@ fn only_an_input_of_a_dispatched_type_allows_a_more_private_implementation() {
 #[test]
 fn only_the_build_method_of_a_dispatched_field_allows_a_more_private_implementation() {
     let plan = plan_for(parse_quote! {
-        #[static_dispatch_for(Database as Db, extra = [MySql])]
+        #[static_dispatch_for(Database as Db)]
         pub struct Shop {
-            #[singleton(build = factory)]
+            #[singleton(build = factory, implementation = [MySql])]
             shared: Arc<Db>,
             #[singleton(build = factory)]
             owned: Db,

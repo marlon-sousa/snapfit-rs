@@ -20,12 +20,8 @@ pub(crate) fn variant(text: &'static str) -> Variant<&'static str> {
 pub(crate) fn declared(
     name: &'static str,
     position: usize,
-    extra: &[&'static str],
-) -> DispatchedTypeDeclaration<&'static str, &'static str> {
-    let mut declaration =
-        DispatchedTypeDeclaration::new(type_name(name), AttributePosition(position), name);
-    declaration.extra = extra.iter().copied().map(variant).collect();
-    declaration
+) -> DispatchedTypeDeclaration<&'static str> {
+    DispatchedTypeDeclaration::new(type_name(name), AttributePosition(position), name)
 }
 
 pub(crate) fn extended(
@@ -54,9 +50,21 @@ pub(crate) fn dispatched_field(
     dependency
 }
 
+/// A field named `field` whose value is written `written`, listing `implementations`.
+pub(crate) fn listing_field(
+    field: &str,
+    written: WrittenType,
+    implementations: &[&'static str],
+) -> DependencyDeclaration<(), &'static str> {
+    let mut dependency = dispatched_field(field, written, None);
+    dependency.implementation =
+        Implementation::Listed(implementations.iter().copied().map(variant).collect());
+    dependency
+}
+
 pub(crate) fn dispatching_container(
     dependencies: Vec<DependencyDeclaration<(), &'static str>>,
-    dispatched_types: Vec<DispatchedTypeDeclaration<&'static str, &'static str>>,
+    dispatched_types: Vec<DispatchedTypeDeclaration<&'static str>>,
     extensions: Vec<DispatchExtension<&'static str>>,
 ) -> Container {
     let mut container = ContainerDeclaration::new(ContainerName::new("App").unwrap(), ());

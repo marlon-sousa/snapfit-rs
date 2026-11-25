@@ -7,8 +7,8 @@ use derive_new::new;
 
 use crate::domain::{
     ContainerDeclaration, DependencyDeclaration, Dispatch, DispatchExtension,
-    DispatchedTypeDeclaration, DispatchedTypeFallback, DispatchedTypePlan, Implementation,
-    TypeName, Variant, WrittenType,
+    DispatchedTypeDeclaration, DispatchedTypeFallback, DispatchedTypePlan, TypeName, Variant,
+    WrittenType,
 };
 
 mod violations;
@@ -19,8 +19,8 @@ pub(crate) use violations::dispatch_violations;
 #[derive(Debug, Default)]
 pub(crate) struct DispatchedNames(Vec<TypeName>);
 
-impl<S, T> FromIterator<DispatchedTypeDeclaration<S, T>> for DispatchedNames {
-    fn from_iter<I: IntoIterator<Item = DispatchedTypeDeclaration<S, T>>>(declarations: I) -> Self {
+impl<S> FromIterator<DispatchedTypeDeclaration<S>> for DispatchedNames {
+    fn from_iter<I: IntoIterator<Item = DispatchedTypeDeclaration<S>>>(declarations: I) -> Self {
         Self(declarations.into_iter().map(name_of).collect())
     }
 }
@@ -40,7 +40,7 @@ impl DispatchedNames {
     }
 }
 
-fn name_of<S, T>(declaration: DispatchedTypeDeclaration<S, T>) -> TypeName {
+fn name_of<S>(declaration: DispatchedTypeDeclaration<S>) -> TypeName {
     declaration.name
 }
 
@@ -50,8 +50,7 @@ pub(crate) fn dispatch_of(dispatched: Option<&TypeName>) -> Dispatch {
 
 /// Every type the container dispatches that holds an implementation, each
 /// once, under the first `static_dispatch_for` that declares it. Its
-/// implementations are those its fields name, then its `extra`, then its
-/// extensions', each once.
+/// implementations are those its fields name, then its extensions', each once.
 pub(crate) fn dispatched_types<C, F, S: Clone, T: Clone>(
     container: &ContainerDeclaration<C, F, S, T>,
 ) -> Vec<DispatchedTypePlan<S, T>> {
@@ -66,7 +65,7 @@ pub(crate) fn dispatched_types<C, F, S: Clone, T: Clone>(
 /// For a container that is refused, each type its readable declarations
 /// name, with the implementations the readable parts give it, or with none.
 pub(crate) fn fallback_dispatched_types<F, S: Clone, T: Clone>(
-    declarations: &[DispatchedTypeDeclaration<S, T>],
+    declarations: &[DispatchedTypeDeclaration<S>],
     extensions: &[DispatchExtension<T>],
     dependencies: &[DependencyDeclaration<F, T>],
 ) -> Vec<DispatchedTypeFallback<S, T>> {
@@ -80,21 +79,21 @@ pub(crate) fn fallback_dispatched_types<F, S: Clone, T: Clone>(
 
 /// The declarations, the first of each name apart from those that repeat it.
 #[derive(new)]
-struct Sorted<'a, S, T> {
+struct Sorted<'a, S> {
     #[new(default)]
     seen: HashSet<&'a TypeName>,
     #[new(default)]
-    first: Vec<&'a DispatchedTypeDeclaration<S, T>>,
+    first: Vec<&'a DispatchedTypeDeclaration<S>>,
     #[new(default)]
-    repeated: Vec<&'a DispatchedTypeDeclaration<S, T>>,
+    repeated: Vec<&'a DispatchedTypeDeclaration<S>>,
 }
 
-fn sorted<S, T>(declarations: &[DispatchedTypeDeclaration<S, T>]) -> Sorted<'_, S, T> {
+fn sorted<S>(declarations: &[DispatchedTypeDeclaration<S>]) -> Sorted<'_, S> {
     declarations.iter().fold(Sorted::new(), Sorted::with)
 }
 
-impl<'a, S, T> Sorted<'a, S, T> {
-    fn with(mut self, declaration: &'a DispatchedTypeDeclaration<S, T>) -> Self {
+impl<'a, S> Sorted<'a, S> {
+    fn with(mut self, declaration: &'a DispatchedTypeDeclaration<S>) -> Self {
         if self.seen.insert(&declaration.name) {
             self.first.push(declaration);
         } else {
@@ -104,7 +103,7 @@ impl<'a, S, T> Sorted<'a, S, T> {
     }
 }
 
-/// What gives a declared type its implementations, besides its own `extra`.
+/// What gives a declared type its implementations.
 #[derive(new)]
 struct Held<'a, F, T> {
     dependencies: &'a [DependencyDeclaration<F, T>],
@@ -114,7 +113,7 @@ struct Held<'a, F, T> {
 impl<F, T: Clone> Held<'_, F, T> {
     fn planned<S: Clone>(
         &self,
-        declaration: &DispatchedTypeDeclaration<S, T>,
+        declaration: &DispatchedTypeDeclaration<S>,
     ) -> Option<DispatchedTypePlan<S, T>> {
         let mut variants = self.variants(declaration).into_iter();
         let first = variants.next()?;
@@ -127,7 +126,7 @@ impl<F, T: Clone> Held<'_, F, T> {
 
     fn fallback<S: Clone>(
         &self,
-        declaration: &DispatchedTypeDeclaration<S, T>,
+        declaration: &DispatchedTypeDeclaration<S>,
     ) -> DispatchedTypeFallback<S, T> {
         match self.planned(declaration) {
             Some(planned) => DispatchedTypeFallback::Planned(planned),
@@ -136,13 +135,13 @@ impl<F, T: Clone> Held<'_, F, T> {
     }
 
     /// The implementations a declared type holds, in order, each once by how it is written.
-    fn variants<S>(&self, declaration: &DispatchedTypeDeclaration<S, T>) -> Vec<Variant<T>> {
+    fn variants<S>(&self, declaration: &DispatchedTypeDeclaration<S>) -> Vec<Variant<T>> {
         let name = &declaration.name;
         let fields = self
             .dependencies
             .iter()
             .filter(|dependency| dependency.written_type.is_written_as(name))
-            .filter_map(named_implementation);
+            .flat_map(named_implementations);
         let extensions = self
             .extensions
             .iter()
@@ -150,7 +149,6 @@ impl<F, T: Clone> Held<'_, F, T> {
             .flat_map(|extension| &extension.variants);
         let mut seen = HashSet::new();
         fields
-            .chain(&declaration.extra)
             .chain(extensions)
             .filter(|variant| seen.insert(&variant.name))
             .cloned()
@@ -158,11 +156,8 @@ impl<F, T: Clone> Held<'_, F, T> {
     }
 }
 
-fn named_implementation<F, T>(dependency: &DependencyDeclaration<F, T>) -> Option<&Variant<T>> {
-    match &dependency.implementation {
-        Implementation::Named(variant) => Some(variant),
-        Implementation::OfField => None,
-    }
+fn named_implementations<F, T>(dependency: &DependencyDeclaration<F, T>) -> &[Variant<T>] {
+    dependency.implementation.variants()
 }
 
 #[cfg(test)]
