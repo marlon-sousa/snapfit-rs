@@ -21,7 +21,7 @@ fn a_factory_field_adds_the_factories_trait_and_new_calls_it() {
     assert!(code.contains("fnbuild_payments(inputs:ShopPaymentsInputs)->Arc<dynPaymentGateway>;"));
     assert!(code.contains("pubstructShopPaymentsInputs{"));
     assert!(code.contains(
-        "let__snapfit_payments:Arc<dynPaymentGateway>=<SelfasShopFactories>::build_payments(ShopPaymentsInputs{config:__snapfit_config.clone()});"
+        "let__snapfit_payments:Arc<dynPaymentGateway>=<SelfasShopFactories>::build_payments(ShopPaymentsInputs{config:<Arc<Config>as::std::clone::Clone>::clone(&__snapfit_config)});"
     ));
 }
 

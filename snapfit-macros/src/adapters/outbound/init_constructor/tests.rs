@@ -20,7 +20,7 @@ fn a_sync_container_gets_a_documented_new_default_and_the_container_impl() {
     let code = compact(emit_init_impl(&plan));
 
     assert!(code.contains(
-        "pubfnnew()->Self{let__snapfit_config:Arc<Config>=::std::sync::Arc::new(<Config>::new());let__snapfit_db:Arc<Database>=::std::sync::Arc::new(<Database>::new(__snapfit_config.clone()));Self{config:__snapfit_config,db:__snapfit_db,}}"
+        "pubfnnew()->Self{let__snapfit_config:Arc<Config>=::std::sync::Arc::new(<Config>::new());let__snapfit_db:Arc<Database>=::std::sync::Arc::new(<Database>::new(<Arc<Config>as::std::clone::Clone>::clone(&__snapfit_config)));Self{config:__snapfit_config,db:__snapfit_db,}}"
     ));
     assert!(code.contains(&compact(quote! {
         #[doc = "Builds `App` with each of its singletons, in the order their dependencies need."]
@@ -72,7 +72,7 @@ fn a_container_with_a_fallible_field_gets_a_documented_try_new_and_the_fallible_
         pub fn try_new() -> ::std::result::Result<Self, ::snapfit::BuildError>
     })));
     assert!(code.contains(
-        "::std::result::Result::Ok({let__snapfit_config:Arc<Config>=::std::sync::Arc::new(match{let__snapfit_built=<Config>::load();::snapfit::__private::BuildResult::into_build_result(__snapfit_built,\"App\",\"config\")}{::std::result::Result::Ok(__snapfit_value)=>__snapfit_value,::std::result::Result::Err(__snapfit_error)=>{return::std::result::Result::Err(::std::convert::From::from(__snapfit_error))}});let__snapfit_db:Arc<Database>=::std::sync::Arc::new(<Database>::new(__snapfit_config.clone()));Self{config:__snapfit_config,db:__snapfit_db,}})"
+        "::std::result::Result::Ok({let__snapfit_config:Arc<Config>=::std::sync::Arc::new(match{let__snapfit_built=<Config>::load();::snapfit::__private::BuildResult::into_build_result(__snapfit_built,\"App\",\"config\")}{::std::result::Result::Ok(__snapfit_value)=>__snapfit_value,::std::result::Result::Err(__snapfit_error)=>{return::std::result::Result::Err(::std::convert::From::from(__snapfit_error))}});let__snapfit_db:Arc<Database>=::std::sync::Arc::new(<Database>::new(<Arc<Config>as::std::clone::Clone>::clone(&__snapfit_config)));Self{config:__snapfit_config,db:__snapfit_db,}})"
     ));
     assert!(code.contains("impl::snapfit::FallibleContainerforApp"));
     assert!(!code.contains("pubfnnew()"));

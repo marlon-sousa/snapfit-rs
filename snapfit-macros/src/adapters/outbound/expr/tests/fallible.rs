@@ -29,20 +29,23 @@ fn every_way_of_building_a_fallible_field_is_wrapped_with_the_names_rust_reads()
             "db",
             format!(
                 "::std::sync::Arc::new({})",
-                wrapped("<Database>::new(__snapfit_config.clone())", "db")
+                wrapped(
+                    "<Database>::new(<Configas::std::clone::Clone>::clone(&__snapfit_config))",
+                    "db"
+                )
             ),
         ),
         (
             "cache",
             wrapped(
-                "<Cache>::builder().config(__snapfit_config.clone()).build()",
+                "<Cache>::builder().config(<Configas::std::clone::Clone>::clone(&__snapfit_config)).build()",
                 "cache",
             ),
         ),
         (
             "gateway",
             wrapped(
-                "<SelfasAppFactories>::build_gateway(AppGatewayInputs{config:__snapfit_config.clone()})",
+                "<SelfasAppFactories>::build_gateway(AppGatewayInputs{config:<Configas::std::clone::Clone>::clone(&__snapfit_config)})",
                 "gateway",
             ),
         ),

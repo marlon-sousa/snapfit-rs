@@ -1,7 +1,7 @@
 //! Adapter: the expression that builds one dependency, from its step and its field's syntax.
 
 use proc_macro2::{Span, TokenStream};
-use quote::{format_ident, quote, quote_spanned};
+use quote::{ToTokens, format_ident, quote, quote_spanned};
 use syn::ext::IdentExt;
 use syn::spanned::Spanned;
 
@@ -11,9 +11,12 @@ use crate::domain::{
     BuilderMethods, Call, Constructor, Execution, Fallibility, FunctionName, Step, Wrapping,
 };
 
+mod cloned;
 mod fallible;
 #[cfg(test)]
 mod tests;
+
+pub(super) use cloned::cloned;
 
 /// Where already-built singletons are read from while building a value.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -100,13 +103,11 @@ fn argument(prerequisite: &Step<FieldSyntax>, site: Site<'_>) -> TokenStream {
         return construct(prerequisite, site);
     }
     let ident = &prerequisite.syntax.ident;
-    match site.source {
-        ValueSource::Locals => {
-            let local = local_ident(ident);
-            quote!(#local.clone())
-        }
-        ValueSource::SelfFields => quote!(self.#ident.clone()),
-    }
+    let place = match site.source {
+        ValueSource::Locals => local_ident(ident).into_token_stream(),
+        ValueSource::SelfFields => quote!(self.#ident),
+    };
+    cloned(&prerequisite.syntax.ty, place)
 }
 
 /// `<Self as AppFactories>::build_auth(AppAuthInputs { config: ..., db: ... })`, at
