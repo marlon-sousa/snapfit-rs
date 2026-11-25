@@ -19,11 +19,10 @@ pub(super) fn methods(
 ) -> Result<(BuilderMethods, BuilderSyntax), DomainError> {
     let read = settings.iter().fold(Settings::default(), Settings::with);
     if !read.refused.is_empty() {
-        return Err(BuilderProblem::InvalidSetting {
+        Err(BuilderProblem::InvalidSetting {
             dependency: dependency.clone(),
             written: written_settings(&read.refused),
-        }
-        .into());
+        })?;
     }
     let syntax = BuilderSyntax {
         start: read

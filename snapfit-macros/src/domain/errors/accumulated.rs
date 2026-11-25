@@ -70,8 +70,6 @@ impl IntoIterator for DomainErrors {
     }
 }
 
-/// One problem, or one part of a problem such as a `GraphProblem`, as the
-/// errors of an expansion that found only it.
 impl<E: Into<DomainError>> From<E> for DomainErrors {
     fn from(first: E) -> Self {
         Self {

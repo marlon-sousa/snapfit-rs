@@ -86,14 +86,14 @@ Layering goes one way. snapfit-macros' facade calls the handler; the handler cal
 
 ## Errors
 
-- **One enum, `DomainError`, composed of parts**, in `domain/errors.rs`, derived with `thiserror`. Each kind of problem is a part: a variant that holds an enum of its own, in a file of its own beside it under `domain/errors/`, with that kind's words and the `subject()` the diagnostic points at. Each part derives `thiserror`'s `Error` for its words, and its variant is `#[error(transparent)]` with `#[from]`, so that a part converts into `DomainError`. `DomainErrors` converts from anything that converts into `DomainError`, so that code builds the problem and returns it with `?`, or writes `.into()` where it returns a value, without naming its part or `DomainError`. A new kind of problem adds a part, never a flat variant of `DomainError`. The parts are:
+- **One enum, `DomainError`, composed of parts**, in `domain/errors.rs`, derived with `thiserror`. Each kind of problem is a part: a variant that holds an enum of its own, in a file of its own beside it under `domain/errors/`, with that kind's words and the `subject()` the diagnostic points at. Each part but `TraitObjectProblem` derives `thiserror`'s `Error` for its words, and its variant is `#[error(transparent)]` with `#[from]`, so that a part converts into `DomainError`. `DomainErrors` converts from anything that converts into `DomainError`, so that code builds the problem and returns it with `?`, or writes `.into()` where it returns a value or must leave the function at once, such as in a `let ... else`, without naming its part or `DomainError`. A new kind of problem adds a part, never a flat variant of `DomainError`. The parts are:
   - `DeclarationProblem`: the struct, its names and its fields;
   - `AttributeProblem`: a container's or a field's attribute that does not read, or a lifecycle missing or repeated;
   - `GraphProblem`: cycles, and the `deps` that name an unknown dependency or one twice;
   - `BuildProblem`: a field's `build` and the container's `leaf_build`;
   - `BuilderProblem`: builder settings, labelled `deps` and setters;
   - `AsyncProblem`: an async dependency where it cannot be built;
-  - `TraitObjectProblem`: a field that holds a trait object or names an implementation. It is the one part whose variant keeps the field beside it, since its words are built from the field's name, and the variant gives its subject. It has no `From`, and is built by naming its variant;
+  - `TraitObjectProblem`: a field that holds a trait object or names an implementation. It is the one part whose variant keeps the field beside it, since its words are built from the field's name, and the variant gives its subject. It derives no `Error` and has no `From`, and is built by naming its variant;
   - `StaticDispatchProblem`: a container's dispatched types and the fields that hold them;
   - `DispatchProblem`, with its `ItemProblem`: a dispatched trait. Its `subject()` is a `DispatchSubject`, the part of the trait the diagnostic points at;
   - `FeatureProblem`: the `Feature` a build refuses, as unstable or not implemented yet.
