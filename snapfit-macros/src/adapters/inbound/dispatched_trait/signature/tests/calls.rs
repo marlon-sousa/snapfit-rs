@@ -6,13 +6,13 @@ use super::*;
 use crate::domain::SelfBound;
 
 #[test]
-fn a_where_clause_bounding_self_only_by_sized_or_a_lifetime_can_be_forwarded() {
+fn a_where_clause_is_read_as_its_strongest_bound_on_self() {
     let cases: [(syn::TraitItemFn, SelfBound); 6] = [
         (
             parse_quote!(
                 fn f(&self);
             ),
-            SelfBound::Forwardable,
+            SelfBound::Sized,
         ),
         (
             parse_quote!(
@@ -20,7 +20,7 @@ fn a_where_clause_bounding_self_only_by_sized_or_a_lifetime_can_be_forwarded() {
                 where
                     Self: Sized;
             ),
-            SelfBound::Forwardable,
+            SelfBound::Sized,
         ),
         (
             parse_quote!(
@@ -28,7 +28,7 @@ fn a_where_clause_bounding_self_only_by_sized_or_a_lifetime_can_be_forwarded() {
                 where
                     Self: ::core::marker::Sized;
             ),
-            SelfBound::Forwardable,
+            SelfBound::Sized,
         ),
         (
             parse_quote!(
@@ -36,7 +36,7 @@ fn a_where_clause_bounding_self_only_by_sized_or_a_lifetime_can_be_forwarded() {
                 where
                     Self: 'a + Sized;
             ),
-            SelfBound::Forwardable,
+            SelfBound::Lifetime,
         ),
         (
             parse_quote!(
@@ -44,7 +44,7 @@ fn a_where_clause_bounding_self_only_by_sized_or_a_lifetime_can_be_forwarded() {
                 where
                     Self: Clone;
             ),
-            SelfBound::Other,
+            SelfBound::Trait,
         ),
         (
             parse_quote!(
@@ -52,7 +52,7 @@ fn a_where_clause_bounding_self_only_by_sized_or_a_lifetime_can_be_forwarded() {
                 where
                     Self: Sized + Clone;
             ),
-            SelfBound::Other,
+            SelfBound::Trait,
         ),
     ];
     for (method, self_bound) in cases {
@@ -114,7 +114,7 @@ fn self_passed_by_a_macro_as_a_type_is_the_whole_return_type() {
         MethodShape::new(
             Receiver::Reference,
             SelfUse::Forwardable,
-            SelfBound::Forwardable,
+            SelfBound::Sized,
             ReturnShape::ItSelf,
             Execution::Sync,
             Safety::Safe,

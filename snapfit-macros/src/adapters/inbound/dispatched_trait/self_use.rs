@@ -50,18 +50,17 @@ pub(super) fn is_bare_self(ty: &syn::Type) -> bool {
     matches!(ty, syn::Type::Path(path) if path.qself.is_none() && path.path.is_ident("Self"))
 }
 
-/// `Forwardable` when every bound the `where` clause puts on `Self` is
-/// `Sized` or a lifetime.
+/// The strongest bound the `where` clause puts on `Self`: a trait, then a
+/// lifetime, then `Sized` alone.
 pub(super) fn self_bound(where_clause: Option<&syn::WhereClause>) -> SelfBound {
     let predicates = where_clause.iter().flat_map(|clause| &clause.predicates);
-    if predicates
-        .filter_map(bounds_on_self)
-        .flatten()
-        .all(is_forwardable)
-    {
-        SelfBound::Forwardable
+    let bounds: Vec<_> = predicates.filter_map(bounds_on_self).flatten().collect();
+    if !bounds.iter().copied().all(is_sized_or_lifetime) {
+        SelfBound::Trait
+    } else if bounds.iter().copied().any(is_lifetime) {
+        SelfBound::Lifetime
     } else {
-        SelfBound::Other
+        SelfBound::Sized
     }
 }
 
@@ -76,9 +75,11 @@ fn bounds_on_self(
     }
 }
 
-/// `Sized`, which every dispatch type is, or a lifetime, which a dispatch
-/// type outlives whenever every implementation it holds does.
-fn is_forwardable(bound: &syn::TypeParamBound) -> bool {
+fn is_lifetime(bound: &syn::TypeParamBound) -> bool {
+    matches!(bound, syn::TypeParamBound::Lifetime(_))
+}
+
+fn is_sized_or_lifetime(bound: &syn::TypeParamBound) -> bool {
     match bound {
         syn::TypeParamBound::Lifetime(_) => true,
         syn::TypeParamBound::Trait(bound) => {

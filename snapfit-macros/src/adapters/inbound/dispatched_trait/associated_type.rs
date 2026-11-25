@@ -44,7 +44,9 @@ fn writes_cfg(attr: &syn::Attribute) -> bool {
     let syn::Meta::List(list) = &attr.meta else {
         return false;
     };
-    list.tokens.clone().into_iter().any(|token| {
-        matches!(token, proc_macro2::TokenTree::Ident(ident) if ident == "cfg" || ident == "cfg_attr")
-    })
+    list.tokens.clone().into_iter().any(is_cfg_word)
+}
+
+fn is_cfg_word(token: proc_macro2::TokenTree) -> bool {
+    matches!(token, proc_macro2::TokenTree::Ident(ident) if ident == "cfg" || ident == "cfg_attr")
 }

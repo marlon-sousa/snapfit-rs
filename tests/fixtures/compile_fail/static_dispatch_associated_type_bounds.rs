@@ -9,5 +9,9 @@ pub trait Database {
     where
         Self: Clone;
 
+    type Kept
+    where
+        Self: 'static;
+
     fn find(&self, id: u32) -> Self::Row;
 }

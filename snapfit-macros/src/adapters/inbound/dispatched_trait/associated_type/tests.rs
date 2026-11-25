@@ -14,7 +14,7 @@ fn a_plain_associated_type_is_forwardable_in_every_way() {
         AssociatedTypeShape::new(
             TypeParameters::None,
             SelfUse::Forwardable,
-            SelfBound::Forwardable,
+            SelfBound::Sized,
             Presence::Always
         )
     );
@@ -22,7 +22,7 @@ fn a_plain_associated_type_is_forwardable_in_every_way() {
 
 #[test]
 fn parameters_self_in_a_bound_and_a_cfg_are_each_read() {
-    let cases: [(syn::TraitItemType, AssociatedTypeShape); 6] = [
+    let cases: [(syn::TraitItemType, AssociatedTypeShape); 7] = [
         (
             parse_quote!(
                 type Rows<'a>;
@@ -30,7 +30,7 @@ fn parameters_self_in_a_bound_and_a_cfg_are_each_read() {
             AssociatedTypeShape::new(
                 TypeParameters::Declared,
                 SelfUse::Forwardable,
-                SelfBound::Forwardable,
+                SelfBound::Sized,
                 Presence::Always,
             ),
         ),
@@ -41,7 +41,7 @@ fn parameters_self_in_a_bound_and_a_cfg_are_each_read() {
             AssociatedTypeShape::new(
                 TypeParameters::None,
                 SelfUse::Elsewhere,
-                SelfBound::Forwardable,
+                SelfBound::Sized,
                 Presence::Always,
             ),
         ),
@@ -53,7 +53,7 @@ fn parameters_self_in_a_bound_and_a_cfg_are_each_read() {
             AssociatedTypeShape::new(
                 TypeParameters::None,
                 SelfUse::Forwardable,
-                SelfBound::Forwardable,
+                SelfBound::Sized,
                 Presence::Conditional,
             ),
         ),
@@ -65,7 +65,7 @@ fn parameters_self_in_a_bound_and_a_cfg_are_each_read() {
             AssociatedTypeShape::new(
                 TypeParameters::None,
                 SelfUse::Forwardable,
-                SelfBound::Forwardable,
+                SelfBound::Sized,
                 Presence::Conditional,
             ),
         ),
@@ -78,7 +78,20 @@ fn parameters_self_in_a_bound_and_a_cfg_are_each_read() {
             AssociatedTypeShape::new(
                 TypeParameters::None,
                 SelfUse::Forwardable,
-                SelfBound::Other,
+                SelfBound::Trait,
+                Presence::Always,
+            ),
+        ),
+        (
+            parse_quote!(
+                type Row
+                where
+                    Self: 'static;
+            ),
+            AssociatedTypeShape::new(
+                TypeParameters::None,
+                SelfUse::Forwardable,
+                SelfBound::Lifetime,
                 Presence::Always,
             ),
         ),
@@ -92,7 +105,7 @@ fn parameters_self_in_a_bound_and_a_cfg_are_each_read() {
             AssociatedTypeShape::new(
                 TypeParameters::None,
                 SelfUse::Forwardable,
-                SelfBound::Forwardable,
+                SelfBound::Sized,
                 Presence::Always,
             ),
         ),

@@ -19,7 +19,7 @@ fn plain_type() -> AssociatedTypeShape {
     AssociatedTypeShape::new(
         TypeParameters::None,
         SelfUse::Forwardable,
-        SelfBound::Forwardable,
+        SelfBound::Sized,
         Presence::Always,
     )
 }
@@ -39,7 +39,7 @@ fn each_associated_type_a_bound_cannot_agree_on_is_refused_with_its_own_reason()
             AssociatedTypeShape::new(
                 TypeParameters::Declared,
                 SelfUse::Forwardable,
-                SelfBound::Forwardable,
+                SelfBound::Sized,
                 Presence::Always,
             ),
             ItemProblem::GenericAssociatedType,
@@ -48,7 +48,7 @@ fn each_associated_type_a_bound_cannot_agree_on_is_refused_with_its_own_reason()
             AssociatedTypeShape::new(
                 TypeParameters::None,
                 SelfUse::Elsewhere,
-                SelfBound::Forwardable,
+                SelfBound::Sized,
                 Presence::Always,
             ),
             ItemProblem::SelfInBounds,
@@ -57,16 +57,34 @@ fn each_associated_type_a_bound_cannot_agree_on_is_refused_with_its_own_reason()
             AssociatedTypeShape::new(
                 TypeParameters::None,
                 SelfUse::Forwardable,
-                SelfBound::Other,
+                SelfBound::Trait,
                 Presence::Always,
             ),
-            ItemProblem::SelfBound,
+            ItemProblem::TypeSelfBound,
         ),
         (
             AssociatedTypeShape::new(
                 TypeParameters::None,
                 SelfUse::Forwardable,
-                SelfBound::Forwardable,
+                SelfBound::Lifetime,
+                Presence::Always,
+            ),
+            ItemProblem::TypeSelfBound,
+        ),
+        (
+            AssociatedTypeShape::new(
+                TypeParameters::Declared,
+                SelfUse::Forwardable,
+                SelfBound::Lifetime,
+                Presence::Always,
+            ),
+            ItemProblem::GenericAssociatedType,
+        ),
+        (
+            AssociatedTypeShape::new(
+                TypeParameters::None,
+                SelfUse::Forwardable,
+                SelfBound::Sized,
                 Presence::Conditional,
             ),
             ItemProblem::ConditionalAssociatedType,

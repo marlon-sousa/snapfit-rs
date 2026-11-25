@@ -57,7 +57,7 @@ fn an_async_unsafe_method_keeps_how_it_is_called() {
         shape: MethodShape::new(
             Receiver::Reference,
             SelfUse::Forwardable,
-            SelfBound::Forwardable,
+            SelfBound::Sized,
             ReturnShape::Plain,
             Execution::Async,
             Safety::Unsafe,
@@ -123,7 +123,7 @@ fn a_method_bounding_self_by_more_than_sized_is_refused() {
         shape: MethodShape::new(
             Receiver::Reference,
             SelfUse::Forwardable,
-            SelfBound::Other,
+            SelfBound::Trait,
             ReturnShape::Plain,
             Execution::Sync,
             Safety::Safe,

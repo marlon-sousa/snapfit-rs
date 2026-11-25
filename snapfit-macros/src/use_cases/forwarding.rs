@@ -68,7 +68,7 @@ fn method_problems(shape: MethodShape) -> impl Iterator<Item = ItemProblem> {
         .then_some(ItemProblem::SelfElsewhere);
     let self_bound = shape
         .self_bound
-        .is_other()
+        .is_trait()
         .then_some(ItemProblem::SelfBound);
     let returns = shape
         .returns
@@ -82,19 +82,20 @@ fn method_problems(shape: MethodShape) -> impl Iterator<Item = ItemProblem> {
 }
 
 /// Every reason an associated type cannot be forwarded.
+/// A generic associated type is refused as generic alone, since its `where`
+/// clause commonly bounds `Self` by its lifetimes.
 fn type_problems(shape: AssociatedTypeShape) -> impl Iterator<Item = ItemProblem> {
-    let parameters = match shape.parameters {
-        TypeParameters::None => None,
-        TypeParameters::Declared => Some(ItemProblem::GenericAssociatedType),
+    let (parameters, self_bound) = match shape.parameters {
+        TypeParameters::None => (
+            None,
+            (!shape.self_bound.is_sized()).then_some(ItemProblem::TypeSelfBound),
+        ),
+        TypeParameters::Declared => (Some(ItemProblem::GenericAssociatedType), None),
     };
     let self_use = shape
         .self_use
         .is_elsewhere()
         .then_some(ItemProblem::SelfInBounds);
-    let self_bound = shape
-        .self_bound
-        .is_other()
-        .then_some(ItemProblem::SelfBound);
     let presence = shape
         .presence
         .is_conditional()

@@ -66,15 +66,18 @@ pub(crate) enum ReturnShape {
     ImplTrait,
 }
 
-/// What a method's `where` clause bounds `Self` by.
+/// What an item's `where` clause bounds `Self` by, beyond `Sized`, which
+/// every dispatch type is.
 #[derive(EnumIs, Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum SelfBound {
-    /// Nothing, `Sized`, which every dispatch type is, or lifetimes, which a
-    /// dispatch type outlives whenever its implementations do.
-    Forwardable,
-    /// Any other bound, such as `Self: Clone`, which an impl cannot promise
-    /// of the implementations it forwards to.
-    Other,
+    /// Nothing but `Sized`.
+    Sized,
+    /// Lifetimes too, such as `Self: 'a`, which a dispatch type outlives
+    /// whenever its implementations do.
+    Lifetime,
+    /// A trait, such as `Self: Clone`, which an impl cannot promise of the
+    /// implementations it forwards to.
+    Trait,
 }
 
 /// Whether an item exists in every build.

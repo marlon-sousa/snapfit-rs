@@ -88,7 +88,7 @@ pub(crate) fn method(
         shape: MethodShape::new(
             receiver,
             self_use,
-            SelfBound::Forwardable,
+            SelfBound::Sized,
             returns,
             Execution::Sync,
             Safety::Safe,

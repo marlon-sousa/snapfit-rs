@@ -57,6 +57,10 @@ pub(crate) enum ItemProblem {
     )]
     SelfBound,
     #[display(
+        "bounds Self in its where clause by more than Sized, which the type snapfit gives it for the dispatched type cannot carry; remove the bound"
+    )]
+    TypeSelfBound,
+    #[display(
         "names Self in its bounds, which snapfit cannot promise of the type that dispatches the trait; remove Self from its bounds"
     )]
     SelfInBounds,
