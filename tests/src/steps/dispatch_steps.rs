@@ -2,7 +2,7 @@ use cucumber::{given, then, when};
 use snapfit::__private::{Either, Only};
 
 use crate::dispatch_world::{DatabaseKind, StoreKind};
-use crate::dispatched_traits::conditional::{Bulb, Lamp, Lamps};
+use crate::dispatched_traits::conditional::{Bulb, Lamp, Lamps, Torch, Torches};
 use crate::dispatched_traits::databases::{Database, Mock, Named};
 use crate::dispatched_traits::stores::Store;
 use crate::dispatched_traits::written_by_a_macro::{Oak, Rack, Racks};
@@ -125,10 +125,27 @@ fn name_of(database: DatabaseKind) -> &'static str {
     "a lamp whose trait a cfg_attr removes a method from is dispatched statically, holding a bulb"
 )]
 fn when_a_conditional_lamp_shines(world: &mut ContainerWorld) {
-    world.built.dispatch.shone = Some(Lamps::of(Bulb).shine());
+    let lamp = Lamps::of(Bulb);
+    world.built.dispatch.shone = Some(lamp.shine());
+    // The trait marks the method deprecated, which the impls may not repeat.
+    #[allow(deprecated)]
+    let glowed = lamp.glow();
+    world.built.dispatch.glowed = Some(glowed);
+}
+
+#[when(
+    "a torch whose trait a macro_rules! writes with a cfg_attr is dispatched statically, holding a bulb"
+)]
+fn when_a_conditional_torch_beams(world: &mut ContainerWorld) {
+    world.built.dispatch.shone = Some(Torches::of(Bulb).beam());
 }
 
 #[then(expr = "the lamp should shine {string}")]
 fn then_the_lamp_shines(world: &mut ContainerWorld, expected: String) {
     assert_eq!(world.built.dispatch.shone, Some(expected.as_str()));
+}
+
+#[then(expr = "it should glow {int}")]
+fn then_the_lamp_glows(world: &mut ContainerWorld, expected: u32) {
+    assert_eq!(world.built.dispatch.glowed, Some(expected));
 }

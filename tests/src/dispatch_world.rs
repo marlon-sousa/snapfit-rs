@@ -61,6 +61,8 @@ pub struct DispatchRuns {
     pub chosen: Option<ChosenAccounts>,
     /// What a dispatched lamp answered when it shone.
     pub shone: Option<&'static str>,
+    /// What a dispatched lamp answered when it glowed.
+    pub glowed: Option<u32>,
 }
 
 impl DispatchRuns {

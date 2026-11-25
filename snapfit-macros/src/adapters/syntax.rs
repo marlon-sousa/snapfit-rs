@@ -2,6 +2,8 @@
 //! declaration and the outbound adapter writes back out.
 
 use derive_new::new;
+use syn::punctuated::Punctuated;
+use syn::{Token, parse_quote};
 
 use crate::domain::{
     ConstructionPlan, ContainerDeclaration, DependencyDeclaration, DispatchAttribute,
@@ -112,23 +114,39 @@ pub(crate) fn is_container_attribute(attr: &syn::Attribute) -> bool {
     attr.path().is_ident("container")
 }
 
-/// `#[cfg(...)]`, or a `#[cfg_attr(...)]` that can write one, which a
-/// forwarding item keeps so that it exists exactly when the trait's own item
-/// does; a `cfg_attr` that writes only other attributes, such as `doc`,
-/// leaves the item in every build.
+/// `#[cfg(...)]`, or a `#[cfg_attr(...)]` that can write one; a `cfg_attr`
+/// that writes only other attributes, such as `doc`, leaves the item in
+/// every build.
 pub(crate) fn is_conditional(attr: &syn::Attribute) -> bool {
-    attr.path().is_ident("cfg") || (attr.path().is_ident("cfg_attr") && writes_cfg(attr))
+    conditional_part(&attr.meta).is_some()
 }
 
-fn writes_cfg(attr: &syn::Attribute) -> bool {
-    let syn::Meta::List(list) = &attr.meta else {
-        return false;
+/// What of an attribute decides whether its item exists, which a forwarding
+/// item keeps so that it exists exactly when the trait's own item does: a
+/// `cfg` whole, and a `cfg_attr` with only the `cfg` and `cfg_attr` it
+/// writes, since another attribute, such as `deprecated`, may not be written
+/// on an item of an impl. A `cfg` that a `macro_rules!` passes as `$m:meta`
+/// is read through the group the macro wraps around it.
+pub(crate) fn conditional_part(meta: &syn::Meta) -> Option<syn::Meta> {
+    if meta.path().is_ident("cfg") {
+        return Some(meta.clone());
+    }
+    let syn::Meta::List(list) = meta else {
+        return None;
     };
-    list.tokens.clone().into_iter().any(is_cfg_word)
-}
-
-fn is_cfg_word(token: proc_macro2::TokenTree) -> bool {
-    matches!(token, proc_macro2::TokenTree::Ident(ident) if ident == "cfg" || ident == "cfg_attr")
+    if !list.path.is_ident("cfg_attr") {
+        return None;
+    }
+    let mut parts = list
+        .parse_args_with(Punctuated::<syn::Meta, Token![,]>::parse_terminated)
+        .ok()?
+        .into_iter();
+    let condition = parts.next()?;
+    let written: Vec<_> = parts.filter_map(|part| conditional_part(&part)).collect();
+    if written.is_empty() {
+        return None;
+    }
+    Some(parse_quote!(cfg_attr(#condition, #(#written),*)))
 }
 
 #[cfg(test)]

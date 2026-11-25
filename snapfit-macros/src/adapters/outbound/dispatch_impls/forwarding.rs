@@ -9,7 +9,7 @@ use quote::quote;
 
 use super::target::{Target, Variant};
 use super::trait_path::TraitPath;
-use crate::adapters::syntax::is_conditional;
+use crate::adapters::syntax::conditional_part;
 use crate::domain::{Execution, Rebuilding, Safety};
 
 /// How the plan says each arm calls the implementation.
@@ -45,9 +45,12 @@ pub(super) fn forwarded_method(
         .variants()
         .into_iter()
         .map(|variant| call.arm(variant));
-    let cfgs = method.attrs.iter().filter(|attr| is_conditional(attr));
+    let cfgs = method
+        .attrs
+        .iter()
+        .filter_map(|attr| conditional_part(&attr.meta));
     quote! {
-        #(#cfgs)*
+        #(#[#cfgs])*
         #[inline]
         #signature {
             match self {

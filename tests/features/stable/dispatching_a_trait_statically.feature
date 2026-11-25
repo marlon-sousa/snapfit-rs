@@ -60,9 +60,15 @@ Feature: Dispatching a trait statically
     And its copy should still hold oak
 
   @v0_3_0 @regression
-  Scenario: A method that a cfg_attr removes from the trait is removed from the impls snapfit writes, and one it keeps is forwarded
+  Scenario: A method that a cfg_attr removes from the trait is removed from the impls snapfit writes, and one it keeps is forwarded without the other attributes the cfg_attr writes
     When a lamp whose trait a cfg_attr removes a method from is dispatched statically, holding a bulb
     Then the lamp should shine "bulb"
+    And it should glow 1
+
+  @v0_3_0 @regression
+  Scenario: A cfg_attr whose condition and cfg a macro_rules! passes removes the method from the impls snapfit writes too
+    When a torch whose trait a macro_rules! writes with a cfg_attr is dispatched statically, holding a bulb
+    Then the lamp should shine "bulb beam"
 
   @v0_3_0
   Scenario: Clippy does not lint the impls snapfit writes for a dispatched trait
