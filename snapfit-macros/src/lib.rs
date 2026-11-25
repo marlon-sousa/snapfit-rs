@@ -33,9 +33,10 @@ use proc_macro::TokenStream;
 /// implementation it holds through a `match`.
 ///
 /// Use it through the `snapfit` crate, as `snapfit::container`.
-/// [The Snapfit Book](https://marlon-sousa.github.io/snapfit-rs/book/)
-/// teaches it step by step: chapter 11 fields typed as their trait, and
-/// chapter 13 static dispatch.
+/// [The Snapfit Book](https://marlon-sousa.github.io/snapfit-rs/book/v0.3.0/), in the
+/// edition of this release, teaches it step by step, with
+/// [fields typed as their trait](https://marlon-sousa.github.io/snapfit-rs/book/v0.3.0/11-choosing-an-implementation/)
+/// and [static dispatch](https://marlon-sousa.github.io/snapfit-rs/book/v0.3.0/13-static-dispatch/).
 #[proc_macro_attribute]
 pub fn container(args: TokenStream, input: TokenStream) -> TokenStream {
     expansion::container_attribute(args.into(), input.into()).into()
@@ -55,8 +56,9 @@ pub fn container(args: TokenStream, input: TokenStream) -> TokenStream {
 /// with `#[static_dispatch_for(Database as Db)]` under `#[container]`, and
 /// its fields typed `Db` or `Arc<Db>` name them; `Db::of(value)` wraps an
 /// implementation into its variant, such as a mock a test builds by hand.
-/// Chapter 13 of [The Snapfit Book](https://marlon-sousa.github.io/snapfit-rs/book/)
-/// teaches it, and chapter 14 how to choose it over a trait object.
+/// [The Snapfit Book](https://marlon-sousa.github.io/snapfit-rs/book/v0.3.0/13-static-dispatch/), in the
+/// edition of this release, teaches it, and
+/// [how to choose it over a trait object](https://marlon-sousa.github.io/snapfit-rs/book/v0.3.0/14-choosing-static-or-dynamic-dispatch/).
 ///
 /// Use it through the `snapfit` crate, as `snapfit::static_dispatch`.
 #[proc_macro_attribute]
