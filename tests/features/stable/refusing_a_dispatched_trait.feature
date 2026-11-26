@@ -76,6 +76,15 @@ Feature: Refusing a trait that static dispatch cannot follow
     And the compiler output should not mention "conflicting implementations"
     And the compiler should report 3 errors
 
+  @v0_3_0 @regression
+  Scenario: A trait with nothing else wrong, marked twice, is refused at its second mark alone, and dispatched once
+    Given an invalid dispatched trait fixture "static_dispatch_marked_twice_and_valid"
+    When the fixture is compiled
+    Then compilation should fail with "trait 'Database' carries #[snapfit::static_dispatch] more than once"
+    And the error should point at line 2 of the fixture
+    And the compiler output should not mention "conflicting implementations"
+    And the compiler should report 1 errors
+
   @v0_3_0
   Scenario: The attribute on anything but a trait is refused at the item
     Given an invalid dispatched trait fixture "static_dispatch_on_struct"

@@ -118,8 +118,10 @@ pub(crate) fn is_dispatch_attribute(attr: &syn::Attribute) -> bool {
         .any(|name| attr.path().is_ident(name))
 }
 
-/// `#[snapfit::static_dispatch]`, through any path to snapfit, such as
-/// `#[di::static_dispatch]`, or imported, as `#[static_dispatch]`.
+/// An attribute named `static_dispatch` through any path, such as
+/// `#[snapfit::static_dispatch]`, `#[di::static_dispatch]` or, imported,
+/// `#[static_dispatch]`; one imported under another name cannot be told
+/// from any other attribute.
 pub(crate) fn is_static_dispatch_attribute(attr: &syn::Attribute) -> bool {
     attr.path()
         .segments
