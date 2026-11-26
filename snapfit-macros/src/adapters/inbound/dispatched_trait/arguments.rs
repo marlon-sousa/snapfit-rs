@@ -3,7 +3,8 @@
 
 use proc_macro2::{TokenStream, TokenTree};
 
-use super::super::runtime_path::{crate_path, default_runtime_path, settings};
+use super::super::runtime_path::{crate_path, default_runtime_path};
+use crate::adapters::syntax::settings;
 use crate::domain::DispatchArguments;
 
 /// How many settings of each kind `args` holds, and the path of its first
