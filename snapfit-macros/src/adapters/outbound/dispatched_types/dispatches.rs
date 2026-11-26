@@ -12,10 +12,14 @@ use super::trait_name;
 use crate::adapters::syntax::DispatchSyntax;
 
 /// The check, in words, that the dispatched type implements its trait. Its
-/// local trait is named after the dispatched type and the trait, so that a
-/// type that fails it has no trait of the same name, from another check, for
-/// rustc to point at.
-pub(super) fn dispatches(syntax: &DispatchSyntax, dispatched: &syn::Ident) -> TokenStream {
+/// local trait is named after the container, the dispatched type and the
+/// trait, so that a type that fails it has no trait of the same name, from
+/// another check, for rustc to point at.
+pub(super) fn dispatches(
+    container: &syn::Ident,
+    syntax: &DispatchSyntax,
+    dispatched: &syn::Ident,
+) -> TokenStream {
     let DispatchSyntax { trait_path, name } = syntax;
     let trait_name = trait_name(trait_path);
     let name = name.unraw();
@@ -27,7 +31,8 @@ pub(super) fn dispatches(syntax: &DispatchSyntax, dispatched: &syn::Ident) -> To
         "mark `{trait_name}` with #[snapfit::static_dispatch] where it is defined; an implementation that does not implement it is reported where its field or list names it; and give each associated type of `{trait_name}` the same type in every implementation on the list"
     );
     let check = format_ident!(
-        "__Snapfit{name}Dispatches{trait_name}",
+        "__Snapfit{}{name}Dispatches{trait_name}",
+        container.unraw(),
         span = Span::call_site()
     );
     quote! {

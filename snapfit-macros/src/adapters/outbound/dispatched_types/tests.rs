@@ -63,6 +63,7 @@ fn the_dispatched_type_and_each_implementation_are_checked_against_the_trait() {
     let plan = plan_for(shop());
 
     let code = compact(emit_dispatched_types(
+        &plan.syntax.ident,
         &plan.dispatched_types,
         &plan.syntax.vis,
         &plan.syntax.runtime,
@@ -70,9 +71,9 @@ fn the_dispatched_type_and_each_implementation_are_checked_against_the_trait() {
 
     assert!(code.contains(&compact(quote! {
             #[diagnostic::do_not_recommend]
-            impl<__SnapfitDispatched: ?::core::marker::Sized + Database> __SnapfitDbDispatchesDatabase
+            impl<__SnapfitDispatched: ?::core::marker::Sized + Database> __SnapfitShopDbDispatchesDatabase
                 for __SnapfitDispatched {}
-            fn __snapfit_dispatches<__SnapfitDispatched: ?::core::marker::Sized + __SnapfitDbDispatchesDatabase>() {}
+            fn __snapfit_dispatches<__SnapfitDispatched: ?::core::marker::Sized + __SnapfitShopDbDispatchesDatabase>() {}
             let _ = __snapfit_dispatches::<Db>;
             fn __snapfit_implements<__SnapfitDispatched: ?::core::marker::Sized + Database>() {}
             let _ = __snapfit_implements::<MySql>;
@@ -98,6 +99,7 @@ fn each_other_spelling_of_an_implementation_is_checked_to_be_the_type_held() {
     });
 
     let code = compact(emit_dispatched_types(
+        &plan.syntax.ident,
         &plan.dispatched_types,
         &plan.syntax.vis,
         &plan.syntax.runtime,
@@ -121,6 +123,7 @@ fn an_alias_s_doc_names_a_raw_trait_and_alias_without_r_hash() {
     });
 
     let code = compact(emit_dispatched_types(
+        &plan.syntax.ident,
         &plan.dispatched_types,
         &plan.syntax.vis,
         &plan.syntax.runtime,
@@ -136,6 +139,7 @@ fn the_dispatched_type_s_check_says_in_words_why_it_cannot_dispatch_the_trait() 
     let plan = plan_for(shop());
 
     let code = emit_dispatched_types(
+        &plan.syntax.ident,
         &plan.dispatched_types,
         &plan.syntax.vis,
         &plan.syntax.runtime,

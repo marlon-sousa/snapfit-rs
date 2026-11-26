@@ -18,13 +18,14 @@ use dispatches::dispatches;
 
 /// Each alias with its checks.
 pub(super) fn emit_dispatched_types(
+    container: &syn::Ident,
     types: &[DispatchedTypeSyntax],
     vis: &syn::Visibility,
     runtime: &syn::Path,
 ) -> TokenStream {
     types
         .iter()
-        .map(|planned| emit_checked(planned, vis, runtime))
+        .map(|planned| emit_checked(container, planned, vis, runtime))
         .collect()
 }
 
@@ -56,12 +57,13 @@ fn emit_fallback_alias(
 }
 
 fn emit_checked(
+    container: &syn::Ident,
     planned: &DispatchedTypeSyntax,
     vis: &syn::Visibility,
     runtime: &syn::Path,
 ) -> TokenStream {
     let alias = emit_alias(planned, vis, runtime);
-    let checks = emit_checks(planned, runtime);
+    let checks = emit_checks(container, planned, runtime);
     quote!(#alias #checks)
 }
 
@@ -121,7 +123,11 @@ fn nested(
 /// which rustc reports at the type where a field or a list names it. Each other spelling
 /// of an implementation must be the type it holds; when it is not, snapfit's
 /// own message reports it there.
-fn emit_checks(planned: &DispatchedTypeSyntax, runtime: &syn::Path) -> TokenStream {
+fn emit_checks(
+    container: &syn::Ident,
+    planned: &DispatchedTypeSyntax,
+    runtime: &syn::Path,
+) -> TokenStream {
     let DispatchSyntax { trait_path, name } = &planned.syntax;
     let dispatched = format_ident!("{}", name, span = trait_path.span());
     let implementations = std::iter::once(&planned.first)
@@ -132,7 +138,7 @@ fn emit_checks(planned: &DispatchedTypeSyntax, runtime: &syn::Path) -> TokenStre
         .respelled
         .iter()
         .map(|respelling| same_type(respelling, runtime));
-    let dispatches = dispatches(&planned.syntax, &dispatched);
+    let dispatches = dispatches(container, &planned.syntax, &dispatched);
     quote! {
         const _: () = {
             #dispatches

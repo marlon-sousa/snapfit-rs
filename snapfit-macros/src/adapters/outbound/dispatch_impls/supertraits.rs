@@ -18,16 +18,17 @@ pub(super) fn emit_supertrait_checks(syntax: &TraitSyntax) -> TokenStream {
     syntax
         .supertraits
         .iter()
-        .map(|bound| check(syntax, bound))
+        .enumerate()
+        .map(|(position, bound)| check(syntax, position, bound))
         .collect()
 }
 
 /// The check that `Only<L>` implements the supertrait whenever `L` implements
 /// the trait, reported in words at the supertrait instead of at the impl. Its
-/// local trait is named after the trait and the supertrait, so that a type
-/// that fails it has no trait of the same name, from the check of another
-/// supertrait, for rustc to point at.
-fn check(syntax: &TraitSyntax, bound: &syn::TraitBound) -> TokenStream {
+/// local trait is named after the trait, the supertrait and its position, so
+/// that a type that fails it has no trait of the same name, from the check of
+/// another supertrait, for rustc to point at.
+fn check(syntax: &TraitSyntax, position: usize, bound: &syn::TraitBound) -> TokenStream {
     let trait_name = syntax.ident.unraw();
     let supertrait = bound
         .path
@@ -42,7 +43,7 @@ fn check(syntax: &TraitSyntax, bound: &syn::TraitBound) -> TokenStream {
         "mark `{supertrait}` with #[snapfit::static_dispatch] where it is defined; a supertrait of another crate, other than Send, Sync, Sized, Clone and Debug, cannot be dispatched statically, so dispatch `{trait_name}` dynamically instead, through Arc<dyn {trait_name}>"
     );
     let holds = format_ident!(
-        "__Snapfit{trait_name}Supertrait{supertrait}",
+        "__Snapfit{trait_name}Supertrait{position}{supertrait}",
         span = Span::call_site()
     );
     let path = TraitPath::of(syntax);

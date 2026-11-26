@@ -30,6 +30,7 @@ pub(crate) use dispatched_types::emit_fallback_aliases;
 pub(crate) fn emit_container(plan: &Plan) -> TokenStream {
     let struct_def = struct_def::emit_struct_definition(plan);
     let dispatched_types = dispatched_types::emit_dispatched_types(
+        &plan.syntax.ident,
         &plan.dispatched_types,
         &plan.syntax.vis,
         &plan.syntax.runtime,

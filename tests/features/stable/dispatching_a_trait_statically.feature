@@ -109,11 +109,16 @@ Feature: Dispatching a trait statically
       | static_dispatch_foreign_supertrait  | Display    | Shown    | 4    |
 
   @v0_3_0 @regression
-  Scenario: An unmarked supertrait beside a marked one is refused in words alone, with no note of a trait of the same name
-    Given an invalid dispatched trait fixture "static_dispatch_unmarked_beside_a_marked_supertrait"
+  Scenario Outline: An unmarked supertrait beside a marked one, also of the same name, is refused in words alone, with no note of a trait of the same name
+    Given an invalid dispatched trait fixture "<fixture>"
     When the fixture is compiled
-    Then compilation should fail with "snapfit cannot dispatch the supertrait `Loud` of `Database` statically"
-    And the error should point at line 11 of the fixture
+    Then compilation should fail with "snapfit cannot dispatch the supertrait `<supertrait>` of `Database` statically"
+    And the error should point at line <line> of the fixture
     And the compiler output should not mention "similarly named"
     And the compiler output should not mention "same name"
     And the compiler should report 1 errors
+
+    Examples:
+      | fixture                                                              | supertrait | line |
+      | static_dispatch_unmarked_beside_a_marked_supertrait                  | Loud       | 11   |
+      | static_dispatch_unmarked_beside_a_marked_supertrait_of_the_same_name | Base       | 15   |
