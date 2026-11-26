@@ -8,7 +8,7 @@ use crate::domain::{DispatchArguments, DispatchSetting, RuntimeValue};
 #[test]
 fn each_setting_is_read_in_the_order_written() {
     use DispatchSetting::{Other, Remote, Runtime};
-    use RuntimeValue::{NotAPath, Path, Quoted};
+    use RuntimeValue::{Bare, NotAPath, Path, Quoted};
     let item: syn::Item = parse_quote!(
         trait Database {}
     );
@@ -36,7 +36,7 @@ fn each_setting_is_read_in_the_order_written() {
             vec![Runtime(NotAPath("di::<u32>".to_owned()))],
         ),
         (quote!(crate = di, inline), vec![Runtime(Path), Other]),
-        (quote!(crate), vec![Other]),
+        (quote!(crate), vec![Runtime(Bare)]),
         (quote!(crate =), vec![Other]),
         (
             quote!(crate = di,, inline),

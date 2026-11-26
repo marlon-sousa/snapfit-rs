@@ -107,14 +107,21 @@ Feature: Refusing a trait that static dispatch cannot follow
       | static_dispatch_quoted_crate  | crate takes the path snapfit is reached through, not a string; write it unquoted: crate = snapfit           |
       | static_dispatch_remote        | #[snapfit::static_dispatch(remote = ...)] is planned for a future version of snapfit and is not implemented yet |
 
-  @v0_3_0
+  @v0_3_0 @regression
   Scenario: A crate given twice, or one that is no path of modules, is refused at the setting
     Given an invalid dispatched trait fixture "static_dispatch_crate_forms"
     When the fixture is compiled
-    Then the error at line 1 of the fixture should say "#[snapfit::static_dispatch] takes no arguments but crate, given once"
+    Then the error at line 1 of the fixture should say "the setting 'crate' is written more than once; keep one"
     And the error at line 6 of the fixture should say "crate takes the path snapfit is reached through, and '3' is not a path"
     And the error at line 11 of the fixture should say "crate takes the path snapfit is reached through, and 'snapfit::<u32>' is not a path"
     And the compiler should report 3 errors
+
+  @v0_3_0 @regression
+  Scenario: A crate with no value is refused in the words the container gives it
+    Given an invalid dispatched trait fixture "static_dispatch_crate_without_value"
+    When the fixture is compiled
+    Then the error at line 1 of the fixture should say "the setting 'crate' needs a value, such as crate = snapfit"
+    And the compiler should report 1 errors
 
   @v0_3_0 @regression
   Scenario: A planned remote is refused beside every other mistake in the arguments, each at its own setting
@@ -122,7 +129,7 @@ Feature: Refusing a trait that static dispatch cannot follow
     When the fixture is compiled
     Then the error at line 2 of the fixture should say "crate takes the path snapfit is reached through, not a string; write it unquoted: crate = snapfit"
     And the error at line 3 of the fixture should say "crate takes the path snapfit is reached through, and '3' is not a path"
-    And the error at line 3 of the fixture should say "#[snapfit::static_dispatch] takes no arguments but crate, given once"
+    And the error at line 3 of the fixture should say "the setting 'crate' is written more than once; keep one"
     And the error at line 4 of the fixture should say "#[snapfit::static_dispatch(remote = ...)] is planned for a future version of snapfit and is not implemented yet"
     And the error at line 5 of the fixture should say "#[snapfit::static_dispatch] takes no arguments but crate, given once"
     And the compiler should report 5 errors

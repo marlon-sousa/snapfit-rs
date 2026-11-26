@@ -53,6 +53,13 @@ pub(crate) enum ArgumentProblem {
         "crate takes the path snapfit is reached through, and '{_0}' is not a path; write the name the crate depends on snapfit under, such as crate = di"
     )]
     NotARuntimePath(String),
+    /// The setting's name as written, such as `crate`.
+    #[display("the setting '{_0}' is written more than once; keep one")]
+    RepeatedSetting(String),
+    #[display("the setting 'crate' needs a value, such as crate = snapfit")]
+    BareRuntimePath,
+    #[display("the setting 'mode' needs a value, such as mode = \"sync\"")]
+    BareMode,
     #[display(
         "implementation needs a type; write the type the container builds for the field, such as implementation = StripeGateway"
     )]

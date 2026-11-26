@@ -22,6 +22,7 @@ pub(super) fn runtime_path(meta: Option<RuntimeMeta>) -> Result<syn::Path, Domai
         Some(RuntimeMeta::Path(path)) => return Ok(path),
         Some(RuntimeMeta::Quoted(text)) => ArgumentProblem::QuotedRuntimePath(text),
         Some(RuntimeMeta::Other(text)) => ArgumentProblem::NotARuntimePath(text),
+        Some(RuntimeMeta::Bare) => ArgumentProblem::BareRuntimePath,
     };
     Err(AttributeProblem::Container { problem }.into())
 }

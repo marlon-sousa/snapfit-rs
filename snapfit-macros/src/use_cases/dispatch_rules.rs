@@ -62,8 +62,8 @@ fn setting_refusals(
         .collect()
 }
 
-/// What is wrong with one setting. A `crate` after another one is taken
-/// as no setting the attribute knows, whatever else it is.
+/// What is wrong with one setting. A `crate` after another one is written
+/// more than once, whatever else is wrong with it.
 fn setting_problems(setting: DispatchSetting, repetition: Repetition) -> Vec<SettingProblem> {
     match setting {
         DispatchSetting::Remote => vec![SettingProblem::Planned(
@@ -71,9 +71,9 @@ fn setting_problems(setting: DispatchSetting, repetition: Repetition) -> Vec<Set
         )],
         DispatchSetting::Other => vec![SettingProblem::Unknown],
         DispatchSetting::Runtime(value) => runtime_problem(value)
-            .map(SettingProblem::Runtime)
             .into_iter()
-            .chain((repetition == Repetition::Repeated).then_some(SettingProblem::Unknown))
+            .chain((repetition == Repetition::Repeated).then(repeated_runtime_path))
+            .map(SettingProblem::Runtime)
             .collect(),
     }
 }
@@ -84,7 +84,13 @@ fn runtime_problem(value: RuntimeValue) -> Option<ArgumentProblem> {
         RuntimeValue::Path => None,
         RuntimeValue::Quoted(text) => Some(ArgumentProblem::QuotedRuntimePath(text)),
         RuntimeValue::NotAPath(text) => Some(ArgumentProblem::NotARuntimePath(text)),
+        RuntimeValue::Bare => Some(ArgumentProblem::BareRuntimePath),
     }
+}
+
+/// A second `crate`, in the words `#[container]` gives it.
+fn repeated_runtime_path() -> ArgumentProblem {
+    ArgumentProblem::RepeatedSetting("crate".to_owned())
 }
 
 fn setting_error(position: SettingPosition, problem: SettingProblem) -> DomainError {

@@ -25,6 +25,14 @@ pub(crate) enum Lifecycle {
     Transient,
 }
 
+/// `parent = ...`, the container a container would extend, a planned feature.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum ParentSetting {
+    Named(TypeName),
+    /// `parent` written with no value, still a use of the planned feature.
+    Bare,
+}
+
 #[derive(EnumIs, Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub(crate) enum Execution {
     #[default]
@@ -152,7 +160,7 @@ pub(crate) struct ContainerDeclaration<C, F, S = (), T = ()> {
     #[new(default)]
     pub(crate) mode: Option<Execution>,
     #[new(default)]
-    pub(crate) parent: Option<TypeName>,
+    pub(crate) parent: Option<ParentSetting>,
     #[new(default)]
     pub(crate) introspection: Introspection,
     /// `leaf_build = ...`: how a field with no `deps` and no `build` of its own is built.

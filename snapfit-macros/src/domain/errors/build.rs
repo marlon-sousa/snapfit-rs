@@ -46,6 +46,10 @@ pub(crate) enum BuildProblem {
         dependency: DependencyName,
         written: String,
     },
+    #[error("the setting 'build' on field '{dependency}' needs a value, such as build = default")]
+    Bare { dependency: DependencyName },
+    #[error("the setting 'leaf_build' needs a value, such as leaf_build = default")]
+    BareLeafBuild,
     #[error(
         "leaf_build = {written} cannot build the container's fields that have no deps; write leaf_build = default, or leaf_build = constructor with the function's name in brackets, such as leaf_build = constructor(open)"
     )]
@@ -85,8 +89,9 @@ impl BuildProblem {
             | Self::QuotedFunctionName { dependency, .. }
             | Self::NotAFunctionName { dependency, .. }
             | Self::DefaultWithDependencies { dependency }
+            | Self::Bare { dependency }
             | Self::CannotFail { dependency, .. } => Some(dependency),
-            Self::InvalidLeafBuild { .. } => None,
+            Self::InvalidLeafBuild { .. } | Self::BareLeafBuild => None,
         }
     }
 }

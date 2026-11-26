@@ -11,8 +11,10 @@ mod build_meta;
 mod expressions;
 mod fallible_meta;
 mod implementation_meta;
+mod mode_meta;
 mod parent_meta;
 mod prerequisites;
+mod repeats;
 mod runtime_meta;
 #[cfg(test)]
 mod tests;
@@ -24,6 +26,7 @@ use implementation_meta::FieldSettings;
 pub(super) use implementation_meta::{
     ImplementationEntry, ImplementationKey, ImplementationMeta, ImplementationValue,
 };
+pub(super) use mode_meta::ModeMeta;
 pub(super) use parent_meta::ParentTypeMeta;
 pub(super) use prerequisites::{PrerequisiteEntry, PrerequisiteList, PrerequisiteMeta};
 pub(super) use runtime_meta::RuntimeMeta;
@@ -31,9 +34,7 @@ pub(super) use runtime_meta::RuntimeMeta;
 #[derive(Debug, Default, Clone, PartialEq, Eq, FromMeta)]
 pub(super) struct ContainerAttrMeta {
     #[darling(default)]
-    /// `"sync"` or `"async"`, checked by the adapter so that its error names
-    /// the mode without darling's location.
-    pub(super) mode: Option<String>,
+    pub(super) mode: Option<ModeMeta>,
     #[darling(default)]
     pub(super) parent: Option<ParentTypeMeta>,
     #[darling(default)]
@@ -109,11 +110,15 @@ impl DependencyAttrMeta {
     }
 }
 
-/// An attribute that does not read, with each of its settings that reads on
-/// its own, whose problems darling's problem with the rest leaves out.
+/// An attribute refused, for darling's problem with its settings or for a
+/// setting written again, with each of its settings that reads on its own,
+/// whose problems the first refusal leaves out.
 #[derive(new, Debug)]
 pub(super) struct UnreadableAttribute<Settings> {
     pub(super) problem: ArgumentProblem,
+    /// The refusal of each setting written again after the first.
+    #[new(default)]
+    pub(super) repeated: Vec<ArgumentProblem>,
     /// One value per readable setting, holding that setting alone, in the order written.
     #[new(default)]
     pub(super) settings: Vec<Settings>,
@@ -128,18 +133,40 @@ fn read_list<Settings: FromMeta>(
     read_nested(&nested)
 }
 
+/// The settings, each name read once; a setting written again is refused
+/// beside whatever else is wrong, and read alone, so that its own value is
+/// checked too.
 fn read_nested<Settings: FromMeta>(
     nested: &[NestedMeta],
 ) -> Result<Settings, UnreadableAttribute<Settings>> {
-    Settings::from_list(nested).map_err(|err| UnreadableAttribute {
-        problem: unreadable(err),
-        settings: nested.iter().filter_map(read_alone).collect(),
-    })
+    let (kept, again) = repeats::without_repeats(nested);
+    let (problems, read_again): (Vec<_>, Vec<_>) =
+        again.iter().map(repeats::read_copy::<Settings>).unzip();
+    let mut repeated = problems.into_iter().flatten();
+    let read_again = read_again.into_iter().flatten();
+    match (Settings::from_list(&kept), repeated.next()) {
+        (Ok(settings), None) => Ok(settings),
+        (Ok(settings), Some(first)) => Err(UnreadableAttribute {
+            problem: first,
+            repeated: repeated.collect(),
+            settings: std::iter::once(settings).chain(read_again).collect(),
+        }),
+        (Err(err), first) => Err(UnreadableAttribute {
+            problem: unreadable(err),
+            repeated: first.into_iter().chain(repeated).collect(),
+            settings: kept
+                .iter()
+                .filter_map(read_alone)
+                .chain(read_again)
+                .collect(),
+        }),
+    }
 }
 
-/// The setting read as if it were the only one; a setting that does not
-/// read even alone is already in darling's problem. This holds only while
-/// every field of the settings is `#[darling(default)]`.
+/// A setting darling read with the others, read as if it were the only one;
+/// one that does not read even alone is already in darling's problem with
+/// them. This holds only while every field of the settings is
+/// `#[darling(default)]`.
 fn read_alone<Settings: FromMeta>(setting: &NestedMeta) -> Option<Settings> {
     Settings::from_list(std::slice::from_ref(setting)).ok()
 }

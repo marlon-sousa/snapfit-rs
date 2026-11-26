@@ -79,13 +79,12 @@ fn fallible_without_a_boolean_is_refused_at_the_field_asking_for_one() {
 }
 
 #[test]
-fn fallible_given_twice_is_refused_by_darling() {
+fn fallible_given_twice_is_refused_in_snapfit_s_words() {
     let errors = messages(quote!(fallible = true, fallible = false));
 
-    assert_eq!(errors.len(), 1, "{errors:?}");
-    assert!(
-        errors[0].contains("Duplicate field `fallible`"),
-        "{errors:?}"
+    assert_eq!(
+        errors,
+        ["field 'db': the setting 'fallible' is written more than once; keep one"]
     );
 }
 

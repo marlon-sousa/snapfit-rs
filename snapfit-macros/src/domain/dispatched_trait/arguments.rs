@@ -17,7 +17,7 @@ pub(crate) enum DispatchSetting {
     Runtime(RuntimeValue),
     /// `remote = <path>`, the trait of another crate it would copy.
     Remote,
-    /// Anything else, such as `other` or `crate` with no value.
+    /// Anything else, such as `other` or `crate =` with nothing after it.
     Other,
 }
 
@@ -30,6 +30,8 @@ pub(crate) enum RuntimeValue {
     Quoted(String),
     /// Anything else, as written, such as `3`.
     NotAPath(String),
+    /// No value: `crate` alone.
+    Bare,
 }
 
 /// Where a setting is among the attribute's settings, counted from 0, which

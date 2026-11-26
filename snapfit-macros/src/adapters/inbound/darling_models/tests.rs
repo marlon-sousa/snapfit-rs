@@ -3,6 +3,7 @@ use syn::parse_quote;
 
 use super::*;
 
+mod bare;
 mod macro_input;
 mod unreadable;
 
@@ -22,10 +23,10 @@ fn the_container_attribute_reads_every_setting() {
     ))
     .unwrap();
 
-    assert_eq!(meta.mode.as_deref(), Some("async"));
+    assert_eq!(meta.mode, Some(ModeMeta::Written("async".to_owned())));
     assert_eq!(
         meta.parent,
-        Some(ParentTypeMeta("AppContainer".to_string()))
+        Some(ParentTypeMeta::Named("AppContainer".to_string()))
     );
     assert!(meta.introspection);
 }
@@ -36,7 +37,10 @@ fn the_container_attribute_reads_a_quoted_parent_and_no_settings() {
     assert_eq!(empty, ContainerAttrMeta::default());
 
     let meta = ContainerAttrMeta::from_tokens(quote!(parent = "ParentScope")).unwrap();
-    assert_eq!(meta.parent, Some(ParentTypeMeta("ParentScope".to_string())));
+    assert_eq!(
+        meta.parent,
+        Some(ParentTypeMeta::Named("ParentScope".to_string()))
+    );
 }
 
 #[test]

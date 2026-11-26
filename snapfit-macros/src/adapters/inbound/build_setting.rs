@@ -75,6 +75,7 @@ pub(super) fn field_construction(
             written,
         }
         .into()),
+        Some(BuildMeta::Bare) => Err(BuildProblem::Bare { dependency: name }.into()),
     }
 }
 
@@ -139,6 +140,7 @@ pub(super) fn leaf_constructor(
         Some(BuildMeta::Constructor(FunctionNameMeta::Bare(ident))) => {
             FunctionName::new(ident.to_string()).map(|name| (Constructor::Named(name), Some(ident)))
         }
+        Some(BuildMeta::Bare) => Err(BuildProblem::BareLeafBuild.into()),
         Some(other) => Err(BuildProblem::InvalidLeafBuild {
             written: written(&other),
         }
@@ -154,6 +156,8 @@ fn written(build: &BuildMeta) -> String {
         BuildMeta::Constructor(function) => format!("constructor({})", written_function(function)),
         BuildMeta::Quoted(text) => format!("\"{text}\""),
         BuildMeta::Invalid(text) => text.clone(),
+        // Refused as having no value before any message quotes it.
+        BuildMeta::Bare => String::new(),
     }
 }
 

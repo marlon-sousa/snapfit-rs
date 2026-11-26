@@ -12,8 +12,8 @@ mod plan;
 pub(crate) use build::FeatureGate;
 pub(crate) use declaration::{
     BuilderMethods, Construction, Constructor, ContainerDeclaration, DependencyDeclaration,
-    Execution, Fallibility, Implementation, Introspection, Lifecycle, Prerequisite, TypeParameters,
-    TypeShape,
+    Execution, Fallibility, Implementation, Introspection, Lifecycle, ParentSetting, Prerequisite,
+    TypeParameters, TypeShape,
 };
 pub(crate) use dispatch_plan::{DispatchPlan, ForwardedItem, Rebuilding};
 pub(crate) use dispatched_trait::{

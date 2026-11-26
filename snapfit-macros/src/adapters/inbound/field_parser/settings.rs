@@ -40,10 +40,20 @@ pub(super) fn unreadable_field_attribute(
     name: &DependencyName,
     unreadable: UnreadableAttribute<DependencyAttrMeta>,
 ) -> DomainErrors {
-    let UnreadableAttribute { problem, settings } = unreadable;
+    let UnreadableAttribute {
+        problem,
+        repeated,
+        settings,
+    } = unreadable;
     let found = settings
         .into_iter()
         .map(|setting| read_settings(name, setting));
     let rest = found.filter_map(Result::err).flatten();
-    DomainErrors::new(attribute_error(name, problem), rest.collect())
+    let repeated = repeated
+        .into_iter()
+        .map(|problem| attribute_error(name, problem));
+    DomainErrors::new(
+        attribute_error(name, problem),
+        repeated.chain(rest).collect(),
+    )
 }
