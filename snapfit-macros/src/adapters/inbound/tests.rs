@@ -3,8 +3,8 @@ use syn::parse_quote;
 
 use super::*;
 use crate::domain::{
-    AttributePosition, Construction, Constructor, Execution, FunctionName, Lifecycle, TypeShape,
-    WrittenType,
+    AttributePosition, Construction, Constructor, Execution, FunctionName, Lifecycle,
+    ParentSetting, TypeName, TypeShape, WrittenType,
 };
 use crate::test_support::{names, prerequisites};
 
@@ -41,7 +41,9 @@ fn every_setting_and_field_is_read_into_the_declaration() {
     assert_eq!(container.mode, Some(Execution::Async));
     assert_eq!(
         container.parent,
-        Some(TypeName::new("RootContainer").unwrap())
+        Some(ParentSetting::Named(
+            TypeName::new("RootContainer").unwrap()
+        ))
     );
     assert_eq!(container.introspection, Introspection::On);
     assert!(container.syntax.attrs.is_empty());

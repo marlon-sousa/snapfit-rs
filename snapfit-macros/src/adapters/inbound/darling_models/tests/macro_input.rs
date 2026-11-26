@@ -38,7 +38,7 @@ fn every_part_of_a_value_passed_through_a_macro_is_read_as_if_written_by_hand() 
 
     assert_eq!(
         container.parent,
-        Some(ParentTypeMeta("AppContainer".to_string()))
+        Some(ParentTypeMeta::Named("AppContainer".to_string()))
     );
     assert_eq!(
         dependency.deps.0,

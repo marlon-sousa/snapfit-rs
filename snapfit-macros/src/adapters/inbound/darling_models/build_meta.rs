@@ -27,6 +27,8 @@ pub(in crate::adapters::inbound) enum BuildMeta {
     Constructor(FunctionNameMeta),
     Quoted(String),
     Invalid(String),
+    /// `build` or `leaf_build` with no value.
+    Bare,
 }
 
 /// The bare words `build` and `leaf_build` take, matched by darling.
@@ -41,11 +43,18 @@ pub(in crate::adapters::inbound) enum BuildWord {
 }
 
 impl FromMeta for BuildMeta {
+    /// A setting with no value, which darling would refuse in its own words.
+    fn from_word() -> darling::Result<Self> {
+        Ok(Self::Bare)
+    }
+
     fn from_expr(expr: &syn::Expr) -> darling::Result<Self> {
         let expr = ungrouped(expr);
         Ok(match expr {
-            syn::Expr::Path(_) => single_word(expr)
-                .map_or_else(|| Self::Invalid(quote!(#expr).to_string()), Self::from_word),
+            syn::Expr::Path(_) => single_word(expr).map_or_else(
+                || Self::Invalid(quote!(#expr).to_string()),
+                Self::from_written,
+            ),
             syn::Expr::Call(call) => Self::from_call(call),
             syn::Expr::Lit(syn::ExprLit {
                 lit: syn::Lit::Str(text),
@@ -57,7 +66,7 @@ impl FromMeta for BuildMeta {
 }
 
 impl BuildMeta {
-    fn from_word(written: &syn::Ident) -> Self {
+    fn from_written(written: &syn::Ident) -> Self {
         word_of(written).map_or_else(
             || Self::UnknownWord(written.clone()),
             |word| Self::Word {

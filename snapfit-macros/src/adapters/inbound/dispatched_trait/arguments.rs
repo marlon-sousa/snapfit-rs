@@ -32,15 +32,21 @@ fn setting(tokens: &TokenStream) -> DispatchSetting {
     }
 }
 
-/// `crate = ` and a value, read as `#[container]` reads its own `crate`.
+/// `crate = ` and a value, read as `#[container]` reads its own `crate`, or
+/// `crate` alone.
 fn runtime_value(input: ParseStream) -> syn::Result<RuntimeValue> {
     input.parse::<Token![crate]>()?;
+    if input.is_empty() {
+        return Ok(RuntimeValue::Bare);
+    }
     input.parse::<Token![=]>()?;
     let value = input.parse::<syn::Expr>()?;
     Ok(match RuntimeMeta::from_expr(&value)? {
         RuntimeMeta::Path(_) => RuntimeValue::Path,
         RuntimeMeta::Quoted(text) => RuntimeValue::Quoted(text),
         RuntimeMeta::Other(text) => RuntimeValue::NotAPath(text),
+        // Never reached: `from_expr` does not return it, and a `crate` alone returns above.
+        RuntimeMeta::Bare => RuntimeValue::Bare,
     })
 }
 

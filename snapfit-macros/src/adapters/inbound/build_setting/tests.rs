@@ -164,3 +164,11 @@ fn leaf_build_takes_default_or_a_constructor_and_nothing_else() {
         );
     }
 }
+
+#[test]
+fn a_leaf_build_with_no_value_is_refused_as_needing_one() {
+    assert_eq!(
+        leaf_constructor(Some(BuildMeta::Bare)),
+        Err(BuildProblem::BareLeafBuild.into())
+    );
+}

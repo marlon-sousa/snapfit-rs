@@ -75,7 +75,7 @@ fn each_bad_build_of_a_repeated_build_is_reported_beside_the_repetition() {
     assert_eq!(
         messages(quote!(build = frobnicate, build = sideways)),
         [
-            "field 'cache': Duplicate field `build`".to_string(),
+            "field 'cache': the setting 'build' is written more than once; keep one".to_string(),
             unknown_build("frobnicate"),
             unknown_build("sideways"),
         ]

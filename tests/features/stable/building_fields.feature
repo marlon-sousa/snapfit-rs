@@ -62,6 +62,50 @@ Feature: Choosing how a field is built
     And the error should point at line 8 of the fixture
     And the error should point at line 12 of the fixture
 
+  @v0_1_0 @regression
+  Scenario: Each container setting written again is refused in snapfit's words, and each copy is still checked
+    Given an invalid container fixture "container_settings_repeated"
+    When the fixture is compiled
+    Then compilation should fail with "the setting 'crate' is written more than once; keep one"
+    And compilation should fail with "the setting 'mode' is written more than once; keep one"
+    And compilation should fail with "the setting 'leaf_build' is written more than once; keep one"
+    And compilation should fail with "invalid container mode 'threaded': write mode = "sync", or leave mode out"
+    And compilation should fail with "at mode"
+    And the compiler output should not mention "Duplicate field"
+    And the error should point at line 8 of the fixture
+    And the compiler should report 5 errors
+
+  @v0_1_0 @regression
+  Scenario: Each container setting written with no value is refused in snapfit's words
+    Given an invalid container fixture "container_settings_without_value"
+    When the fixture is compiled
+    Then compilation should fail with "the setting 'crate' needs a value, such as crate = snapfit"
+    And compilation should fail with "the setting 'mode' needs a value, such as mode = "sync""
+    And compilation should fail with "the setting 'leaf_build' needs a value, such as leaf_build = default"
+    And the compiler output should not mention "Unexpected meta-item"
+    And the error should point at line 8 of the fixture
+    And the compiler should report 3 errors
+
+  @v0_1_0 @regression
+  Scenario: A parent written with no value is refused as the planned feature it is
+    Given an invalid container fixture "container_parent_without_value"
+    When the fixture is compiled
+    Then compilation should fail with "#[container(parent = ...)] is planned for a future version of snapfit and is not implemented yet"
+    And the compiler output should not mention "Unexpected meta-item"
+    And the error should point at line 8 of the fixture
+    And the compiler should report 1 errors
+
+  @v0_1_0 @regression
+  Scenario: A field setting written again, or with no value, is refused in snapfit's words at its field
+    Given an invalid container fixture "field_settings_repeated_and_without_value"
+    When the fixture is compiled
+    Then compilation should fail with "the setting 'build' on field 'config' needs a value, such as build = default"
+    And compilation should fail with "field 'cache': the setting 'deps' is written more than once; keep one"
+    And compilation should fail with "field 'cache': the setting 'fallible' is written more than once; keep one"
+    And the error should point at line 13 of the fixture
+    And the error should point at line 16 of the fixture
+    And the compiler should report 3 errors
+
   @v0_1_0
   Scenario Outline: A build setting that cannot be followed is refused at its field
     Given an invalid container fixture "<fixture>"

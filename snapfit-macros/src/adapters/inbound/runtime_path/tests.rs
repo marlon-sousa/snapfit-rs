@@ -65,3 +65,13 @@ fn a_crate_setting_that_is_no_path_gives_none() {
         assert!(crate_path(&setting).is_none(), "{given}");
     }
 }
+
+#[test]
+fn a_crate_with_no_value_is_refused_as_needing_one() {
+    assert_eq!(
+        runtime_path(Some(RuntimeMeta::Bare))
+            .unwrap_err()
+            .to_string(),
+        "the setting 'crate' needs a value, such as crate = snapfit"
+    );
+}

@@ -15,9 +15,16 @@ pub(in crate::adapters::inbound) enum RuntimeMeta {
     Quoted(String),
     /// The value as written, such as `3`.
     Other(String),
+    /// `crate` with no value.
+    Bare,
 }
 
 impl FromMeta for RuntimeMeta {
+    /// A setting with no value, which darling would refuse in its own words.
+    fn from_word() -> darling::Result<Self> {
+        Ok(Self::Bare)
+    }
+
     fn from_expr(expr: &syn::Expr) -> darling::Result<Self> {
         Ok(match ungrouped(expr) {
             syn::Expr::Path(path)

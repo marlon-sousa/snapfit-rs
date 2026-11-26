@@ -1,6 +1,7 @@
 use super::*;
 use crate::domain::{
-    Construction, Constructor, Fallibility, FunctionName, Introspection, Lifecycle, TypeName,
+    Construction, Constructor, Fallibility, FunctionName, Introspection, Lifecycle, ParentSetting,
+    TypeName,
 };
 use crate::test_support::{builder, container, dependency, prerequisites};
 
@@ -56,7 +57,7 @@ fn every_build_reports_every_planned_feature() {
     let mut audit = dependency("audit", &[]);
     audit.parent_prerequisites = vec![DependencyName::new("db").unwrap()];
     let mut planned_container = container(vec![audit]);
-    planned_container.parent = Some(TypeName::new("Root").unwrap());
+    planned_container.parent = Some(ParentSetting::Named(TypeName::new("Root").unwrap()));
     planned_container.introspection = Introspection::On;
 
     let expected = [
@@ -71,6 +72,17 @@ fn every_build_reports_every_planned_feature() {
     assert_eq!(
         features(&FeatureGate::Unstable.refusals(&planned_container)),
         expected
+    );
+}
+
+#[test]
+fn a_parent_written_with_no_value_is_refused_as_planned() {
+    let mut bare_parent = container(vec![dependency("clock", &[])]);
+    bare_parent.parent = Some(ParentSetting::Bare);
+
+    assert_eq!(
+        features(&FeatureGate::Stable.refusals(&bare_parent)),
+        [planned("#[container(parent = ...)]")]
     );
 }
 

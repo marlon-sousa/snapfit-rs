@@ -5,6 +5,10 @@ fn at(index: usize, problem: SettingProblem) -> DomainError {
     setting_error(SettingPosition::new(index), problem)
 }
 
+fn repeated_crate() -> SettingProblem {
+    SettingProblem::Runtime(ArgumentProblem::RepeatedSetting("crate".to_owned()))
+}
+
 fn planned_remote() -> SettingProblem {
     SettingProblem::Planned(FeatureProblem::NotYetImplemented(
         Feature::RemoteStaticDispatch,
@@ -51,7 +55,7 @@ fn a_planned_remote_is_refused_beside_every_other_mistake() {
                 1,
                 SettingProblem::Runtime(ArgumentProblem::NotARuntimePath("3".to_owned()))
             ),
-            at(1, SettingProblem::Unknown),
+            at(1, repeated_crate()),
             at(2, planned_remote()),
             at(3, SettingProblem::Unknown),
         ]
@@ -59,16 +63,28 @@ fn a_planned_remote_is_refused_beside_every_other_mistake() {
 }
 
 #[test]
-fn every_crate_after_the_first_is_refused_as_unknown() {
+fn every_crate_after_the_first_is_refused_as_written_again() {
     let path = || DispatchSetting::Runtime(RuntimeValue::Path);
     let given = DispatchArguments::new(vec![path(), DispatchSetting::Other, path(), path()]);
     assert_eq!(
         arguments_refusals(given),
         vec![
             at(1, SettingProblem::Unknown),
-            at(2, SettingProblem::Unknown),
-            at(3, SettingProblem::Unknown),
+            at(2, repeated_crate()),
+            at(3, repeated_crate()),
         ]
+    );
+}
+
+#[test]
+fn a_crate_with_no_value_is_refused_as_needing_one() {
+    let given = DispatchArguments::new(vec![DispatchSetting::Runtime(RuntimeValue::Bare)]);
+    assert_eq!(
+        arguments_refusals(given),
+        vec![at(
+            0,
+            SettingProblem::Runtime(ArgumentProblem::BareRuntimePath)
+        )]
     );
 }
 
