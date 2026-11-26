@@ -7,16 +7,16 @@ use syn::spanned::Spanned;
 
 use super::factories::{inputs_ident, method_ident, trait_ident};
 use crate::adapters::syntax::{ContainerSyntax, FieldSyntax};
-use crate::domain::{
-    BuilderMethods, Call, Constructor, Execution, Fallibility, FunctionName, Step, Wrapping,
-};
+use crate::domain::{BuilderMethods, Call, Execution, Fallibility, Step, Wrapping};
 
 mod cloned;
+mod constructor;
 mod fallible;
 #[cfg(test)]
 mod tests;
 
 pub(super) use cloned::cloned;
+use constructor::{constructor_call, function_ident};
 
 /// Where already-built singletons are read from while building a value.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -161,38 +161,16 @@ fn builder_call(
     quote_spanned!(finish.span()=> <#target>::#start()#(.#setters(#args))*.#finish())
 }
 
-/// `<T>::new(...)`, `<T as Default>::default()`, or `<T>::connect(...)` with
-/// the user's own `connect`, from the field's `build` or the container's
-/// `leaf_build`.
-fn constructor_call(
-    target: &syn::Type,
-    constructor: &Constructor,
-    field: &FieldSyntax,
-    site: Site<'_>,
-    args: impl Iterator<Item = TokenStream>,
-) -> TokenStream {
-    match constructor {
-        Constructor::New => quote!(<#target>::new(#(#args),*)),
-        Constructor::Default => quote!(<#target as ::std::default::Default>::default()),
-        Constructor::Named(function) => {
-            let function = field
-                .constructor
-                .as_ref()
-                .or(site.container.leaf_constructor.as_ref())
-                .cloned()
-                .unwrap_or_else(|| function_ident(function));
-            quote!(<#target>::#function(#(#args),*))
-        }
-    }
-}
-
-fn function_ident(function: &FunctionName) -> syn::Ident {
-    format_ident!("{}", function.as_str())
-}
-
 /// The private local a singleton is bound to inside `new()` / `init()`. A
 /// prefix keeps it from clashing with anything the user has in scope, such as
 /// a unit struct with the same name as a non-snake-case field.
 pub(super) fn local_ident(field: &syn::Ident) -> syn::Ident {
     format_ident!("__snapfit_{}", field.unraw(), span = field.span())
+}
+
+/// The macro's own span, shown at `user`: rustc reports there, and still
+/// takes the tokens for generated code, so that rustc 1.97 suggests no edit
+/// inside the user's tokens and clippy lints none of them as the user's.
+fn located_at(user: Span) -> Span {
+    Span::call_site().located_at(user)
 }
