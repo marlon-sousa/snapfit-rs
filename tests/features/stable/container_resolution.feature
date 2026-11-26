@@ -188,3 +188,48 @@ Feature: Container Dependency Resolution
       | fixture                    | type     | line |
       | singleton_not_clone        | Config   | 9    |
       | dispatched_value_not_clone | Postgres | 22   |
+
+  @v0_1_0 @regression
+  Scenario: Each field whose type has no new, or whose new takes another number of arguments, is rustc's own error at that type
+    Given an invalid container fixture "field_without_new"
+    When the fixture is compiled
+    Then compilation should fail with "named `new` found for struct `Config`"
+    And compilation should fail with "named `new` found for struct `Smtp`"
+    And compilation should fail with "named `new` found for struct `Cache`"
+    And compilation should fail with "this function takes 0 arguments but 1 argument was supplied"
+    And the error should point at line 19 of the fixture
+    And the error should point at line 21 of the fixture
+    And the error should point at line 25 of the fixture
+    And the error should point at line 28 of the fixture
+    And the error should point at line 31 of the fixture
+    And the compiler should report 5 errors
+
+  @v0_3_0 @regression
+  Scenario: Each implementation of a dispatched field that has no new is rustc's own error at its implementation
+    Given an invalid container fixture "dispatched_field_without_new"
+    When the fixture is compiled
+    Then compilation should fail with "named `new` found for struct `MySql`"
+    And compilation should fail with "named `new` found for struct `Postgres`"
+    And the error should point at line 20 of the fixture
+    And the error should point at line 23 of the fixture
+    And the error should point at line 26 of the fixture
+    And the compiler should report 3 errors
+
+  @v0_1_0 @regression
+  Scenario: A dependency of another type than its dependent's new takes is rustc's own error at the dependency's type
+    Given an invalid container fixture "dependency_of_another_type"
+    When the fixture is compiled
+    Then compilation should fail with "mismatched types"
+    And the error should point at line 17 of the fixture
+    And the compiler should report 1 errors
+
+  @v0_1_0 @regression
+  Scenario: A function that leaf_build names and a type lacks, or that takes arguments, is rustc's own error at each field of that type
+    Given an invalid container fixture "leaf_build_function_missing"
+    When the fixture is compiled
+    Then compilation should fail with "named `connect` found for struct `Clock`"
+    And compilation should fail with "this function takes 1 argument but 0 arguments were supplied"
+    And the error should point at line 20 of the fixture
+    And the error should point at line 23 of the fixture
+    And the error should point at line 26 of the fixture
+    And the compiler should report 3 errors
