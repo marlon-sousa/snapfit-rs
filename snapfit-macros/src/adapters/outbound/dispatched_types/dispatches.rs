@@ -4,14 +4,17 @@
 //! impl, and one whose implementations disagree on an associated type gives
 //! it an impl it cannot meet. Plays the role of its parent.
 
-use proc_macro2::TokenStream;
-use quote::quote;
+use proc_macro2::{Span, TokenStream};
+use quote::{format_ident, quote};
 use syn::ext::IdentExt;
 
 use super::trait_name;
 use crate::adapters::syntax::DispatchSyntax;
 
-/// The check, in words, that the dispatched type implements its trait.
+/// The check, in words, that the dispatched type implements its trait. Its
+/// local trait is named after the dispatched type and the trait, so that a
+/// type that fails it has no trait of the same name, from another check, for
+/// rustc to point at.
 pub(super) fn dispatches(syntax: &DispatchSyntax, dispatched: &syn::Ident) -> TokenStream {
     let DispatchSyntax { trait_path, name } = syntax;
     let trait_name = trait_name(trait_path);
@@ -23,13 +26,18 @@ pub(super) fn dispatches(syntax: &DispatchSyntax, dispatched: &syn::Ident) -> To
     let note = format!(
         "mark `{trait_name}` with #[snapfit::static_dispatch] where it is defined; an implementation that does not implement it is reported where its field or list names it; and give each associated type of `{trait_name}` the same type in every implementation on the list"
     );
+    let check = format_ident!(
+        "__Snapfit{name}Dispatches{trait_name}",
+        span = Span::call_site()
+    );
     quote! {
         #[diagnostic::on_unimplemented(message = #message, label = #label, note = #note)]
-        trait __SnapfitDispatches {}
+        #[allow(non_camel_case_types)]
+        trait #check {}
         #[diagnostic::do_not_recommend]
-        impl<__SnapfitDispatched: ?::core::marker::Sized + #trait_path> __SnapfitDispatches
+        impl<__SnapfitDispatched: ?::core::marker::Sized + #trait_path> #check
             for __SnapfitDispatched {}
-        fn __snapfit_dispatches<__SnapfitDispatched: ?::core::marker::Sized + __SnapfitDispatches>() {}
+        fn __snapfit_dispatches<__SnapfitDispatched: ?::core::marker::Sized + #check>() {}
         let _ = __snapfit_dispatches::<#dispatched>;
     }
 }

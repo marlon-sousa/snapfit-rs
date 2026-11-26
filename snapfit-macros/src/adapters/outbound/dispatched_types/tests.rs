@@ -70,9 +70,9 @@ fn the_dispatched_type_and_each_implementation_are_checked_against_the_trait() {
 
     assert!(code.contains(&compact(quote! {
             #[diagnostic::do_not_recommend]
-            impl<__SnapfitDispatched: ?::core::marker::Sized + Database> __SnapfitDispatches
+            impl<__SnapfitDispatched: ?::core::marker::Sized + Database> __SnapfitDbDispatchesDatabase
                 for __SnapfitDispatched {}
-            fn __snapfit_dispatches<__SnapfitDispatched: ?::core::marker::Sized + __SnapfitDispatches>() {}
+            fn __snapfit_dispatches<__SnapfitDispatched: ?::core::marker::Sized + __SnapfitDbDispatchesDatabase>() {}
             let _ = __snapfit_dispatches::<Db>;
             fn __snapfit_implements<__SnapfitDispatched: ?::core::marker::Sized + Database>() {}
             let _ = __snapfit_implements::<MySql>;

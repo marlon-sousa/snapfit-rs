@@ -51,15 +51,16 @@ fn each_supertrait_is_checked_for_the_last_implementation_with_the_trait_s_own_p
     )));
 
     assert!(code.contains(&compact(quote! {
-        trait __SnapfitSupertrait<T> where T: Copy {
+        #[allow(non_camel_case_types)]
+        trait __SnapfitStoreSupertraitNamed<T> where T: Copy {
             fn __snapfit_holds() {}
         }
         #[diagnostic::do_not_recommend]
-        impl<T, __SnapfitHolder: ?::core::marker::Sized + Named<T> > __SnapfitSupertrait<T>
+        impl<T, __SnapfitHolder: ?::core::marker::Sized + Named<T> > __SnapfitStoreSupertraitNamed<T>
             for __SnapfitHolder where T: Copy {}
         #[allow(dead_code)]
         fn __snapfit_supertrait<T, __SnapfitLast: Store<T> >() where T: Copy {
-            <::snapfit::__private::Only<__SnapfitLast> as __SnapfitSupertrait<T> >::__snapfit_holds();
+            <::snapfit::__private::Only<__SnapfitLast> as __SnapfitStoreSupertraitNamed<T> >::__snapfit_holds();
         }
     })));
 }

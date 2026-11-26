@@ -107,6 +107,16 @@ Feature: Refusing a static dispatch declaration that cannot be followed
       | static_dispatch_unmarked_trait               | 13   |
       | static_dispatch_disagreeing_associated_types | 20   |
 
+  @v0_3_0 @regression
+  Scenario: A trait without #[snapfit::static_dispatch] beside a marked one that shares an implementation is refused in words alone, with no note of a trait of the same name
+    Given an invalid container fixture "static_dispatch_unmarked_beside_a_marked_trait"
+    When the fixture is compiled
+    Then compilation should fail with "`Shelf` cannot dispatch the trait `Store` that static_dispatch_for names"
+    And the error should point at line 20 of the fixture
+    And the compiler output should not mention "similarly named"
+    And the compiler output should not mention "same name"
+    And the compiler should report 1 errors
+
   @v0_3_0
   Scenario Outline: An implementation of another trait is rustc's own error where its list names it
     Given an invalid container fixture "<fixture>"
