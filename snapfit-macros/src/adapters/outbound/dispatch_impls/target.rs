@@ -6,7 +6,6 @@ use proc_macro2::{Span, TokenStream};
 use quote::quote;
 
 use super::trait_path::TraitPath;
-use crate::adapters::syntax::is_cfg;
 
 /// Which of snapfit's dispatch types an impl is for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -25,37 +24,45 @@ pub(super) struct Variant {
 
 impl Target {
     pub(super) fn parameters(self) -> impl Iterator<Item = syn::GenericParam> {
-        self.variants().into_iter().map(type_parameter)
+        self.implementations().into_iter().map(type_parameter)
     }
 
-    pub(super) fn self_type(self) -> TokenStream {
+    /// The type parameter of each implementation the dispatch type holds.
+    fn implementations(self) -> Vec<syn::Ident> {
+        match self {
+            Self::Either => vec![first(), rest()],
+            Self::Only => vec![last()],
+        }
+    }
+
+    pub(super) fn self_type(self, runtime: &syn::Path) -> TokenStream {
         match self {
             Self::Either => {
                 let (first, rest) = (first(), rest());
-                quote!(::snapfit::__private::Either<#first, #rest>)
+                quote!(#runtime::__private::Either<#first, #rest>)
             }
             Self::Only => {
                 let last = last();
-                quote!(::snapfit::__private::Only<#last>)
+                quote!(#runtime::__private::Only<#last>)
             }
         }
     }
 
-    pub(super) fn variants(self) -> Vec<Variant> {
+    pub(super) fn variants(self, runtime: &syn::Path) -> Vec<Variant> {
         match self {
             Self::Either => vec![
                 Variant {
                     implementation: first(),
-                    constructor: quote!(::snapfit::__private::Either::First),
+                    constructor: quote!(#runtime::__private::Either::First),
                 },
                 Variant {
                     implementation: rest(),
-                    constructor: quote!(::snapfit::__private::Either::Rest),
+                    constructor: quote!(#runtime::__private::Either::Rest),
                 },
             ],
             Self::Only => vec![Variant {
                 implementation: last(),
-                constructor: quote!(::snapfit::__private::Only),
+                constructor: quote!(#runtime::__private::Only),
             }],
         }
     }
@@ -91,16 +98,14 @@ impl Target {
         let ident = &syntax.ident;
         let leading = self.leading();
         let plain = path.plain();
-        let cfgs = syntax.attrs.iter().filter(is_cfg);
         quote! {
-            #(#cfgs)*
             type #ident = <#leading as #plain>::#ident;
         }
     }
 }
 
-fn type_parameter(variant: Variant) -> syn::GenericParam {
-    syn::GenericParam::Type(variant.implementation.into())
+fn type_parameter(implementation: syn::Ident) -> syn::GenericParam {
+    syn::GenericParam::Type(implementation.into())
 }
 
 fn first() -> syn::Ident {

@@ -44,7 +44,7 @@ fn a_generic_or_qualified_type_is_constructed_through_a_qualified_path() {
     );
     assert_eq!(
         built(item, "shared", ValueSource::Locals),
-        "::std::sync::Arc::new(<Mutex<Counter>>::new(__snapfit_counter.clone()))"
+        "::std::sync::Arc::new(<Mutex<Counter>>::new(<Counteras::std::clone::Clone>::clone(&__snapfit_counter)))"
     );
 }
 
@@ -65,11 +65,11 @@ fn a_nested_transient_is_built_fresh_for_each_argument() {
 
     assert_eq!(
         built(item.clone(), "orders", ValueSource::Locals),
-        "::std::sync::Arc::new(<Orders>::new(<Checkout>::new(<Pricing>::new(__snapfit_config.clone())),__snapfit_config.clone()))"
+        "::std::sync::Arc::new(<Orders>::new(<Checkout>::new(<Pricing>::new(<Arc<Config>as::std::clone::Clone>::clone(&__snapfit_config))),<Arc<Config>as::std::clone::Clone>::clone(&__snapfit_config)))"
     );
     assert_eq!(
         built(item, "checkout", ValueSource::SelfFields),
-        "<Checkout>::new(<Pricing>::new(self.config.clone()))"
+        "<Checkout>::new(<Pricing>::new(<Arc<Config>as::std::clone::Clone>::clone(&self.config)))"
     );
 }
 
@@ -86,7 +86,7 @@ fn an_async_constructor_is_awaited() {
 
     assert_eq!(
         built(item, "db", ValueSource::Locals),
-        "::std::sync::Arc::new(<Database>::connect(__snapfit_config.clone()).await?)"
+        "::std::sync::Arc::new(<Database>::connect(<Arc<Config>as::std::clone::Clone>::clone(&__snapfit_config)).await?)"
     );
 }
 
@@ -105,11 +105,11 @@ fn a_factory_is_called_through_its_trait_with_its_inputs_by_name() {
 
     assert_eq!(
         built(item.clone(), "orders", ValueSource::Locals),
-        "<SelfasShopFactories>::build_orders(ShopOrdersInputs{clock:<Clock>::new(),read_db:__snapfit_read_db.clone()})"
+        "<SelfasShopFactories>::build_orders(ShopOrdersInputs{clock:<Clock>::new(),read_db:<Arc<Database>as::std::clone::Clone>::clone(&__snapfit_read_db)})"
     );
     assert_eq!(
         built(item, "orders", ValueSource::SelfFields),
-        "<SelfasShopFactories>::build_orders(ShopOrdersInputs{clock:<Clock>::new(),read_db:self.read_db.clone()})"
+        "<SelfasShopFactories>::build_orders(ShopOrdersInputs{clock:<Clock>::new(),read_db:<Arc<Database>as::std::clone::Clone>::clone(&self.read_db)})"
     );
 }
 
@@ -151,10 +151,10 @@ fn a_builder_passes_each_dependency_to_its_setter_and_finishes_the_chain() {
 
     assert_eq!(
         built(item.clone(), "writer", ValueSource::Locals),
-        "::std::sync::Arc::new(<SiteWriter>::builder().memory(__snapfit_memory_files.clone()).disk(__snapfit_folder_files.clone()).build())"
+        "::std::sync::Arc::new(<SiteWriter>::builder().memory(<Arc<MemoryFiles>as::std::clone::Clone>::clone(&__snapfit_memory_files)).disk(<Arc<FolderFiles>as::std::clone::Clone>::clone(&__snapfit_folder_files)).build())"
     );
     assert_eq!(
         built(item, "reader", ValueSource::SelfFields),
-        "<Reader>::make().folder_files(self.folder_files.clone()).done()"
+        "<Reader>::make().folder_files(<Arc<FolderFiles>as::std::clone::Clone>::clone(&self.folder_files)).done()"
     );
 }

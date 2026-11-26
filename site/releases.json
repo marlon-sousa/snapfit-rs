@@ -1,5 +1,17 @@
 [
 	{
+		"version": "v0.3.0",
+		"date": "2026-11-25",
+		"summary": "Static dispatch: a trait marked once with #[snapfit::static_dispatch] is dispatched through a match over a closed list of its implementations, each field naming the one it holds, instead of through a trait object.",
+		"prerelease": false
+	},
+	{
+		"version": "v0.2.0",
+		"date": "2026-11-23",
+		"summary": "Fields typed as their trait, Arc<dyn Trait>, built from the implementation they name, and fields whose construction can fail, built by a try_new() that returns the first error.",
+		"prerelease": false
+	},
+	{
 		"version": "v0.1.0",
 		"date": "2026-11-18",
 		"summary": "Compile-time verified dependency injection with pure-Rust domain types: singletons wired by name, each built with its constructor, Default, a factory or its type's builder, and unknown dependencies and cycles reported at compile time.",

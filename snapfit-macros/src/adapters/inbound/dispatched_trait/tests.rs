@@ -3,6 +3,8 @@ use syn::parse_quote;
 
 use super::*;
 
+mod arguments;
+
 fn read(args: TokenStream, item: syn::Item) -> DispatchDeclaration {
     read_dispatch_attribute(&args, &item).unwrap()
 }
@@ -13,31 +15,6 @@ fn trait_of(
     match attribute.annotated {
         Annotated::Trait(declaration) => declaration,
         Annotated::Other => panic!("the attribute is on a trait"),
-    }
-}
-
-#[test]
-fn the_arguments_are_read_as_none_remote_or_other() {
-    let item: syn::Item = parse_quote!(
-        trait Database {}
-    );
-    let cases = [
-        (quote!(), DispatchArguments::None),
-        (quote!(remote = other::Store), DispatchArguments::Remote),
-        (quote!(remote), DispatchArguments::Other),
-        (quote!(inline), DispatchArguments::Other),
-        (
-            quote!(remote = other::Store<u32>),
-            DispatchArguments::Remote,
-        ),
-        (
-            quote!(remote = other::Store, inline),
-            DispatchArguments::Remote,
-        ),
-    ];
-    for (args, arguments) in cases {
-        let written = args.to_string();
-        assert_eq!(read(args, item.clone()).arguments, arguments, "{written}");
     }
 }
 
@@ -112,4 +89,109 @@ fn a_macro_call_is_named_by_the_last_segment_of_its_path() {
         declaration.items.iter().map(kind_of).collect::<Vec<_>>(),
         ["macro sources"]
     );
+}
+
+#[test]
+fn self_in_the_trait_s_own_bounds_is_read_wherever_it_is_written() {
+    let elsewhere: [syn::Item; 8] = [
+        parse_quote!(
+            trait Store<T>
+            where
+                T: Into<Self>,
+            {
+            }
+        ),
+        parse_quote!(
+            trait Store<T: Into<Self>> {}
+        ),
+        parse_quote!(
+            trait Ranked: Ordered<Self> {}
+        ),
+        parse_quote!(
+            trait Twin
+            where
+                Self: PartialEq<Self>,
+            {
+            }
+        ),
+        parse_quote!(
+            trait Pair
+            where
+                Option<Self>: Clone,
+            {
+            }
+        ),
+        parse_quote!(
+            trait Rows
+            where
+                Self::Row: Clone,
+            {
+                type Row;
+            }
+        ),
+        parse_quote!(
+            trait Store
+            where
+                Self: Holder<Self::Item>,
+            {
+                type Item;
+            }
+        ),
+        parse_quote!(
+            trait Store<T = Self> {}
+        ),
+    ];
+    let forwardable: [syn::Item; 3] = [
+        parse_quote!(
+            trait Store<T>: Send + Sync
+            where
+                T: Clone,
+            {
+            }
+        ),
+        parse_quote!(
+            trait Cloned
+            where
+                Self: Clone + 'static,
+            {
+            }
+        ),
+        parse_quote!(
+            trait Store: Holder<Self::Item> {
+                type Item;
+            }
+        ),
+    ];
+
+    let bounds = |item: &syn::Item| trait_of(read(quote!(), item.clone())).bounds;
+
+    assert!(
+        elsewhere
+            .iter()
+            .map(bounds)
+            .all(|bounds| bounds.is_elsewhere())
+    );
+    assert!(
+        forwardable
+            .iter()
+            .map(bounds)
+            .all(|bounds| bounds.is_forwardable())
+    );
+}
+
+#[test]
+fn a_supertrait_that_names_self_is_not_checked_by_snapfit() {
+    let declaration = trait_of(read(
+        quote!(),
+        parse_quote!(
+            trait Store: Named + Holder<Self::Item> + ?Sized + 'static {
+                type Item;
+            }
+        ),
+    ));
+
+    let supertraits = &declaration.syntax.supertraits;
+
+    assert_eq!(supertraits.len(), 1);
+    assert!(supertraits.iter().all(|bound| bound.path.is_ident("Named")));
 }

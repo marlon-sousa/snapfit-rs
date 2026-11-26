@@ -22,11 +22,15 @@ pub(crate) enum DispatchProblem {
     )]
     UnsafeTrait(TraitName),
     #[error(
+        "trait '{0}' names Self in its parameters or bounds, such as where T: Into<Self> or where Self::Item: Clone, which snapfit cannot promise of the type that dispatches it; remove Self from them, bound an associated type where it is declared, such as type Row: Clone, or write a bound on Self as a supertrait, such as trait Store: Holder<Self::Item>"
+    )]
+    SelfInTraitBounds(TraitName),
+    #[error(
         "#[snapfit::static_dispatch] goes on a trait, and this item is not one; put it on the trait the container dispatches"
     )]
     NotATrait,
     #[error(
-        "#[snapfit::static_dispatch] takes no arguments; write it alone, as #[snapfit::static_dispatch]"
+        "#[snapfit::static_dispatch] takes no arguments but crate, given once, the path to snapfit when a crate depends on it under another name; write it alone, as #[snapfit::static_dispatch], or as #[snapfit::static_dispatch(crate = di)]"
     )]
     Arguments,
 }
@@ -85,6 +89,7 @@ impl DispatchProblem {
         match self {
             Self::Item { position, .. } => DispatchSubject::Item(*position),
             Self::UnsafeTrait(_) => DispatchSubject::Safety,
+            Self::SelfInTraitBounds(_) => DispatchSubject::Bounds,
             Self::Arguments => DispatchSubject::Arguments,
             Self::NotATrait => DispatchSubject::Annotated,
         }

@@ -170,3 +170,19 @@ fn only_the_build_method_of_a_dispatched_field_allows_a_more_private_implementat
         "{code}"
     );
 }
+
+#[test]
+fn the_trait_s_doc_names_a_raw_container_without_r_hash() {
+    let plan = plan_for(parse_quote! {
+        pub struct r#Shop {
+            #[singleton(build = factory)]
+            db: Arc<Database>,
+        }
+    });
+
+    let code = compact(emit_factories(&plan));
+
+    assert!(code.contains(&compact(quote! {
+        #[doc = "The factories of `Shop`, one for each field marked `build = factory`, which you implement on `Shop`."]
+    })));
+}

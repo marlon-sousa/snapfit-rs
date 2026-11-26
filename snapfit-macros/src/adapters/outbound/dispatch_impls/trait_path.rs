@@ -6,10 +6,12 @@ use quote::quote;
 
 use crate::adapters::syntax::TraitSyntax;
 
-/// The trait as the impls name it, with its own parameters as arguments.
+/// The trait as the impls name it, with its own parameters as arguments,
+/// and the path through which they reach snapfit's dispatch types.
 pub(super) struct TraitPath {
     ident: syn::Ident,
     arguments: Vec<TokenStream>,
+    pub(super) runtime: syn::Path,
 }
 
 impl TraitPath {
@@ -17,6 +19,7 @@ impl TraitPath {
         Self {
             ident: syntax.ident.clone(),
             arguments: syntax.generics.params.iter().map(argument).collect(),
+            runtime: syntax.runtime.clone(),
         }
     }
 

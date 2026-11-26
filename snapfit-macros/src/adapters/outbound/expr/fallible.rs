@@ -5,6 +5,7 @@ use quote::{quote, quote_spanned};
 use syn::ext::IdentExt;
 
 use super::Site;
+use crate::adapters::outbound::spanned::spanned_runtime;
 use crate::adapters::syntax::FieldSyntax;
 use crate::domain::Step;
 
@@ -20,11 +21,12 @@ pub(super) fn value(built: TokenStream, step: &Step<FieldSyntax>, site: Site<'_>
     let field = &step.syntax;
     let span = field.fallible.as_ref().unwrap_or(&field.ident).span();
     let container = site.container.ident.unraw().to_string();
+    let runtime = spanned_runtime(&site.container.runtime, span);
     let name = field.ident.unraw().to_string();
     let built_local = quote_spanned!(span=> __snapfit_built);
     let value = quote_spanned!(span=> __snapfit_value);
     let wrapped = quote_spanned! {span=>
-        ::snapfit::__private::BuildResult::into_build_result(#built_local, #container, #name)
+        #runtime::__private::BuildResult::into_build_result(#built_local, #container, #name)
     };
     quote!(match {
         let #built_local = #built;

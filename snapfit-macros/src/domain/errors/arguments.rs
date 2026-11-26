@@ -43,6 +43,16 @@ pub(crate) enum ArgumentProblem {
     /// The value as written, such as `"yes"`.
     #[display("fallible takes true or false, not {_0}; write fallible = true, or fallible = false")]
     NotAFallibleValue(String),
+    /// The string's own text, such as `di`.
+    #[display(
+        "crate takes the path snapfit is reached through, not a string; write it unquoted: crate = {_0}"
+    )]
+    QuotedRuntimePath(String),
+    /// The value as written, such as `3`.
+    #[display(
+        "crate takes the path snapfit is reached through, and '{_0}' is not a path; write the name the crate depends on snapfit under, such as crate = di"
+    )]
+    NotARuntimePath(String),
     #[display(
         "implementation needs a type; write the type the container builds for the field, such as implementation = StripeGateway"
     )]
@@ -62,6 +72,20 @@ pub(crate) enum ArgumentProblem {
         "'{_0}' is not a type the container can build; write the type in full, such as implementation = StripeGateway"
     )]
     NotAnImplementationType(String),
+    #[display(
+        "implementations has an entry with no type between two commas; remove the extra comma, or write the type"
+    )]
+    BareListedImplementation,
+    /// The string's own text, written as an entry of `implementations`.
+    #[display(
+        "implementations takes types, not strings; write each unquoted, such as implementations = [{_0}]"
+    )]
+    QuotedListedImplementation(String),
+    /// The entry as written, such as `dyn Database` or `_`.
+    #[display(
+        "'{_0}' is not a type the container can build; write each type in full, such as implementations = [Postgres, Sqlite]"
+    )]
+    NotAListedImplementationType(String),
     #[display(
         "implementations lists no type in its square brackets; list the types the field's factory may return, such as implementations = [Postgres, Sqlite], or remove implementations"
     )]

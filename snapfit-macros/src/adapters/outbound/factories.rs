@@ -26,8 +26,9 @@ pub(super) fn emit_factories(plan: &Plan) -> TokenStream {
     let container = &plan.syntax.ident;
     let vis = &plan.syntax.vis;
     let factories_trait = trait_ident(container);
+    let shown = container.unraw();
     let trait_doc = format!(
-        "The factories of `{container}`, one for each field marked `build = factory`, which you implement on `{container}`."
+        "The factories of `{shown}`, one for each field marked `build = factory`, which you implement on `{shown}`."
     );
     let methods = factories.iter().map(|step| method(container, step));
     let inputs = factories

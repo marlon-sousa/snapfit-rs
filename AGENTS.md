@@ -4,7 +4,7 @@ The manual for anyone, human or agent, changing snapfit. [docs/WORKFLOW.md](docs
 
 ## What to read
 
-- [docs/SPEC.md](docs/SPEC.md): what the macros accept, generate and refuse, and what ships in 0.1.0. Code does what it says, no more and no less.
+- [docs/SPEC.md](docs/SPEC.md): what the macros accept, generate and refuse, and what ships in each version. Code does what it says, no more and no less.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how the code is organised and written, before writing any.
 - [.claude/skills/](.claude/skills/): the procedures, such as having a change reviewed. Claude Code loads them on its own; another agent reads the one it needs.
 - The issues the work belongs to, and its pull request. Once a decision is agreed there, it binds the work.

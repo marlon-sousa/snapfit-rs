@@ -1,6 +1,6 @@
 [package]
 name = "snapfit-macros"
-description = "The procedural macro of snapfit, compile-time dependency injection"
+description = "The procedural macros of snapfit, compile-time dependency injection"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -33,6 +33,6 @@ thiserror = { workspace = true }
 proptest = { workspace = true }
 
 [features]
-# Enables APIs whose shape is not settled for 0.1.0: async containers and
+# Enables APIs whose shape is not settled yet: async containers and
 # transient dependencies. Enable it through `snapfit`.
 unstable = []

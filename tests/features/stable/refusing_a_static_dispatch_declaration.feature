@@ -56,7 +56,9 @@ Feature: Refusing a static dispatch declaration that cannot be followed
       | dispatched_list_without_factory         | 22   | field 'replica' lists implementations of the dispatched type Db, which only a factory can choose between; add build = factory to the field and return one of them from the build_replica method of the container's factories trait, or name the one it builds with implementation, such as implementation = MySql |
       | implementations_on_a_trait_object       | 19   | field 'replica' names implementations, which only a field of a dispatched type built by build = factory takes; name the one type the container builds with implementation, such as implementation = StripeGateway, or remove implementations |
       | implementations_empty_list              | 19   | field 'replica': implementations lists no type in its square brackets; list the types the field's factory may return, such as implementations = [Postgres, Sqlite], or remove implementations |
-      | implementations_entry_not_a_type        | 19   | field 'replica': 'impl Database' is not a type the container can build; write the type in full, such as implementation = StripeGateway |
+      | implementations_entry_not_a_type        | 19   | field 'replica': 'impl Database' is not a type the container can build; write each type in full, such as implementations = [Postgres, Sqlite] |
+      | implementations_entry_quoted            | 19   | field 'replica': implementations takes types, not strings; write each unquoted, such as implementations = [Postgres] |
+      | implementations_entry_empty             | 19   | field 'replica': implementations has an entry with no type between two commas; remove the extra comma, or write the type |
       | dispatched_implementation_with_factory  | 19   | field 'replica' names the one implementation MySql of the dispatched type Db, and is built with build = factory, which returns the field itself; list the variants its factory may return with implementations = [MySql], or remove build = factory so that the container builds MySql |
       | implementation_given_a_list             | 19   | field 'replica': implementation takes one type, not a list; to list the types a factory may return, write implementations, with an s, such as implementations = [Postgres, Sqlite] |
       | implementations_without_a_list          | 19   | field 'replica': implementations takes its types in square brackets, such as implementations = [Postgres, Sqlite]; to name the one type the container builds, write implementation, without an s, such as implementation = Postgres |
@@ -93,20 +95,17 @@ Feature: Refusing a static dispatch declaration that cannot be followed
     And the compiler should report 3 errors
 
   @v0_3_0
-  Scenario: A trait without #[snapfit::static_dispatch] is rustc's own error at the trait the declaration names
-    Given an invalid container fixture "static_dispatch_unmarked_trait"
+  Scenario Outline: A trait without #[snapfit::static_dispatch], or whose implementations disagree on an associated type, is refused in words at the trait the declaration names
+    Given an invalid container fixture "<fixture>"
     When the fixture is compiled
-    Then compilation should fail with "Only<MySql>: Database` is not satisfied"
-    And the error should point at line 13 of the fixture
+    Then compilation should fail with "`Db` cannot dispatch the trait `Database` that static_dispatch_for names, because the trait, or one of its supertraits, is not marked #[snapfit::static_dispatch], an implementation on its list does not implement it, or the implementations disagree on an associated type"
+    And the error should point at line <line> of the fixture
     And the compiler should report 1 errors
 
-  @v0_3_0
-  Scenario: Implementations that disagree on an associated type are rustc's own error at the trait the declaration names
-    Given an invalid container fixture "static_dispatch_disagreeing_associated_types"
-    When the fixture is compiled
-    Then compilation should fail with "as Database>::Row == u32`"
-    And the error should point at line 20 of the fixture
-    And the compiler should report 1 errors
+    Examples:
+      | fixture                                      | line |
+      | static_dispatch_unmarked_trait               | 13   |
+      | static_dispatch_disagreeing_associated_types | 20   |
 
   @v0_3_0
   Scenario Outline: An implementation of another trait is rustc's own error where its list names it
@@ -133,6 +132,14 @@ Feature: Refusing a static dispatch declaration that cannot be followed
       | fixture                                                | message                                                                                                                                                   |
       | static_dispatch_respelled_as_another_type              | `main::Archive` and `Archive` are written as one implementation of a dispatched type, since they differ only by `self::`, but they are two different types here |
       | static_dispatch_respelled_without_self_as_another_type | `Archive` and `main::Archive` are written as one implementation of a dispatched type, since they differ only by `self::`, but they are two different types here |
+
+  @v0_3_0 @regression
+  Scenario: One implementation written two ways, which of cannot choose between, is rustc's own error at the field it builds
+    Given an invalid container fixture "static_dispatch_one_implementation_spelled_twice"
+    When the fixture is compiled
+    Then compilation should fail with "type annotations needed"
+    And the error should point at line 17 of the fixture
+    And the compiler should report 1 errors
 
   @v0_3_0
   Scenario: A dispatch attribute written above #[container] is an attribute rustc cannot find, which snapfit reads as well

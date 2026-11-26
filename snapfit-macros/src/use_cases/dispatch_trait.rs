@@ -4,7 +4,7 @@
 use crate::domain::{
     Annotated, DispatchAttribute, DispatchPlan, DispatchProblem, DomainErrors, TraitDeclaration,
 };
-use crate::use_cases::dispatch_rules::{arguments_refusal, safety_refusal};
+use crate::use_cases::dispatch_rules::{arguments_refusal, bounds_refusal, safety_refusal};
 use crate::use_cases::forwarding::forwarding;
 
 #[cfg(test)]
@@ -20,6 +20,7 @@ pub(crate) fn plan_dispatch<T, M, A>(
                 arguments
                     .into_iter()
                     .chain(safety_refusal(&declaration))
+                    .chain(bounds_refusal(&declaration))
                     .collect(),
             );
             let (_, plan) = DomainErrors::both(header, plan_items(declaration))?;
