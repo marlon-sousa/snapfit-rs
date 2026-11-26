@@ -6,7 +6,7 @@
 
 ## 0. What ships in each version
 
-This document describes the full design. Only part of it ships as a stable API in 0.1.0; the rest is either behind the `unstable` Cargo feature or not implemented yet. Using a planned feature, or an unstable one without the feature, is a compile error that names the feature.
+This document describes the full design. Only part of it ships as a stable API, from the version the table below gives for each capability; the rest is either behind the `unstable` Cargo feature or not implemented yet. Using a planned feature, or an unstable one without the feature, is a compile error that names the feature.
 
 | Capability | Status | Where it is specified |
 | :--- | :--- | :--- |
@@ -59,7 +59,7 @@ These items existed before 0.1.0 but nothing generated or used them, so they wer
 
 ### Held back from The Snapfit Book (to restore later)
 
-The book's `v0.1.0` edition teaches only the stable API. Its chapters on the unstable APIs are kept, with their examples and expected output, in `book/unreleased/`, and return to Part 3 when those APIs are stabilised:
+Each edition of the book, from `v0.1.0` on, teaches only the stable API of its release. Its chapters on the unstable APIs are kept, with their examples and expected output, in `book/unreleased/`, and return to Part 3 when those APIs are stabilised:
 
 * **Transient dependencies**: `book/unreleased/chapters/07-transient-dependencies.md`, example `ch07_transients`.
 * **Asynchronous containers**: `book/unreleased/chapters/08-asynchronous-containers.md`, example `ch08_async_container`.
