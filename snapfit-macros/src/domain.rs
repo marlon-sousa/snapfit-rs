@@ -17,9 +17,9 @@ pub(crate) use declaration::{
 };
 pub(crate) use dispatch_plan::{DispatchPlan, ForwardedItem, Rebuilding};
 pub(crate) use dispatched_trait::{
-    Annotated, AssociatedTypeShape, DispatchArguments, DispatchAttribute, ItemPosition,
-    MethodShape, PlacedItem, Presence, Receiver, ReturnShape, Safety, SelfBound, SelfUse,
-    TraitDeclaration, TraitItem, TraitItemDeclaration,
+    Annotated, AssociatedTypeShape, DispatchArguments, DispatchAttribute, DispatchSetting,
+    ItemPosition, MethodShape, PlacedItem, Presence, Receiver, ReturnShape, RuntimeValue, Safety,
+    SelfBound, SelfUse, SettingPosition, TraitDeclaration, TraitItem, TraitItemDeclaration,
 };
 pub(crate) use dispatched_type::{
     AttributePosition, Dispatch, DispatchExtension, DispatchedTypeDeclaration,
@@ -29,7 +29,7 @@ pub(crate) use errors::{
     ArgumentProblem, AsyncProblem, AttributeProblem, BuildProblem, BuilderProblem,
     DeclarationProblem, DispatchAttributeKind, DispatchProblem, DispatchSubject, DomainError,
     DomainErrors, Feature, FeatureProblem, GraphProblem, InfallibleBuild, ItemProblem,
-    StaticDispatchProblem, TraitObjectProblem, Unreadability,
+    SettingProblem, StaticDispatchProblem, TraitObjectProblem, Unreadability,
 };
 pub(crate) use names::{
     ConstantName, ContainerName, DependencyName, FunctionName, MacroName, MethodName, SetterName,

@@ -2,27 +2,93 @@
 //! dispatch the trait statically.
 
 use crate::domain::{
-    DispatchArguments, DispatchProblem, DomainError, Feature, FeatureProblem, Safety, SelfUse,
+    ArgumentProblem, DispatchArguments, DispatchProblem, DispatchSetting, DomainError, Feature,
+    FeatureProblem, RuntimeValue, Safety, SelfUse, SettingPosition, SettingProblem,
     TraitDeclaration,
 };
 
 #[cfg(test)]
 mod tests;
 
-/// The refusal of what the attribute was given, if any: `remote` is planned,
-/// whatever else is given, and anything but one `crate` is not taken.
-pub(crate) fn arguments_refusal(arguments: DispatchArguments) -> Option<DomainError> {
-    match arguments {
-        DispatchArguments { remote: 1.., .. } => {
-            Some(FeatureProblem::NotYetImplemented(Feature::RemoteStaticDispatch).into())
-        }
-        DispatchArguments {
-            runtime: 0 | 1,
-            other: 0,
-            ..
-        } => None,
-        DispatchArguments { .. } => Some(DispatchProblem::Arguments.into()),
+/// The refusal of each setting the attribute was given, at that setting:
+/// `remote` is planned, `crate` takes a path, once, and nothing else is
+/// taken.
+pub(crate) fn arguments_refusals(arguments: DispatchArguments) -> Vec<DomainError> {
+    arguments
+        .settings
+        .into_iter()
+        .scan(CrateSeen::No, with_repetition)
+        .enumerate()
+        .flat_map(setting_refusals)
+        .collect()
+}
+
+/// Whether a `crate` was read among the settings before.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CrateSeen {
+    No,
+    Yes,
+}
+
+/// Whether a setting is a `crate` written after another one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Repetition {
+    Not,
+    Repeated,
+}
+
+/// `setting` with whether it repeats a `crate` read before it.
+fn with_repetition(
+    seen: &mut CrateSeen,
+    setting: DispatchSetting,
+) -> Option<(DispatchSetting, Repetition)> {
+    let repetition = match (&setting, *seen) {
+        (DispatchSetting::Runtime(_), CrateSeen::Yes) => Repetition::Repeated,
+        _ => Repetition::Not,
+    };
+    if setting.is_runtime() {
+        *seen = CrateSeen::Yes;
     }
+    Some((setting, repetition))
+}
+
+fn setting_refusals(
+    (index, (setting, repetition)): (usize, (DispatchSetting, Repetition)),
+) -> Vec<DomainError> {
+    let position = SettingPosition::new(index);
+    setting_problems(setting, repetition)
+        .into_iter()
+        .map(|problem| setting_error(position, problem))
+        .collect()
+}
+
+/// What is wrong with one setting. A `crate` after another one is taken
+/// as no setting the attribute knows, whatever else it is.
+fn setting_problems(setting: DispatchSetting, repetition: Repetition) -> Vec<SettingProblem> {
+    match setting {
+        DispatchSetting::Remote => vec![SettingProblem::Planned(
+            FeatureProblem::NotYetImplemented(Feature::RemoteStaticDispatch),
+        )],
+        DispatchSetting::Other => vec![SettingProblem::Unknown],
+        DispatchSetting::Runtime(value) => runtime_problem(value)
+            .map(SettingProblem::Runtime)
+            .into_iter()
+            .chain((repetition == Repetition::Repeated).then_some(SettingProblem::Unknown))
+            .collect(),
+    }
+}
+
+/// The problem of what `crate = ...` was given, in the container's words.
+fn runtime_problem(value: RuntimeValue) -> Option<ArgumentProblem> {
+    match value {
+        RuntimeValue::Path => None,
+        RuntimeValue::Quoted(text) => Some(ArgumentProblem::QuotedRuntimePath(text)),
+        RuntimeValue::NotAPath(text) => Some(ArgumentProblem::NotARuntimePath(text)),
+    }
+}
+
+fn setting_error(position: SettingPosition, problem: SettingProblem) -> DomainError {
+    DispatchProblem::Setting { position, problem }.into()
 }
 
 /// The refusal of the trait's own header, if any.

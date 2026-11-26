@@ -1,7 +1,7 @@
 use super::*;
 use crate::domain::{
-    DispatchArguments, Execution, ForwardedItem, Rebuilding, Receiver, ReturnShape, Safety,
-    SelfUse, TraitName,
+    DispatchArguments, DispatchSetting, Execution, ForwardedItem, Rebuilding, Receiver,
+    ReturnShape, Safety, SelfUse, TraitName,
 };
 use crate::test_support::{dispatch_attribute, forwardable_method, method};
 
@@ -53,7 +53,7 @@ fn every_problem_of_the_attribute_and_of_each_item_is_reported_together() {
             ReturnShape::ImplTrait,
         ),
     ]);
-    attribute.arguments = DispatchArguments::new(0, 0, 1);
+    attribute.arguments = DispatchArguments::new(vec![DispatchSetting::Other]);
 
     let errors = messages(plan_dispatch(attribute).unwrap_err());
 
@@ -67,7 +67,7 @@ fn every_problem_of_the_attribute_and_of_each_item_is_reported_together() {
 fn a_trait_marked_again_is_refused_beside_its_arguments_alone() {
     let name = TraitName::new("Database".to_string()).unwrap();
     let attribute = DispatchAttribute::<(), &str, &str>::new(
-        DispatchArguments::new(0, 0, 1),
+        DispatchArguments::new(vec![DispatchSetting::Other]),
         Annotated::MarkedAgain(name),
     );
 
@@ -83,8 +83,10 @@ fn a_trait_marked_again_is_refused_beside_its_arguments_alone() {
 
 #[test]
 fn an_attribute_on_something_other_than_a_trait_is_refused_beside_its_arguments() {
-    let attribute =
-        DispatchAttribute::<(), &str, &str>::new(DispatchArguments::new(0, 0, 1), Annotated::Other);
+    let attribute = DispatchAttribute::<(), &str, &str>::new(
+        DispatchArguments::new(vec![DispatchSetting::Other]),
+        Annotated::Other,
+    );
 
     let errors = messages(plan_dispatch(attribute).unwrap_err());
 

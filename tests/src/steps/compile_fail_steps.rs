@@ -68,6 +68,21 @@ fn then_error_points_at_line(world: &mut ContainerWorld, line: usize) {
     );
 }
 
+#[then(regex = r#"^the error at line (\d+) of the fixture should say "(.*)"$"#)]
+fn then_error_at_line_says(world: &mut ContainerWorld, line: usize, expected_error: String) {
+    let (fixture, outcome) = world.compiled_fixture();
+    let file_name = format!("{fixture}.rs");
+    let said = outcome
+        .errors()
+        .iter()
+        .any(|error| points_at(error, &file_name, line) && error.message.contains(&expected_error));
+    assert!(
+        said,
+        "Expected an error at line {line} of {file_name} to contain:\n  {expected_error}\nThe compiler said:\n{}",
+        rendered(outcome)
+    );
+}
+
 #[then(expr = "the compiler should report {int} errors")]
 fn then_compiler_reports_errors(world: &mut ContainerWorld, count: usize) {
     let (fixture, outcome) = world.compiled_fixture();

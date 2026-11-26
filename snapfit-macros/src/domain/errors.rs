@@ -28,7 +28,7 @@ pub(crate) use attribute::AttributeProblem;
 pub(crate) use build::{BuildProblem, InfallibleBuild};
 pub(crate) use builder::BuilderProblem;
 pub(crate) use declaration::DeclarationProblem;
-pub(crate) use dispatched_trait::{DispatchProblem, ItemProblem};
+pub(crate) use dispatched_trait::{DispatchProblem, ItemProblem, SettingProblem};
 pub(crate) use feature::{Feature, FeatureProblem};
 pub(crate) use graph::GraphProblem;
 pub(crate) use static_dispatch::{DispatchAttributeKind, StaticDispatchProblem, Unreadability};

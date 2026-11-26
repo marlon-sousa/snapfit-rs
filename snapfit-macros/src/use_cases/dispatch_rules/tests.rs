@@ -1,43 +1,75 @@
 use super::*;
 use crate::test_support::dispatched_trait;
 
+fn at(index: usize, problem: SettingProblem) -> DomainError {
+    setting_error(SettingPosition::new(index), problem)
+}
+
+fn planned_remote() -> SettingProblem {
+    SettingProblem::Planned(FeatureProblem::NotYetImplemented(
+        Feature::RemoteStaticDispatch,
+    ))
+}
+
 #[test]
 fn no_arguments_and_a_safe_trait_are_not_refused() {
-    assert_eq!(arguments_refusal(DispatchArguments::default()), None);
+    assert_eq!(arguments_refusals(DispatchArguments::default()), Vec::new());
     assert_eq!(safety_refusal(&dispatched_trait(Vec::new())), None);
 }
 
 #[test]
 fn one_crate_alone_is_taken() {
-    assert_eq!(arguments_refusal(DispatchArguments::new(0, 1, 0)), None);
+    let given = DispatchArguments::new(vec![DispatchSetting::Runtime(RuntimeValue::Path)]);
+    assert_eq!(arguments_refusals(given), Vec::new());
 }
 
 #[test]
-fn remote_is_refused_as_planned_whatever_else_is_given() {
-    let planned = Some(DomainError::Feature(FeatureProblem::NotYetImplemented(
-        Feature::RemoteStaticDispatch,
-    )));
-    let given = [
-        DispatchArguments::new(1, 0, 0),
-        DispatchArguments::new(1, 2, 1),
-        DispatchArguments::new(2, 0, 0),
-    ];
-    for arguments in given {
-        assert_eq!(arguments_refusal(arguments), planned, "{arguments:?}");
-    }
+fn every_remote_is_refused_as_planned_at_its_own_setting() {
+    let given = DispatchArguments::new(vec![DispatchSetting::Remote, DispatchSetting::Remote]);
+    assert_eq!(
+        arguments_refusals(given),
+        vec![at(0, planned_remote()), at(1, planned_remote())]
+    );
 }
 
 #[test]
-fn another_argument_or_a_second_crate_is_refused_as_unknown() {
-    let unknown = Some(DomainError::DispatchedTrait(DispatchProblem::Arguments));
-    let given = [
-        DispatchArguments::new(0, 0, 1),
-        DispatchArguments::new(0, 2, 0),
-        DispatchArguments::new(0, 1, 1),
-    ];
-    for arguments in given {
-        assert_eq!(arguments_refusal(arguments), unknown, "{arguments:?}");
-    }
+fn a_planned_remote_is_refused_beside_every_other_mistake() {
+    let given = DispatchArguments::new(vec![
+        DispatchSetting::Runtime(RuntimeValue::Quoted("snapfit".to_owned())),
+        DispatchSetting::Runtime(RuntimeValue::NotAPath("3".to_owned())),
+        DispatchSetting::Remote,
+        DispatchSetting::Other,
+    ]);
+    assert_eq!(
+        arguments_refusals(given),
+        vec![
+            at(
+                0,
+                SettingProblem::Runtime(ArgumentProblem::QuotedRuntimePath("snapfit".to_owned()))
+            ),
+            at(
+                1,
+                SettingProblem::Runtime(ArgumentProblem::NotARuntimePath("3".to_owned()))
+            ),
+            at(1, SettingProblem::Unknown),
+            at(2, planned_remote()),
+            at(3, SettingProblem::Unknown),
+        ]
+    );
+}
+
+#[test]
+fn every_crate_after_the_first_is_refused_as_unknown() {
+    let path = || DispatchSetting::Runtime(RuntimeValue::Path);
+    let given = DispatchArguments::new(vec![path(), DispatchSetting::Other, path(), path()]);
+    assert_eq!(
+        arguments_refusals(given),
+        vec![
+            at(1, SettingProblem::Unknown),
+            at(2, SettingProblem::Unknown),
+            at(3, SettingProblem::Unknown),
+        ]
+    );
 }
 
 #[test]

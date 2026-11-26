@@ -4,7 +4,7 @@
 use crate::domain::{
     Annotated, DispatchAttribute, DispatchPlan, DispatchProblem, DomainErrors, TraitDeclaration,
 };
-use crate::use_cases::dispatch_rules::{arguments_refusal, bounds_refusal, safety_refusal};
+use crate::use_cases::dispatch_rules::{arguments_refusals, bounds_refusal, safety_refusal};
 use crate::use_cases::forwarding::forwarding;
 
 #[cfg(test)]
@@ -13,7 +13,7 @@ mod tests;
 pub(crate) fn plan_dispatch<T, M, A>(
     attribute: DispatchAttribute<T, M, A>,
 ) -> Result<DispatchPlan<T, M, A>, DomainErrors> {
-    let arguments = arguments_refusal(attribute.arguments);
+    let arguments = arguments_refusals(attribute.arguments);
     match attribute.annotated {
         Annotated::Trait(declaration) => {
             let header = DomainErrors::check(
@@ -29,11 +29,11 @@ pub(crate) fn plan_dispatch<T, M, A>(
         // The trait's own problems are the last mark's to report, once.
         Annotated::MarkedAgain(name) => Err(DomainErrors::new(
             DispatchProblem::MarkedAgain(name).into(),
-            arguments.into_iter().collect(),
+            arguments,
         )),
         Annotated::Other => Err(DomainErrors::new(
             DispatchProblem::NotATrait.into(),
-            arguments.into_iter().collect(),
+            arguments,
         )),
     }
 }
