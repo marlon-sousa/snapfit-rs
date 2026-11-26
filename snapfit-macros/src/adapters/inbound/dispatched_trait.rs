@@ -13,7 +13,7 @@ use proc_macro2::TokenStream;
 use quote::ToTokens;
 use syn::ext::IdentExt;
 
-use crate::adapters::syntax::{DispatchDeclaration, TraitSyntax};
+use crate::adapters::syntax::{DispatchDeclaration, TraitSyntax, is_static_dispatch_attribute};
 use crate::domain::{
     Annotated, ConstantName, DispatchAttribute, DomainError, DomainErrors, ItemPosition, MacroName,
     MethodName, PlacedItem, Safety, SelfUse, TraitDeclaration, TraitItemDeclaration, TraitName,
@@ -35,6 +35,9 @@ pub(crate) fn read_dispatch_attribute(
 ) -> Result<DispatchDeclaration, DomainErrors> {
     let (arguments, runtime) = arguments(args);
     let annotated = match item {
+        syn::Item::Trait(item) if item.attrs.iter().any(is_static_dispatch_attribute) => {
+            Annotated::MarkedAgain(trait_name(item)?)
+        }
         syn::Item::Trait(item) => Annotated::Trait(trait_declaration(item, runtime)?),
         _ => Annotated::Other,
     };
@@ -45,7 +48,7 @@ fn trait_declaration(
     item: &syn::ItemTrait,
     runtime: syn::Path,
 ) -> Result<TraitDeclaration<TraitSyntax, syn::TraitItemFn, syn::TraitItemType>, DomainErrors> {
-    let name = TraitName::new(item.ident.unraw().to_string()).map_err(DomainErrors::from);
+    let name = trait_name(item);
     let items = DomainErrors::collect(item.items.iter().enumerate().filter_map(placed_item));
     let (name, items) = DomainErrors::both(name, items)?;
     let syntax = TraitSyntax {
@@ -62,6 +65,10 @@ fn trait_declaration(
         bounds(item),
         items,
     ))
+}
+
+fn trait_name(item: &syn::ItemTrait) -> Result<TraitName, DomainErrors> {
+    TraitName::new(item.ident.unraw().to_string()).map_err(DomainErrors::from)
 }
 
 /// A supertrait the dispatch types are checked against: not `?Sized`, which

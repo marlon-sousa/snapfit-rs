@@ -64,6 +64,18 @@ Feature: Refusing a trait that static dispatch cannot follow
     And the error should point at line 38 of the fixture
     And the compiler should report 5 errors
 
+  @v0_3_0 @regression
+  Scenario: A trait marked more than once is refused at each mark after the first, also under a cfg_attr, and its other problems are reported once
+    Given an invalid dispatched trait fixture "static_dispatch_marked_twice"
+    When the fixture is compiled
+    Then compilation should fail with "trait 'Database' carries #[snapfit::static_dispatch] more than once, and each one would write the impls that dispatch it again; keep only one"
+    And compilation should fail with "method 'create' in trait 'Database' has no receiver"
+    And the error should point at line 5 of the fixture
+    And the error should point at line 6 of the fixture
+    And the error should point at line 9 of the fixture
+    And the compiler output should not mention "conflicting implementations"
+    And the compiler should report 3 errors
+
   @v0_3_0
   Scenario: The attribute on anything but a trait is refused at the item
     Given an invalid dispatched trait fixture "static_dispatch_on_struct"

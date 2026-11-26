@@ -44,6 +44,8 @@ pub(crate) enum DispatchSubject {
     Bounds,
     /// What the attribute was given between its parentheses.
     Arguments,
+    /// The next `#[snapfit::static_dispatch]` on the same trait.
+    NextMark,
     /// The item the attribute is on.
     Annotated,
 }

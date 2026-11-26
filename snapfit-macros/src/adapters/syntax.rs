@@ -118,6 +118,15 @@ pub(crate) fn is_dispatch_attribute(attr: &syn::Attribute) -> bool {
         .any(|name| attr.path().is_ident(name))
 }
 
+/// `#[snapfit::static_dispatch]`, through any path to snapfit, such as
+/// `#[di::static_dispatch]`, or imported, as `#[static_dispatch]`.
+pub(crate) fn is_static_dispatch_attribute(attr: &syn::Attribute) -> bool {
+    attr.path()
+        .segments
+        .last()
+        .is_some_and(|segment| segment.ident == "static_dispatch")
+}
+
 /// `#[container]`, with or without settings.
 pub(crate) fn is_container_attribute(attr: &syn::Attribute) -> bool {
     attr.path().is_ident("container")

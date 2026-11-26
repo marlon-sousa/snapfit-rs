@@ -4,6 +4,7 @@ use syn::parse_quote;
 use super::*;
 
 mod arguments;
+mod marks;
 
 fn read(args: TokenStream, item: syn::Item) -> DispatchDeclaration {
     read_dispatch_attribute(&args, &item).unwrap()
@@ -14,7 +15,7 @@ fn trait_of(
 ) -> TraitDeclaration<TraitSyntax, syn::TraitItemFn, syn::TraitItemType> {
     match attribute.annotated {
         Annotated::Trait(declaration) => declaration,
-        Annotated::Other => panic!("the attribute is on a trait"),
+        Annotated::MarkedAgain(_) | Annotated::Other => panic!("the attribute is on a trait"),
     }
 }
 

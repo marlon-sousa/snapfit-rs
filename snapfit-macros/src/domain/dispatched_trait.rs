@@ -152,6 +152,9 @@ pub(crate) enum TraitItemDeclaration<M, A> {
 #[derive(EnumIs, Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Annotated<T, M, A> {
     Trait(TraitDeclaration<T, M, A>),
+    /// A trait that another `#[snapfit::static_dispatch]` after this one
+    /// marks too, which dispatches it.
+    MarkedAgain(TraitName),
     /// Any other item, such as a struct or a function.
     Other,
 }
