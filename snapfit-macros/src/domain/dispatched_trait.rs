@@ -12,17 +12,9 @@ use strum::EnumIs;
 use crate::domain::declaration::{Execution, TypeParameters};
 use crate::domain::names::{ConstantName, MacroName, MethodName, TraitName, TypeName};
 
-/// How many settings of each kind the attribute itself was given, between
-/// its parentheses.
-#[derive(new, Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub(crate) struct DispatchArguments {
-    /// `remote = <path>`, the trait of another crate it would copy.
-    pub(crate) remote: usize,
-    /// `crate = <path>`, the path to snapfit.
-    pub(crate) runtime: usize,
-    /// Anything else.
-    pub(crate) other: usize,
-}
+mod arguments;
+
+pub(crate) use arguments::{DispatchArguments, DispatchSetting, RuntimeValue, SettingPosition};
 
 #[derive(EnumIs, Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub(crate) enum Safety {

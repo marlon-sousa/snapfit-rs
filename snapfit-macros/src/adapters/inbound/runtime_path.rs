@@ -1,11 +1,12 @@
 //! Adapter: the path through which the generated code reaches snapfit's
 //! runtime crate, `crate = <path>` or `::snapfit`.
 
-use proc_macro2::{TokenStream, TokenTree};
+use proc_macro2::TokenStream;
 use syn::parse::{ParseStream, Parser};
 use syn::{Token, parse_quote};
 
 use super::darling_models::RuntimeMeta;
+use crate::adapters::syntax::settings;
 use crate::domain::{ArgumentProblem, AttributeProblem, DomainError};
 
 /// `::snapfit`, when the attribute gives no `crate`.
@@ -32,28 +33,6 @@ pub(crate) fn readable_runtime_path(args: &TokenStream) -> syn::Path {
         .iter()
         .find_map(crate_path)
         .unwrap_or_else(default_runtime_path)
-}
-
-/// The settings of an attribute, split at the commas between them, so that
-/// one that is no `name = value` a `syn::Meta` reads, such as
-/// `remote = other::Store<u32>`, leaves the others readable. A trailing
-/// comma ends the last setting; any other comma leaves one, even empty,
-/// after it.
-pub(super) fn settings(args: &TokenStream) -> Vec<TokenStream> {
-    let tokens: Vec<TokenTree> = args.clone().into_iter().collect();
-    let written = match tokens.split_last() {
-        None => return Vec::new(),
-        Some((last, rest)) if is_comma(last) => rest,
-        Some(_) => &tokens,
-    };
-    written
-        .split(is_comma)
-        .map(|setting| setting.iter().cloned().collect())
-        .collect()
-}
-
-fn is_comma(token: &TokenTree) -> bool {
-    matches!(token, TokenTree::Punct(punct) if punct.as_char() == ',')
 }
 
 /// The path of a `crate = <path>` setting.

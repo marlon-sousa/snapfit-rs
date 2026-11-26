@@ -1,12 +1,13 @@
 //! Adapter: the compiler errors for every problem of a dispatched trait,
-//! each underlining the item, the `unsafe` or the arguments it is about.
+//! each underlining the item, the `unsafe` or the setting it is about.
 //! Plays the role of its parent.
 
 use proc_macro2::{Span, TokenStream};
 use quote::ToTokens;
 
 use crate::adapters::syntax::is_static_dispatch_attribute;
-use crate::domain::{DispatchSubject, DomainError, DomainErrors, ItemPosition};
+use crate::adapters::syntax::settings;
+use crate::domain::{DispatchSubject, DomainError, DomainErrors, ItemPosition, SettingPosition};
 
 /// The tokens a diagnostic about a dispatched trait underlines.
 #[derive(Debug, Clone)]
@@ -15,6 +16,9 @@ pub(crate) struct TraitOrigins {
     annotated: TokenStream,
     /// The attribute's arguments, or the annotated item when it has none.
     arguments: TokenStream,
+    /// Each setting among the arguments, in order, so that a setting's
+    /// position finds it.
+    settings: Vec<TokenStream>,
     /// The next `#[snapfit::static_dispatch]` on the trait, or its name when
     /// it has none.
     next_mark: TokenStream,
@@ -62,6 +66,7 @@ impl TraitOrigins {
         Self {
             annotated,
             arguments,
+            settings: settings(args),
             next_mark,
             safety,
             bounds,
@@ -82,7 +87,9 @@ impl TraitOrigins {
             DispatchSubject::Item(position) => {
                 syn::Error::new_spanned(self.item_at(position), error)
             }
-            DispatchSubject::Arguments => syn::Error::new_spanned(&self.arguments, error),
+            DispatchSubject::Setting(position) => {
+                syn::Error::new_spanned(self.setting_at(position), error)
+            }
             DispatchSubject::NextMark => syn::Error::new_spanned(&self.next_mark, error),
             DispatchSubject::Safety => match self.safety {
                 Some(span) => syn::Error::new(span, error),
@@ -95,6 +102,15 @@ impl TraitOrigins {
 
     fn item_at(&self, position: ItemPosition) -> &TokenStream {
         self.items.get(position.0).unwrap_or(&self.annotated)
+    }
+
+    /// A setting written with no tokens, such as the one between two commas,
+    /// is underlined through the arguments around it.
+    fn setting_at(&self, position: SettingPosition) -> &TokenStream {
+        self.settings
+            .get(position.0)
+            .filter(|setting| !setting.is_empty())
+            .unwrap_or(&self.arguments)
     }
 }
 

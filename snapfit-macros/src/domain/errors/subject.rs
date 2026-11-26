@@ -1,7 +1,7 @@
 //! Error: which field or trait item an error is about, for the diagnostic to point at.
 
-use super::{DomainError, Feature, FeatureProblem};
-use crate::domain::dispatched_trait::ItemPosition;
+use super::DomainError;
+use crate::domain::dispatched_trait::{ItemPosition, SettingPosition};
 use crate::domain::dispatched_type::AttributePosition;
 use crate::domain::names::DependencyName;
 
@@ -42,8 +42,8 @@ pub(crate) enum DispatchSubject {
     Safety,
     /// The trait's supertraits, parameters and `where` clause.
     Bounds,
-    /// What the attribute was given between its parentheses.
-    Arguments,
+    /// One of the settings the attribute was given between its parentheses.
+    Setting(SettingPosition),
     /// The next `#[snapfit::static_dispatch]` on the same trait.
     NextMark,
     /// The item the attribute is on.
@@ -56,9 +56,6 @@ impl DomainError {
     pub(crate) fn dispatch_subject(&self) -> DispatchSubject {
         match self {
             Self::DispatchedTrait(problem) => problem.subject(),
-            Self::Feature(FeatureProblem::NotYetImplemented(Feature::RemoteStaticDispatch)) => {
-                DispatchSubject::Arguments
-            }
             _ => DispatchSubject::Annotated,
         }
     }

@@ -4,8 +4,12 @@
 use derive_more::Display;
 use thiserror::Error;
 
+mod settings;
+
+pub(crate) use settings::SettingProblem;
+
 use super::DispatchSubject;
-use crate::domain::dispatched_trait::{ItemPosition, TraitItem};
+use crate::domain::dispatched_trait::{ItemPosition, SettingPosition, TraitItem};
 use crate::domain::names::TraitName;
 
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
@@ -33,10 +37,12 @@ pub(crate) enum DispatchProblem {
         "#[snapfit::static_dispatch] goes on a trait, and this item is not one; put it on the trait the container dispatches"
     )]
     NotATrait,
-    #[error(
-        "#[snapfit::static_dispatch] takes no arguments but crate, given once, the path to snapfit when a crate depends on it under another name; write it alone, as #[snapfit::static_dispatch], or as #[snapfit::static_dispatch(crate = di)]"
-    )]
-    Arguments,
+    /// The problem of one of the attribute's settings.
+    #[error("{problem}")]
+    Setting {
+        position: SettingPosition,
+        problem: SettingProblem,
+    },
 }
 
 /// What a `match` cannot forward about one item, worded after the item.
@@ -94,7 +100,7 @@ impl DispatchProblem {
             Self::Item { position, .. } => DispatchSubject::Item(*position),
             Self::UnsafeTrait(_) => DispatchSubject::Safety,
             Self::SelfInTraitBounds(_) => DispatchSubject::Bounds,
-            Self::Arguments => DispatchSubject::Arguments,
+            Self::Setting { position, .. } => DispatchSubject::Setting(*position),
             Self::MarkedAgain(_) => DispatchSubject::NextMark,
             Self::NotATrait => DispatchSubject::Annotated,
         }

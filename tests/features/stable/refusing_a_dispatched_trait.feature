@@ -94,7 +94,7 @@ Feature: Refusing a trait that static dispatch cannot follow
     And the compiler should report 1 errors
 
   @v0_3_0
-  Scenario Outline: An argument other than one crate is refused, and remote is refused as planned
+  Scenario Outline: An argument other than one crate is refused, a quoted crate in the container's words, and remote as planned
     Given an invalid dispatched trait fixture "<fixture>"
     When the fixture is compiled
     Then compilation should fail with "<message>"
@@ -104,18 +104,28 @@ Feature: Refusing a trait that static dispatch cannot follow
     Examples:
       | fixture                       | message                                                                                                    |
       | static_dispatch_with_argument | #[snapfit::static_dispatch] takes no arguments but crate, given once, the path to snapfit when a crate depends on it under another name; write it alone, as #[snapfit::static_dispatch], or as #[snapfit::static_dispatch(crate = di)] |
-      | static_dispatch_quoted_crate  | #[snapfit::static_dispatch] takes no arguments but crate, given once                                         |
+      | static_dispatch_quoted_crate  | crate takes the path snapfit is reached through, not a string; write it unquoted: crate = snapfit           |
       | static_dispatch_remote        | #[snapfit::static_dispatch(remote = ...)] is planned for a future version of snapfit and is not implemented yet |
 
   @v0_3_0
-  Scenario: A crate given twice, or one that is no path of modules, is refused at the attribute
+  Scenario: A crate given twice, or one that is no path of modules, is refused at the setting
     Given an invalid dispatched trait fixture "static_dispatch_crate_forms"
     When the fixture is compiled
-    Then compilation should fail with "#[snapfit::static_dispatch] takes no arguments but crate, given once"
-    And the error should point at line 1 of the fixture
-    And the error should point at line 6 of the fixture
-    And the error should point at line 11 of the fixture
+    Then the error at line 1 of the fixture should say "#[snapfit::static_dispatch] takes no arguments but crate, given once"
+    And the error at line 6 of the fixture should say "crate takes the path snapfit is reached through, and '3' is not a path"
+    And the error at line 11 of the fixture should say "crate takes the path snapfit is reached through, and 'snapfit::<u32>' is not a path"
     And the compiler should report 3 errors
+
+  @v0_3_0 @regression
+  Scenario: A planned remote is refused beside every other mistake in the arguments, each at its own setting
+    Given an invalid dispatched trait fixture "static_dispatch_remote_beside_other_mistakes"
+    When the fixture is compiled
+    Then the error at line 2 of the fixture should say "crate takes the path snapfit is reached through, not a string; write it unquoted: crate = snapfit"
+    And the error at line 3 of the fixture should say "crate takes the path snapfit is reached through, and '3' is not a path"
+    And the error at line 3 of the fixture should say "#[snapfit::static_dispatch] takes no arguments but crate, given once"
+    And the error at line 4 of the fixture should say "#[snapfit::static_dispatch(remote = ...)] is planned for a future version of snapfit and is not implemented yet"
+    And the error at line 5 of the fixture should say "#[snapfit::static_dispatch] takes no arguments but crate, given once"
+    And the compiler should report 5 errors
 
   @v0_3_0
   Scenario: Every problem of the attribute and of the trait is reported in one compile
