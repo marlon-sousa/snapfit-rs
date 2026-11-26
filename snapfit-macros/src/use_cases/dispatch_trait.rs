@@ -26,6 +26,11 @@ pub(crate) fn plan_dispatch<T, M, A>(
             let (_, plan) = DomainErrors::both(header, plan_items(declaration))?;
             Ok(plan)
         }
+        // The trait's own problems are the last mark's to report, once.
+        Annotated::MarkedAgain(name) => Err(DomainErrors::new(
+            DispatchProblem::MarkedAgain(name).into(),
+            arguments.into_iter().collect(),
+        )),
         Annotated::Other => Err(DomainErrors::new(
             DispatchProblem::NotATrait.into(),
             arguments.into_iter().collect(),

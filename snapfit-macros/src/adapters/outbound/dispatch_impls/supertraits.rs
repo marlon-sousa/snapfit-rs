@@ -1,8 +1,8 @@
 //! Adapter: the check, in words, that snapfit's dispatch types implement
 //! each supertrait of a dispatched trait. Plays the role of its parent.
 
-use proc_macro2::TokenStream;
-use quote::{quote, quote_spanned};
+use proc_macro2::{Span, TokenStream};
+use quote::{format_ident, quote, quote_spanned};
 use syn::ext::IdentExt;
 use syn::parse_quote;
 use syn::spanned::Spanned;
@@ -18,13 +18,17 @@ pub(super) fn emit_supertrait_checks(syntax: &TraitSyntax) -> TokenStream {
     syntax
         .supertraits
         .iter()
-        .map(|bound| check(syntax, bound))
+        .enumerate()
+        .map(|(position, bound)| check(syntax, position, bound))
         .collect()
 }
 
 /// The check that `Only<L>` implements the supertrait whenever `L` implements
-/// the trait, reported in words at the supertrait instead of at the impl.
-fn check(syntax: &TraitSyntax, bound: &syn::TraitBound) -> TokenStream {
+/// the trait, reported in words at the supertrait instead of at the impl. Its
+/// local trait is named after the trait, the supertrait and its position, so
+/// that a type that fails it has no trait of the same name, from the check of
+/// another supertrait, for rustc to point at.
+fn check(syntax: &TraitSyntax, position: usize, bound: &syn::TraitBound) -> TokenStream {
     let trait_name = syntax.ident.unraw();
     let supertrait = bound
         .path
@@ -37,6 +41,10 @@ fn check(syntax: &TraitSyntax, bound: &syn::TraitBound) -> TokenStream {
     let label = format!("a supertrait of `{trait_name}` that its dispatch types do not implement");
     let note = format!(
         "mark `{supertrait}` with #[snapfit::static_dispatch] where it is defined; a supertrait of another crate, other than Send, Sync, Sized, Clone and Debug, cannot be dispatched statically, so dispatch `{trait_name}` dynamically instead, through Arc<dyn {trait_name}>"
+    );
+    let holds = format_ident!(
+        "__Snapfit{trait_name}Supertrait{position}{supertrait}",
+        span = Span::call_site()
     );
     let path = TraitPath::of(syntax);
     let plain = path.plain();
@@ -52,16 +60,17 @@ fn check(syntax: &TraitSyntax, bound: &syn::TraitBound) -> TokenStream {
     checked.params.push(parse_quote!(__SnapfitLast: #plain));
     let (checked_generics, _, _) = checked.split_for_impl();
     let call = quote_spanned!(bound.span()=>
-        <#runtime::__private::Only<__SnapfitLast> as __SnapfitSupertrait #arguments>::__snapfit_holds();
+        <#runtime::__private::Only<__SnapfitLast> as #holds #arguments>::__snapfit_holds();
     );
     quote! {
         const _: () = {
             #[diagnostic::on_unimplemented(message = #message, label = #label, note = #note)]
-            trait __SnapfitSupertrait #trait_generics #where_clause {
+            #[allow(non_camel_case_types)]
+            trait #holds #trait_generics #where_clause {
                 fn __snapfit_holds() {}
             }
             #[diagnostic::do_not_recommend]
-            impl #holder_generics __SnapfitSupertrait #arguments for __SnapfitHolder #where_clause {}
+            impl #holder_generics #holds #arguments for __SnapfitHolder #where_clause {}
             #[allow(dead_code)]
             fn __snapfit_supertrait #checked_generics () #where_clause {
                 #call

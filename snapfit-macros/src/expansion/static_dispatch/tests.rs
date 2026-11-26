@@ -40,6 +40,29 @@ fn the_trait_is_kept_as_written_and_followed_by_its_two_impls() {
 }
 
 #[test]
+fn a_trait_marked_again_is_kept_as_written_with_one_error_at_the_next_mark_and_no_impl() {
+    let trait_item = quote!(
+        #[doc = "Where the orders are kept."]
+        #[static_dispatch]
+        pub trait Database {
+            fn create() -> Self;
+        }
+    );
+
+    let tokens = static_dispatch_attribute(quote!(), trait_item.clone());
+
+    let errors = compile_errors(&tokens);
+    assert_eq!(
+        errors,
+        [
+            "trait 'Database' carries #[snapfit::static_dispatch] more than once, and each one would write the impls that dispatch it again; keep only one"
+        ]
+    );
+    assert!(compact(tokens.clone()).ends_with(&compact(trait_item)));
+    assert!(!compact(tokens).contains("__private::Only"));
+}
+
+#[test]
 fn a_refused_trait_is_kept_as_written_beside_every_error_and_gets_no_impl() {
     let tokens = static_dispatch_attribute(
         quote!(remote = other::Database),

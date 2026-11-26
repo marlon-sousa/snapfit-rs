@@ -26,6 +26,10 @@ pub(crate) enum DispatchProblem {
     )]
     SelfInTraitBounds(TraitName),
     #[error(
+        "trait '{0}' carries #[snapfit::static_dispatch] more than once, and each one would write the impls that dispatch it again; keep only one"
+    )]
+    MarkedAgain(TraitName),
+    #[error(
         "#[snapfit::static_dispatch] goes on a trait, and this item is not one; put it on the trait the container dispatches"
     )]
     NotATrait,
@@ -91,6 +95,7 @@ impl DispatchProblem {
             Self::UnsafeTrait(_) => DispatchSubject::Safety,
             Self::SelfInTraitBounds(_) => DispatchSubject::Bounds,
             Self::Arguments => DispatchSubject::Arguments,
+            Self::MarkedAgain(_) => DispatchSubject::NextMark,
             Self::NotATrait => DispatchSubject::Annotated,
         }
     }

@@ -1,6 +1,7 @@
 use super::*;
 use crate::domain::{
-    DispatchArguments, Execution, ForwardedItem, Rebuilding, Receiver, ReturnShape, Safety, SelfUse,
+    DispatchArguments, Execution, ForwardedItem, Rebuilding, Receiver, ReturnShape, Safety,
+    SelfUse, TraitName,
 };
 use crate::test_support::{dispatch_attribute, forwardable_method, method};
 
@@ -60,6 +61,24 @@ fn every_problem_of_the_attribute_and_of_each_item_is_reported_together() {
     assert!(errors[0].contains("takes no arguments"));
     assert!(errors[1].starts_with("method 'create' in trait 'Database' has no receiver"));
     assert!(errors[2].starts_with("method 'orders' in trait 'Database' returns impl Trait"));
+}
+
+#[test]
+fn a_trait_marked_again_is_refused_beside_its_arguments_alone() {
+    let name = TraitName::new("Database".to_string()).unwrap();
+    let attribute = DispatchAttribute::<(), &str, &str>::new(
+        DispatchArguments::new(0, 0, 1),
+        Annotated::MarkedAgain(name),
+    );
+
+    let errors = messages(plan_dispatch(attribute).unwrap_err());
+
+    assert_eq!(errors.len(), 2);
+    assert!(
+        errors[0]
+            .starts_with("trait 'Database' carries #[snapfit::static_dispatch] more than once")
+    );
+    assert!(errors[1].contains("takes no arguments"));
 }
 
 #[test]

@@ -22,7 +22,7 @@ Static dispatch: a field typed with a name the container declares holds one of a
 - An `implementation` on a field that keeps its trait object deeper in its type, such as `Arc<Controller<Arc<dyn PaymentGateway>>>`, is refused with words that ask for a field of its own for the trait object, instead of asking for `build = factory`.
 - A type that keeps a trait object deeper but has no constructor snapfit can call, such as `Option<Box<dyn PaymentGateway>>`, is reported by rustc where the container builds it, instead of by snapfit asking for `build = factory`.
 - `implementation = [A, B]` is refused with words that point to `implementations`, instead of as a token that was not expected.
-- The settings a field's error offers for a misspelt setting include `implementations`.
+- The settings offered for a misspelt setting include `implementations` on a field, and `crate` on `#[container]`.
 
 ### Fixed
 
