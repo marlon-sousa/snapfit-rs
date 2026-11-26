@@ -1,0 +1,67 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="theme-color" content="#fbf9f4" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#171a19" media="(prefers-color-scheme: dark)"><title>What this version supports · The Snapfit Book (v0.3.0)</title><meta name="description" content="What this version supports, from The Snapfit Book (v0.3.0)."><link rel="canonical" href="https://marlon-sousa.github.io/snapfit-rs/book/v0.3.0/what-this-version-supports/"><link rel="icon" type="image/svg+xml" href="/snapfit-rs/favicon.svg"><link rel="alternate" type="text/markdown" title="This page in Markdown" href="/snapfit-rs/book/v0.3.0/what-this-version-supports.md"><link rel="stylesheet" href="/snapfit-rs/_astro/Base.DTadlXKB.css"></head><body><a class="skip-link" href="#main">Skip to the text</a><header class="masthead"><div class="masthead__inner"><p class="masthead__book"><a class="masthead__title" href="/snapfit-rs/">snapfit</a><span class="masthead__edition">The Snapfit Book (v0.3.0)</span></p><div class="masthead__nav"><nav aria-label="Site"><ul><li><a href="/snapfit-rs/">Home</a></li><li><a href="/snapfit-rs/book/v0.3.0/">Contents</a></li><li><a href="/snapfit-rs/releases/">Releases</a></li><li><a href="https://github.com/marlon-sousa/snapfit-rs">GitHub</a></li></ul></nav></div></div></header><main id="main" tabindex="-1" class="page"><p class="eyebrow"><a href="/snapfit-rs/book/v0.3.0/#part-2-snapfit">Part 2: Snapfit</a></p><article class="prose"><h1 id="what-this-version-supports">What this version supports</h1>
+<p>This edition of <strong>The Snapfit Book</strong> covers the <strong><code>0.3</code></strong> releases of <code>snapfit</code>. It needs Rust <strong><code>1.85.0</code></strong> or newer, and your own crate can use any edition from 2018 on.</p>
+<h2 id="who-03-is-for">Who 0.3 is for</h2>
+<p><code>0.3</code> fits small and medium applications whose components can be built synchronously when the program starts, even when building one can fail: command-line tools, background workers, and web services whose clients and connection pools are created without waiting, such as an HTTP client or a database pool that connects lazily. It does one thing, and does it well: it builds a graph of shared components from one struct, and checks that graph while the program compiles.</p>
+<h2 id="what-it-does">What it does</h2>
+<div class="table-scroll" role="group" tabindex="0" aria-label="Table: Capability, Details"><table>
+<thead>
+<tr>
+<th align="left">Capability</th>
+<th align="left">Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left"><strong>Plain domain types</strong></td>
+<td align="left">Services, repositories and controllers need no attribute, trait or import of <code>snapfit</code> (<a href="/snapfit-rs/book/v0.3.0/06-pure-domain-types/">Chapter 6</a>); a trait dispatched statically carries one attribute (<a href="/snapfit-rs/book/v0.3.0/13-static-dispatch/">Chapter 13</a>).</td>
+</tr>
+<tr>
+<td align="left"><strong>Shared components</strong></td>
+<td align="left">Every field of a <code>#[container]</code> is built once, and its getter returns a clone of it, which for an <code>Arc&#x3C;T></code> field is the same value; fields can be <code>Arc&#x3C;T></code>, wrapped for you, or any <code>T: Clone</code> (<a href="/snapfit-rs/book/v0.3.0/05-installing-and-first-singleton/">Chapter 5</a>, <a href="/snapfit-rs/book/v0.3.0/07-wiring-dependencies-and-constructors/">Chapter 7</a>).</td>
+</tr>
+<tr>
+<td align="left"><strong>Dependencies by name</strong></td>
+<td align="left"><code>deps = [...]</code> lists the fields a component needs, passed to its constructor in that order (<a href="/snapfit-rs/book/v0.3.0/07-wiring-dependencies-and-constructors/">Chapter 7</a>), or by name to a factory or a builder (<a href="/snapfit-rs/book/v0.3.0/10-passing-dependencies-by-name/">Chapter 10</a>).</td>
+</tr>
+<tr>
+<td align="left"><strong>Ways to build a field</strong></td>
+<td align="left"><code>new</code> by default, <code>build = default</code>, <code>build = constructor(&#x3C;fn>)</code>, and <code>leaf_build = default</code> for a whole container (<a href="/snapfit-rs/book/v0.3.0/07-wiring-dependencies-and-constructors/">Chapter 7</a>); <code>build = factory</code> and <code>build = builder</code> (<a href="/snapfit-rs/book/v0.3.0/10-passing-dependencies-by-name/">Chapter 10</a>).</td>
+</tr>
+<tr>
+<td align="left"><strong>Construction order worked out when compiling</strong></td>
+<td align="left">Fields can be declared in any order; each is built after the fields it needs (<a href="/snapfit-rs/book/v0.3.0/08-read-the-container-know-the-graph/">Chapter 8</a>).</td>
+</tr>
+<tr>
+<td align="left"><strong>Several components of one type</strong></td>
+<td align="left">Fields are told apart by name, without wrapper types (<a href="/snapfit-rs/book/v0.3.0/09-multiple-instances-of-the-same-type/">Chapter 9</a>).</td>
+</tr>
+<tr>
+<td align="left"><strong>Choosing an implementation</strong></td>
+<td align="left">A field's concrete type is the choice; or the field is a trait object, built from the type its <code>implementation</code> names, or by a factory that chooses while the program starts. Services take a trait object (<a href="/snapfit-rs/book/v0.3.0/11-choosing-an-implementation/">Chapter 11</a>).</td>
+</tr>
+<tr>
+<td align="left"><strong>Static dispatch</strong></td>
+<td align="left"><code>#[snapfit::static_dispatch]</code> on a trait of your own, and <code>static_dispatch_for</code> on the container, give one type for a closed list of implementations, whose calls are a <code>match</code> the compiler can inline; test stand-ins join the list under <code>cfg_attr(test, ...)</code> (<a href="/snapfit-rs/book/v0.3.0/13-static-dispatch/">Chapter 13</a>, <a href="/snapfit-rs/book/v0.3.0/14-choosing-static-or-dynamic-dispatch/">Chapter 14</a>).</td>
+</tr>
+<tr>
+<td align="left"><strong>Components that can fail</strong></td>
+<td align="left">A field marked <code>fallible = true</code> is built by a constructor, builder or factory that returns a <code>Result</code>; the container is built by <code>try_new()</code>, which returns the first failure as a <code>BuildError</code> naming its field (<a href="/snapfit-rs/book/v0.3.0/15-when-building-can-fail/">Chapter 15</a>).</td>
+</tr>
+<tr>
+<td align="left"><strong>Mistakes refused when compiling</strong></td>
+<td align="left">Unknown dependencies and cycles, every one in the same build, each at its field (<a href="/snapfit-rs/book/v0.3.0/16-mistakes-caught-by-the-compiler/">Chapter 16</a>).</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="what-it-doesnt-do">What it doesn't do</h2>
+<p>If you have used dependency injection before, some questions probably came to mind while reading. Here are the ones that usually come first, and how <code>0.3</code> answers them:</p>
+<ol>
+<li><strong>Can a constructor wait for something?</strong> No. Constructors are synchronous, so a client that has to be awaited before it is usable can't be a field of the container.</li>
+<li><strong>Can I pass values in?</strong> No. <code>new()</code> takes no arguments. A configuration component reads its own settings, for example from environment variables, in its constructor.</li>
+<li><strong>Can a field be a trait object without writing code?</strong> Yes, when it is an <code>Arc</code> of one. A field typed <code>Arc&#x3C;dyn PaymentGateway></code> names the type to build with <code>implementation = StripeGateway</code>. Any other trait object, such as a <code>Box&#x3C;dyn PaymentGateway></code>, and a choice made while the program starts, are built in a factory (<a href="/snapfit-rs/book/v0.3.0/11-choosing-an-implementation/">Chapter 11</a>).</li>
+<li><strong>Can a trait of another crate be dispatched statically?</strong> No. Only a trait of your own crate can carry <code>#[snapfit::static_dispatch]</code>, and a trait with a supertrait of another crate, such as <code>Display</code>, can't be dispatched statically either. Such traits are dispatched dynamically, as trait objects (<a href="/snapfit-rs/book/v0.3.0/14-choosing-static-or-dynamic-dispatch/">Chapter 14</a>).</li>
+<li><strong>Can a field give me a new value each time?</strong> No. Every component is shared.</li>
+<li><strong>Can a test replace one field of a container?</strong> No. A test that needs different components declares its own container (<a href="/snapfit-rs/book/v0.3.0/11-choosing-an-implementation/">Chapter 11</a>, <a href="/snapfit-rs/book/v0.3.0/12-testing-a-service-on-its-own/">Chapter 12</a>). A test of one service builds that service directly, with stand-ins for what it asks for (<a href="/snapfit-rs/book/v0.3.0/12-testing-a-service-on-its-own/">Chapter 12</a>).</li>
+<li><strong>Can a container be generic?</strong> No. <code>struct ShopContainer&#x3C;T></code> is refused.</li>
+</ol>
+<p>Some of these may come in later versions. We plan small, frequent releases rather than one large one, because <code>0.3</code> is already useful as it is. We don't promise what each release will hold, or when.</p></article><nav class="pager" aria-label="Previous and next pages"><ul><li class="pager__previous"><a href="/snapfit-rs/book/v0.3.0/04-why-we-built-snapfit/" rel="prev"><span class="pager__direction">Previous</span><span class="pager__title">4. Why we built Snapfit</span></a></li><li class="pager__next"><a href="/snapfit-rs/book/v0.3.0/05-installing-and-first-singleton/" rel="next"><span class="pager__direction">Next</span><span class="pager__title">5. Installing Snapfit and your first singleton</span></a></li></ul></nav></main><footer class="site-footer"><div class="site-footer__inner"><p><a href="/snapfit-rs/">snapfit</a> is a zero-cost, compile-time verified, pure-Rust dependency injection framework. Read <a href="/snapfit-rs/book/v0.3.0/">The Snapfit Book (v0.3.0)</a> or browse <a href="/snapfit-rs/releases/">all releases</a>.</p><p>For agents: <a href="/snapfit-rs/book/v0.3.0/llms.txt">llms.txt</a>, and <a href="/snapfit-rs/book/v0.3.0/what-this-version-supports.md">this page in Markdown</a>.</p><p><a href="https://github.com/marlon-sousa/snapfit-rs">Source on GitHub</a>, licensed under <a href="https://github.com/marlon-sousa/snapfit-rs/blob/v0.3.0/LICENSE-APACHE">Apache 2.0</a> or <a href="https://github.com/marlon-sousa/snapfit-rs/blob/v0.3.0/LICENSE-MIT">MIT</a>.</p></div></footer><script type="module" src="/snapfit-rs/_astro/Base.astro_astro_type_script_index_0_lang.Doi2bAkh.js"></script></body></html>

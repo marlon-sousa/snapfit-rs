@@ -1,14 +1,20 @@
 [
   {
+    "version": "v0.3.0",
+    "date": "2026-11-26",
+    "summary": "Static dispatch: a trait marked once with #[snapfit::static_dispatch] is dispatched through a match over a closed list of its implementations, each field naming the one it holds, instead of through a trait object.",
+    "prerelease": false
+  },
+  {
     "version": "v0.2.0",
     "date": "2026-11-23",
-    "summary": "snapfit v0.2.0 release and verified edition of The Snapfit Book.",
+    "summary": "Fields typed as their trait, Arc<dyn Trait>, built from the implementation they name, and fields whose construction can fail, built by a try_new() that returns the first error.",
     "prerelease": false
   },
   {
     "version": "v0.1.1",
-    "date": "2026-11-20",
-    "summary": "snapfit v0.1.1 release and verified edition of The Snapfit Book.",
+    "date": "2026-11-18",
+    "summary": "The same API as 0.1.0, documented for users: docs.rs shows the README and documents the container macro and the Container trait, and the README on crates.io leaves out the unstable and planned APIs and links to every edition of the book.",
     "prerelease": false
   },
   {

@@ -1,0 +1,188 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="theme-color" content="#fbf9f4" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#171a19" media="(prefers-color-scheme: dark)"><title>Appendix 1: Cheat sheet · The Snapfit Book (v0.3.0)</title><meta name="description" content="Appendix 1: Cheat sheet, from The Snapfit Book (v0.3.0)."><link rel="canonical" href="https://marlon-sousa.github.io/snapfit-rs/book/v0.3.0/appendix-1-cheat-sheet/"><link rel="icon" type="image/svg+xml" href="/snapfit-rs/favicon.svg"><link rel="alternate" type="text/markdown" title="This page in Markdown" href="/snapfit-rs/book/v0.3.0/appendix-1-cheat-sheet.md"><link rel="stylesheet" href="/snapfit-rs/_astro/Base.DTadlXKB.css"></head><body><a class="skip-link" href="#main">Skip to the text</a><header class="masthead"><div class="masthead__inner"><p class="masthead__book"><a class="masthead__title" href="/snapfit-rs/">snapfit</a><span class="masthead__edition">The Snapfit Book (v0.3.0)</span></p><div class="masthead__nav"><nav aria-label="Site"><ul><li><a href="/snapfit-rs/">Home</a></li><li><a href="/snapfit-rs/book/v0.3.0/">Contents</a></li><li><a href="/snapfit-rs/releases/">Releases</a></li><li><a href="https://github.com/marlon-sousa/snapfit-rs">GitHub</a></li></ul></nav></div></div></header><main id="main" tabindex="-1" class="page"><p class="eyebrow"><a href="/snapfit-rs/book/v0.3.0/#appendices">Appendices</a><span aria-hidden="true"> · </span><span class="visually-hidden">, </span>Appendix</p><article class="prose"><h1 id="cheat-sheet">Cheat sheet</h1>
+<p>Every container attribute and field attribute in <code>snapfit</code> <code>0.3</code>, with a link to the chapter that teaches it.</p>
+<h2 id="container-attributes-container">Container attributes (<code>#[container(...)]</code>)</h2>
+<div class="table-scroll" role="group" tabindex="0" aria-label="Table: Declaration, What it does, Taught in"><table>
+<thead>
+<tr>
+<th align="left">Declaration</th>
+<th align="left">What it does</th>
+<th align="left">Taught in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left"><code>#[container]</code></td>
+<td align="left">Keeps the struct as written (attributes, docs, visibility), builds each field after the fields it needs, and generates <code>new()</code>, <code>Default</code>, <code>Container</code>, and <code>get_&#x3C;name>()</code> methods; with a fallible field, <code>try_new()</code> and <code>FallibleContainer</code> instead of <code>new()</code>, <code>Default</code> and <code>Container</code>.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.3.0/05-installing-and-first-singleton/">Chapter 5</a>, <a href="/snapfit-rs/book/v0.3.0/15-when-building-can-fail/">Chapter 15</a></td>
+</tr>
+<tr>
+<td align="left"><code>#[container(leaf_build = default)]</code></td>
+<td align="left">Builds every field with no <code>deps</code> and no <code>build</code> of its own with <code>Default</code>; a field's own <code>build</code> always wins. Without it, such fields call <code>new()</code>. A fallible field can't be one of them: give it a <code>build</code> of its own.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.3.0/07-wiring-dependencies-and-constructors/">Chapter 7</a>, <a href="/snapfit-rs/book/v0.3.0/15-when-building-can-fail/">Chapter 15</a></td>
+</tr>
+<tr>
+<td align="left"><code>#[container(leaf_build = constructor(&#x3C;fn>))]</code></td>
+<td align="left">Builds those same fields with <code>&#x3C;Type>::&#x3C;fn>()</code>; <code>constructor(new)</code> is what a container does without <code>leaf_build</code>. Unless <code>&#x3C;fn></code> is <code>new</code>, a fallible field can't be one of them.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.3.0/07-wiring-dependencies-and-constructors/">Chapter 7</a></td>
+</tr>
+<tr>
+<td align="left"><code>#[di::container(crate = di)]</code></td>
+<td align="left">For a crate whose <code>Cargo.toml</code> depends on <code>snapfit</code> under another name, such as <code>di = { package = "snapfit", version = "0.3" }</code>: the code the macro writes reaches <code>snapfit</code> through <code>di</code>. A trait it dispatches statically says the same, with <code>#[di::static_dispatch(crate = di)]</code>.</td>
+<td align="left">No chapter: this sheet only</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="static-dispatch">Static dispatch</h2>
+<div class="table-scroll" role="group" tabindex="0" aria-label="Table: Declaration, What it does, Taught in"><table>
+<thead>
+<tr>
+<th align="left">Declaration</th>
+<th align="left">What it does</th>
+<th align="left">Taught in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left"><code>#[snapfit::static_dispatch]</code> on a trait</td>
+<td align="left">Implements the trait for <code>snapfit</code>'s dispatch types, in the trait's module, forwarding every method through a <code>match</code>. Written once, where the trait is defined; the trait must be of your own crate.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.3.0/13-static-dispatch/">Chapter 13</a></td>
+</tr>
+<tr>
+<td align="left"><code>#[static_dispatch_for(PriceRule as Prices)]</code> under <code>#[container]</code></td>
+<td align="left">Declares <code>Prices</code>, a type alias with the container's visibility, for the implementations that the <code>implementation</code> of the fields typed <code>Prices</code> or <code>Arc&#x3C;Prices></code> name.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.3.0/13-static-dispatch/">Chapter 13</a></td>
+</tr>
+<tr>
+<td align="left"><code>#[singleton(deps = [config], build = factory, implementations = [ListPrice, SalePrice])]</code> on a field typed <code>Arc&#x3C;Prices></code></td>
+<td align="left">Lists the implementations the field's factory may return, always in square brackets, even one, and adds them to the list of <code>Prices</code>.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.3.0/13-static-dispatch/">Chapter 13</a></td>
+</tr>
+<tr>
+<td align="left"><code>#[cfg_attr(test, extend_static_dispatch(Prices, [FixedPrice]))]</code></td>
+<td align="left">Adds implementations where the condition holds, such as test stand-ins; written without <code>cfg_attr</code>, adds them to every build. Extensions only add.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.3.0/13-static-dispatch/">Chapter 13</a></td>
+</tr>
+<tr>
+<td align="left"><code>Prices::of(value)</code></td>
+<td align="left">Puts an implementation in its variant; a type not on the list doesn't compile.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.3.0/13-static-dispatch/">Chapter 13</a></td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="ways-to-build-a-field-build--">Ways to build a field (<code>build = ...</code>)</h2>
+<div class="table-scroll" role="group" tabindex="0" aria-label="Table: build, What the container calls, Choose it when, Taught in"><table>
+<thead>
+<tr>
+<th align="left"><code>build</code></th>
+<th align="left">What the container calls</th>
+<th align="left">Choose it when</th>
+<th align="left">Taught in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left">Left out</td>
+<td align="left"><code>&#x3C;Type>::new(...)</code>, with the fields in <code>deps</code> in the order they are listed; for a leaf, whatever the container's <code>leaf_build</code> says.</td>
+<td align="left">The type has a <code>new</code> whose arguments can't be passed the wrong way round.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.3.0/07-wiring-dependencies-and-constructors/">Chapter 7</a></td>
+</tr>
+<tr>
+<td align="left"><code>build = default</code></td>
+<td align="left"><code>&#x3C;Type>::default()</code>; no <code>deps</code> allowed, and the field can't be fallible.</td>
+<td align="left">The type derives <code>Default</code> and needs nothing.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.3.0/07-wiring-dependencies-and-constructors/">Chapter 7</a></td>
+</tr>
+<tr>
+<td align="left"><code>build = constructor(&#x3C;fn>)</code></td>
+<td align="left"><code>&#x3C;Type>::&#x3C;fn>(...)</code>, with the fields in <code>deps</code> in the order they are listed.</td>
+<td align="left">The type's constructor has another name.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.3.0/07-wiring-dependencies-and-constructors/">Chapter 7</a></td>
+</tr>
+<tr>
+<td align="left"><code>build = builder</code></td>
+<td align="left"><code>&#x3C;Type>::builder()</code>, one setter for each name in <code>deps</code>, then <code>.build()</code>, or the <code>start</code> and <code>finish</code> it names.</td>
+<td align="left">The type has a builder, or can have one, such as when two of its inputs have the same type.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.3.0/10-passing-dependencies-by-name/">Chapter 10</a></td>
+</tr>
+<tr>
+<td align="left"><code>build = factory</code></td>
+<td align="left"><code>build_&#x3C;field></code> of <code>&#x3C;Container>Factories</code>, which you write, with the inputs by name; not beside <code>implementation</code>.</td>
+<td align="left">Building the field is the container's business, or the type isn't yours.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.3.0/10-passing-dependencies-by-name/">Chapter 10</a>, <a href="/snapfit-rs/book/v0.3.0/11-choosing-an-implementation/">Chapter 11</a></td>
+</tr>
+</tbody>
+</table></div>
+<p>A leaf is a field with no <code>deps</code> and no <code>build</code> of its own. <code>leaf_build</code> sets how every leaf of a container is built, <code>new</code> when it is left out, and a field's own <code>build</code> always wins. A fallible field can't be a leaf that <code>leaf_build</code> builds, unless that is <code>constructor(new)</code>.</p>
+<h2 id="field-attributes">Field attributes</h2>
+<div class="table-scroll" role="group" tabindex="0" aria-label="Table: Declaration, Storage, Construction call, Taught in"><table>
+<thead>
+<tr>
+<th align="left">Declaration</th>
+<th align="left">Storage</th>
+<th align="left">Construction call</th>
+<th align="left">Taught in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left"><code>#[singleton]</code></td>
+<td align="left">Stored in container; cloned on <code>get_&#x3C;name>()</code>.</td>
+<td align="left"><code>&#x3C;Type>::new()</code> (auto-wrapped in <code>Arc::new(...)</code> if field type is <code>Arc&#x3C;T></code>).</td>
+<td align="left"><a href="/snapfit-rs/book/v0.3.0/05-installing-and-first-singleton/">Chapter 5</a></td>
+</tr>
+<tr>
+<td align="left"><code>#[singleton(deps = [a, b])]</code></td>
+<td align="left">Stored in container; cloned on <code>get_&#x3C;name>()</code>.</td>
+<td align="left"><code>&#x3C;Type>::new(a.clone(), b.clone())</code>.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.3.0/07-wiring-dependencies-and-constructors/">Chapter 7</a></td>
+</tr>
+<tr>
+<td align="left"><code>#[singleton(build = default)]</code></td>
+<td align="left">Stored in container; cloned on <code>get_&#x3C;name>()</code>.</td>
+<td align="left"><code>&#x3C;Type>::default()</code>; no <code>deps</code> allowed.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.3.0/07-wiring-dependencies-and-constructors/">Chapter 7</a></td>
+</tr>
+<tr>
+<td align="left"><code>#[singleton(deps = [a], build = constructor(from_a))]</code></td>
+<td align="left">Stored in container; cloned on <code>get_&#x3C;name>()</code>.</td>
+<td align="left"><code>&#x3C;Type>::from_a(a.clone())</code>.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.3.0/07-wiring-dependencies-and-constructors/">Chapter 7</a></td>
+</tr>
+<tr>
+<td align="left"><code>#[singleton(deps = [a, b], build = factory)]</code></td>
+<td align="left">Stored in container; cloned on <code>get_&#x3C;name>()</code>.</td>
+<td align="left"><code>&#x3C;Container>Factories::build_&#x3C;name>(&#x3C;Container>&#x3C;Name>Inputs { a: a.clone(), b: b.clone() })</code>, which you implement; the field may be a trait object or a statically dispatched type.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.3.0/10-passing-dependencies-by-name/">Chapter 10</a>, <a href="/snapfit-rs/book/v0.3.0/11-choosing-an-implementation/">Chapter 11</a>, <a href="/snapfit-rs/book/v0.3.0/13-static-dispatch/">Chapter 13</a></td>
+</tr>
+<tr>
+<td align="left"><code>#[singleton(deps = [a], implementation = StripeGateway)]</code> on <code>Arc&#x3C;dyn Trait></code></td>
+<td align="left">Stored in container as declared; cloned on <code>get_&#x3C;name>()</code>.</td>
+<td align="left"><code>Arc::new(&#x3C;StripeGateway>::new(a.clone()))</code>, converted to the trait object; <code>build = constructor(...)</code>, <code>default</code> and <code>builder</code> work on <code>StripeGateway</code>. The getter and every dependent see <code>Arc&#x3C;dyn Trait></code>.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.3.0/11-choosing-an-implementation/">Chapter 11</a></td>
+</tr>
+<tr>
+<td align="left"><code>#[singleton(deps = [a], implementation = MemberPrice)]</code> on <code>Arc&#x3C;Prices></code> or <code>Prices</code></td>
+<td align="left">Stored in container as declared; cloned on <code>get_&#x3C;name>()</code>.</td>
+<td align="left"><code>Arc::new(Prices::of(&#x3C;MemberPrice>::new(a.clone())))</code>, without <code>Arc::new</code> on a <code>Prices</code> field; <code>build = constructor(...)</code>, <code>default</code> and <code>builder</code> work on <code>MemberPrice</code>. The getter and every dependent see the field's type.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.3.0/13-static-dispatch/">Chapter 13</a></td>
+</tr>
+<tr>
+<td align="left"><code>#[singleton(deps = [a, label = b], build = builder)]</code></td>
+<td align="left">Stored in container; cloned on <code>get_&#x3C;name>()</code>.</td>
+<td align="left"><code>&#x3C;Type>::builder().a(a.clone()).label(b.clone()).build()</code>.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.3.0/10-passing-dependencies-by-name/">Chapter 10</a></td>
+</tr>
+<tr>
+<td align="left"><code>#[singleton(deps = [a], build = builder(start = make, finish = done))]</code></td>
+<td align="left">Stored in container; cloned on <code>get_&#x3C;name>()</code>.</td>
+<td align="left"><code>&#x3C;Type>::make().a(a.clone()).done()</code>.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.3.0/10-passing-dependencies-by-name/">Chapter 10</a></td>
+</tr>
+<tr>
+<td align="left"><code>#[singleton(deps = [a], fallible = true, build = constructor(connect))]</code></td>
+<td align="left">Stored in container; cloned on <code>get_&#x3C;name>()</code>.</td>
+<td align="left"><code>&#x3C;Type>::connect(a.clone())</code>, which returns a <code>Result</code>; its error becomes the <code>snapfit::BuildError</code> that <code>try_new()</code> returns. Works with <code>new</code>, a named constructor, a builder and a factory, whose <code>build_&#x3C;name></code> then returns <code>Result&#x3C;FieldType, Box&#x3C;dyn Error + Send + Sync>></code>.</td>
+<td align="left"><a href="/snapfit-rs/book/v0.3.0/15-when-building-can-fail/">Chapter 15</a></td>
+</tr>
+</tbody>
+</table></div></article><nav class="pager" aria-label="Previous and next pages"><ul><li class="pager__previous"><a href="/snapfit-rs/book/v0.3.0/17-working-with-coding-agents/" rel="prev"><span class="pager__direction">Previous</span><span class="pager__title">17. Working with coding agents</span></a></li></ul></nav></main><footer class="site-footer"><div class="site-footer__inner"><p><a href="/snapfit-rs/">snapfit</a> is a zero-cost, compile-time verified, pure-Rust dependency injection framework. Read <a href="/snapfit-rs/book/v0.3.0/">The Snapfit Book (v0.3.0)</a> or browse <a href="/snapfit-rs/releases/">all releases</a>.</p><p>For agents: <a href="/snapfit-rs/book/v0.3.0/llms.txt">llms.txt</a>, and <a href="/snapfit-rs/book/v0.3.0/appendix-1-cheat-sheet.md">this page in Markdown</a>.</p><p><a href="https://github.com/marlon-sousa/snapfit-rs">Source on GitHub</a>, licensed under <a href="https://github.com/marlon-sousa/snapfit-rs/blob/v0.3.0/LICENSE-APACHE">Apache 2.0</a> or <a href="https://github.com/marlon-sousa/snapfit-rs/blob/v0.3.0/LICENSE-MIT">MIT</a>.</p></div></footer><script type="module" src="/snapfit-rs/_astro/Base.astro_astro_type_script_index_0_lang.Doi2bAkh.js"></script></body></html>
