@@ -3,8 +3,8 @@ use syn::parse_quote;
 
 use super::*;
 use crate::domain::{
-    AttributePosition, Construction, Constructor, Execution, FunctionName, Lifecycle, TypeShape,
-    WrittenType,
+    AttributePosition, Construction, Constructor, Execution, FunctionName, Lifecycle, TypeName,
+    TypeShape, WrittenType,
 };
 use crate::test_support::{names, prerequisites};
 

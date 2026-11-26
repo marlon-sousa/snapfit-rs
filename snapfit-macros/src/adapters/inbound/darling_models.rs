@@ -4,15 +4,14 @@ use darling::FromMeta;
 use darling::ast::NestedMeta;
 use derive_new::new;
 use proc_macro2::TokenStream;
-use quote::quote;
 
-use super::type_inspector::compact_type_tokens;
 use crate::domain::ArgumentProblem;
 
 mod build_meta;
 mod expressions;
 mod fallible_meta;
 mod implementation_meta;
+mod parent_meta;
 mod prerequisites;
 mod runtime_meta;
 #[cfg(test)]
@@ -20,12 +19,12 @@ mod tests;
 
 pub(super) use build_meta::{BuildMeta, BuildWord, FunctionNameMeta};
 pub(super) use expressions::single_word;
-use expressions::ungrouped;
 pub(super) use fallible_meta::FallibleMeta;
 use implementation_meta::FieldSettings;
 pub(super) use implementation_meta::{
     ImplementationEntry, ImplementationKey, ImplementationMeta, ImplementationValue,
 };
+pub(super) use parent_meta::ParentTypeMeta;
 pub(super) use prerequisites::{PrerequisiteEntry, PrerequisiteList, PrerequisiteMeta};
 pub(super) use runtime_meta::RuntimeMeta;
 
@@ -48,27 +47,6 @@ pub(super) struct ContainerAttrMeta {
 impl ContainerAttrMeta {
     pub(super) fn from_tokens(tokens: TokenStream) -> Result<Self, UnreadableAttribute<Self>> {
         read_list(tokens)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct ParentTypeMeta(pub(super) String);
-
-impl FromMeta for ParentTypeMeta {
-    fn from_string(value: &str) -> darling::Result<Self> {
-        Ok(Self(value.to_string()))
-    }
-
-    fn from_expr(expr: &syn::Expr) -> darling::Result<Self> {
-        let expr = ungrouped(expr);
-        match expr {
-            syn::Expr::Lit(syn::ExprLit {
-                lit: syn::Lit::Str(lit),
-                ..
-            }) => Self::from_string(&lit.value()),
-            syn::Expr::Path(path) => Ok(Self(compact_type_tokens(quote!(#path)))),
-            _ => Err(darling::Error::unexpected_expr_type(expr)),
-        }
     }
 }
 
